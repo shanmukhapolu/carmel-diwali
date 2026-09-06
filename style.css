@@ -103,25 +103,19 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 
-  /*
-   * Diwali background:
-   * Put your chosen image at:
-   * assets/diwali-bg.jpg
-   *
-   * The gradients remain underneath/over the image so the page
-   * still looks good if the image is not present.
-   */
   background:
     linear-gradient(
-      180deg,
-      rgba(24, 7, 23, 0.82) 0%,
-      rgba(43, 11, 29, 0.88) 30%,
-      rgba(250, 236, 211, 0.96) 72%,
-      #fff8ed 100%
+      rgba(18, 7, 25, 0.20),
+      rgba(18, 7, 25, 0.20)
     ),
-    url("assets/diwali-bg.jpg") center top / cover fixed no-repeat,
-    radial-gradient(circle at 20% 10%, #792e3d, transparent 32rem),
-    var(--color-bg-deep);
+    url("https://img.freepik.com/premium-photo/sophisticated-diwali-background-with-dark-purple-gradient-adorned-with-delicate-gold-floral-patterns-scattered-bright-oil-lamps-glowing-softly-oriental-festival-lights-ramadan_1029042-8004.jpg?semt=ais_hybrid")
+    center center / cover fixed no-repeat;
+}
+
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+  }
 }
 
 .sr-only {
@@ -135,38 +129,6 @@ body {
   white-space: nowrap;
   border: 0;
 }
-
-
-/* ==========================================================================
-   DECORATIVE FESTIVAL LIGHTS
-   ========================================================================== */
-
-body::before {
-  content: "";
-  position: fixed;
-  z-index: -1;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 130px;
-
-  background:
-    radial-gradient(circle at 5% 35%, #ffd978 0 3px, transparent 5px),
-    radial-gradient(circle at 12% 55%, #f4a62a 0 3px, transparent 5px),
-    radial-gradient(circle at 20% 30%, #ffd978 0 4px, transparent 6px),
-    radial-gradient(circle at 29% 60%, #f6b63c 0 3px, transparent 5px),
-    radial-gradient(circle at 39% 35%, #ffe4a0 0 3px, transparent 5px),
-    radial-gradient(circle at 50% 58%, #f2a12b 0 4px, transparent 6px),
-    radial-gradient(circle at 61% 34%, #ffe4a0 0 3px, transparent 5px),
-    radial-gradient(circle at 72% 58%, #f6b63c 0 3px, transparent 5px),
-    radial-gradient(circle at 82% 32%, #ffd978 0 4px, transparent 6px),
-    radial-gradient(circle at 91% 55%, #f2a12b 0 3px, transparent 5px),
-    radial-gradient(circle at 97% 34%, #ffe4a0 0 3px, transparent 5px);
-
-  opacity: 0.9;
-  pointer-events: none;
-}
-
 
 /* ==========================================================================
    LAYOUT
