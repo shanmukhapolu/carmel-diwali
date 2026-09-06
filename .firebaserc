@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "blood-drive-test"
+    "default": "blood-drive-test",
+    "diwali": "volunteerdiwali"
   },
   "targets": {},
   "etags": {}

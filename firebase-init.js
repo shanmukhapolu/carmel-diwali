@@ -2,7 +2,7 @@
 // firebase-init.js
 //
 // Firebase initialization, kept intentionally separate from UI logic
-// (app.js). This module is responsible ONLY for:
+//  app.js). This module is responsible ONLY for:
 //   - initializing the Firebase app
 //   - exposing the Firestore instance and a couple of narrow helpers
 //
@@ -31,14 +31,15 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebas
 
 // Firebase web configuration for the "blood-drive-test" project. The Web API
 // key is not a secret; see the security note above.
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAXLRWEJGiVYZkIArLS4OG1jmUMj8sDWMg",
-  authDomain: "blood-drive-test.firebaseapp.com",
-  projectId: "blood-drive-test",
-  storageBucket: "blood-drive-test.firebasestorage.app",
-  messagingSenderId: "602277319865",
-  appId: "1:602277319865:web:ce7c6a1b6ff97d09d5b768",
-  measurementId: "G-EXG5880X37",
+  apiKey: "AIzaSyA31-qvxuiFPxBhhFcdmv7vgxH0l4Ehe5U",
+  authDomain: "volunteerdiwali.firebaseapp.com",
+  projectId: "volunteerdiwali",
+  storageBucket: "volunteerdiwali.firebasestorage.app",
+  messagingSenderId: "24394973552",
+  appId: "1:24394973552:web:09cc6f81388ba04186cfb5",
+  measurementId: "G-M77J7HX6L4"
 };
 
 export const app = initializeApp(firebaseConfig);
