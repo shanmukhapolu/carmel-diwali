@@ -203,23 +203,13 @@ body::before {
   border-radius: var(--radius-xl);
 
   background:
-    radial-gradient(
-      circle at 85% 15%,
-      rgba(248, 196, 74, 0.23),
-      transparent 22rem
-    ),
-    radial-gradient(
-      circle at 5% 100%,
-      rgba(232, 111, 36, 0.25),
-      transparent 24rem
-    ),
     linear-gradient(
       135deg,
-      #1b0920 0%,
-      #42132d 42%,
-      #671d36 72%,
-      #8b4516 100%
-    );
+      rgba(27, 9, 32, 0.72),
+      rgba(75, 16, 39, 0.58)
+    ),
+    url("https://png.pngtree.com/thumb_back/fh260/background/20231109/pngtree-happy-diwali-image_14002919.jpg")
+      center center / cover no-repeat;
 
   box-shadow: var(--shadow-hero);
 }
