@@ -856,26 +856,38 @@ textarea:focus-visible {
 }
 
 #fieldset-additional {
-  padding: 22px;
-  margin-top: -12px;
-  border: 1px solid rgba(153, 50, 204, 0.12);
-  border-radius: 18px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(153, 50, 204, 0.035),
-      rgba(255, 255, 255, 0.9)
-    );
+  padding: 0;
+  margin: 0 0 42px;
+  border: none;
+  background: none;
 }
 
 #fieldset-additional legend {
-  margin-bottom: 17px;
-  padding-bottom: 11px;
-  border-bottom-color: rgba(153, 50, 204, 0.12);
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 0 0 15px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-maroon-dark);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 
 #fieldset-additional .field {
-  margin-bottom: 0;
+  margin: 0;
+}
+
+#fieldset-additional .help {
+  margin: 0 0 10px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#fieldset-additional textarea {
+  width: 100%;
+  min-height: 120px;
 }
 
 input:focus-visible {
