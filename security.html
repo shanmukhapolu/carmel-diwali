@@ -3,57 +3,113 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Security & Privacy | CHS Blood Drive Registration</title>
-  <meta name="description" content="How the CHS Blood Drive registration form protects student information." />
+  <title>Security & Privacy | Carmel Diwali Volunteer Registration</title>
+  <meta
+    name="description"
+    content="How the Carmel Diwali Festival volunteer registration system protects volunteer information."
+  />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="data:," />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body class="bg-page">
   <main class="page-shell privacy-page">
     <section class="card privacy-card" aria-labelledby="security-title">
       <p class="eyebrow-page">Privacy & Security</p>
-      <h1 id="security-title">How student information is protected</h1>
+
+      <h1 id="security-title">How volunteer information is protected</h1>
+
       <p class="subtitle privacy-intro">
-        The registration form is designed around data minimization, strict Firestore access rules,
-        and controlled administrative access for approved school workflows.
+        The registration system is designed around data minimization, strict
+        Firestore access rules, and controlled administrative access for
+        Carmel Diwali Festival volunteer coordination.
       </p>
 
       <div class="security-grid">
         <article class="security-item">
           <h2>Minimal data collection</h2>
-          <p>The form only collects information needed to schedule and administer the blood drive. It does not collect passwords, blood type, medical screening answers, IP address, browser fingerprint, or device IDs.</p>
+          <p>
+            The form only collects information needed to register volunteers,
+            coordinate positions and shifts, communicate event details, and
+            administer the festival. It does not collect passwords, financial
+            information, medical information, IP addresses, browser
+            fingerprints, or device IDs.
+          </p>
         </article>
+
         <article class="security-item">
           <h2>No public registration reads</h2>
-          <p>Firestore rules deny browser reads, updates, and deletes for registration records. Public visitors can submit a validated registration, but cannot browse or download student records.</p>
+          <p>
+            Firestore rules deny public browser reads, updates, and deletes for
+            volunteer registration records. Public visitors can submit a
+            validated registration, but cannot browse or download volunteer
+            records.
+          </p>
         </article>
+
         <article class="security-item">
           <h2>Validated writes</h2>
-          <p>Security rules allow registration creation only when the submitted document matches the approved field list, type checks, size limits, eligibility confirmations, known appointment slots, and server timestamp requirements.</p>
+          <p>
+            Security rules allow volunteer registration creation only when the
+            submitted document matches the approved field list, expected data
+            types, size limits, selected position and shift, and required
+            registration fields.
+          </p>
         </article>
+
         <article class="security-item">
-          <h2>Atomic slot protection</h2>
-          <p>Appointment capacity is tracked in separate non-PII slot counter documents. Transactions reserve a spot and create the registration together, while rules prevent overbooking by only allowing exact +1 counter changes up to capacity.</p>
+          <h2>Atomic shift capacity protection</h2>
+          <p>
+            Volunteer capacity is tracked using separate shift counter
+            documents. Transactions reserve an available spot and create the
+            registration together, while security rules prevent the counter
+            from exceeding the configured capacity.
+          </p>
         </article>
+
         <article class="security-item">
-          <h2>FERPA-aware design</h2>
-          <p>The app uses least-privilege access and avoids exposing student education records publicly. Final FERPA compliance still depends on district-approved policies, staff access controls, retention practices, contracts, and review before use with real student data.</p>
+          <h2>Least-privilege access</h2>
+          <p>
+            Volunteer information is not publicly exposed. Administrative
+            features are restricted to authorized event organizers, and access
+            should be limited to people who need the information to coordinate
+            volunteers, shifts, communications, check-in, or event operations.
+          </p>
         </article>
+
         <article class="security-item">
-          <h2>Approved reporting access</h2>
-          <p>Google Apps Script reporting can access Firebase using a district-controlled service account or approved backend credential. Server-side administrative credentials bypass browser rules, so they should be stored only in Apps Script properties or a secure backend—not in frontend code.</p>
+          <h2>Controlled reporting access</h2>
+          <p>
+            Any external reporting or administrative automation should access
+            Firebase through a district-, organization-, or event-controlled
+            service account or approved backend credential. Server-side
+            administrative credentials can bypass browser security rules, so
+            they should never be stored in frontend code.
+          </p>
         </article>
       </div>
 
       <div class="notice security-notice" role="note">
-        <p><strong>Important:</strong> never place Firebase Admin SDK credentials, service-account private keys, or privileged tokens in this public website. Keep reporting credentials server-side and limit them to approved organizers.</p>
+        <p>
+          <strong>Important:</strong> never place Firebase Admin SDK
+          credentials, service-account private keys, or privileged tokens in
+          this public website. Keep administrative credentials server-side and
+          restrict them to approved event organizers.
+        </p>
       </div>
 
-      <a class="btn btn-secondary" href="index.html">Back to registration</a>
+      <a class="btn btn-secondary" href="index.html">
+        Back to volunteer registration
+      </a>
     </section>
   </main>
 </body>
