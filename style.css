@@ -203,13 +203,12 @@ body::before {
   border-radius: var(--radius-xl);
 
   background:
-    linear-gradient(
-      135deg,
-      rgba(27, 9, 32, 0.72),
-      rgba(75, 16, 39, 0.58)
-    ),
-    url("https://img.freepik.com/premium-vector/diwali-festival-background-design_1160504-18089.jpg")
-      center center / cover no-repeat;
+  linear-gradient(
+    rgba(20, 8, 18, 0.22),
+    rgba(20, 8, 18, 0.22)
+  ),
+  url("https://png.pngtree.com/thumb_back/fh260/background/20231109/pngtree-happy-diwali-image_14002919.jpg")
+    center center / cover no-repeat;
 
   box-shadow: var(--shadow-hero);
 }
