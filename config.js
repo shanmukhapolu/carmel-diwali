@@ -1,95 +1,346 @@
 // ============================================================================
 // config.js
 //
-// Single source of truth for event-specific values. Update this file (and
-// TIME_SLOTS / SENATORS below) each semester instead of hunting for hard-coded
-// values throughout the codebase.
+// Single source of truth for event-specific values.
+// Update this file when the event's positions, shifts, or capacities change.
 //
 // NOTE: None of the values in this file are secret. Security comes from
-// Firestore Security Rules and a trusted backend, not from
-// hiding configuration values in the client.
+// Firestore Security Rules and a trusted backend, not from hiding
+// configuration values in the client.
 // ============================================================================
 
 export const CONFIG = {
-  bloodDriveId: "chs-fall-2026",
-  bloodDriveDate: "2026-09-04", // ISO date (local, no time component), Friday, Sept 4, 2026
-  eventName: "CHS Fall Blood Drive",
-  location: "Fieldhouse",
+  eventId: "carmel-diwali-2026",
+
+  eventName: "Carmel Diwali Festival of Lights",
+  eventDate: "2026-10-10",
+
+  location: "Carter Green, Carmel, IN",
+
   timeZone: "America/New_York",
-  timeZoneLabel: "EST",
-  slotsStart: "0800", // 8:00 AM
-  slotsEnd: "1430", // 2:30 PM
-  slotCapacity: 10,
-  // Bump this whenever the registration document shape changes. Firestore
-  // rules and any future backend should reject documents with an unexpected
-  // schemaVersion.
-  schemaVersion: 2,
-  minimumAge: 16,
-  studentIdLength: 9,
+  timeZoneLabel: "Eastern Time",
+
+  // Bump this whenever the registration document shape changes.
+  // Firestore rules and any future backend should reject documents with
+  // an unexpected schemaVersion.
+  schemaVersion: 1,
 };
 
-// Known school email domain(s). This is a CONVENIENCE check only; it warns
-// students who accidentally enter their school email instead of a personal
-// one. It is NOT a security control and must never be relied on as the sole
-// safeguard against a school-domain address reaching the database.
-export const SCHOOL_EMAIL_DOMAINS = ["ccs.k12.in.us"];
+// ============================================================================
+// VOLUNTEER POSITIONS
+//
+// The public registration UI should be organized:
+//
+// Position
+//   → Shift
+//      → Available capacity
+//
+// Keep each position's shifts together so volunteers can choose a role
+// first and then select a specific time.
+// ============================================================================
 
-// This is the senate roster shown when signing up for the blood drive. Keep the shape the same ({ id, name }) so the rest of the
-// app does not need to change when that happens.
-export const SENATORS = [
-  { id: "ms-foutz", name: "Ms. Foutz" },
-  { id: "kayla-aba", name: "Kayla Aba" },
-  { id: "advik-chaudhary", name: "Advik Chaudhary" },
-  { id: "shawn-feng", name: "Shawn Feng" },
-  { id: "divreet-padda", name: "Divreet Padda" },
-  { id: "shanmukha-polu", name: "Shanmukha Polu" },
-  { id: "sheldon-spence", name: "Sheldon Spence" },
-  { id: "themba-tshililiwa", name: "Themba Tshililiwa" },
-  { id: "karis-ho", name: "Karis Ho" },
-  { id: "ananya-jain", name: "Ananya Jain" },
-  { id: "anna-kirsh", name: "Anna Kirsh" },
-  { id: "colin-phifer", name: "Colin Phifer" },
-  { id: "pranad-sowale", name: "Pranad Sowale" },
-  { id: "rodion-zuban", name: "Rodion Zuban" },
-  { id: "victor-allen", name: "Victor Allen" },
-  { id: "erin-an", name: "Erin An" },
-  { id: "kate-hillabrandt", name: "Kate Hillabrandt" },
-  { id: "elise-kim", name: "Elise Kim" },
-  { id: "samir-myers", name: "Samir Myers" },
-  { id: "rishi-polu", name: "Rishi Polu" },
-  { id: "charlie-moon", name: "Charlie Moon" },
-  { id: "wyatt-dillingham", name: "Wyatt Dillingham" },
-  { id: "vega-dange", name: "Vega Dange" },
-  { id: "jiju-sivakumar", name: "Jiju Sivakumar" },
-  { id: "sophia-philips", name: "Sophia Philips" },
-  { id: "catherine-gilhooly", name: "Catherine Gilhooly" },
+export const VOLUNTEER_POSITIONS = [
+  {
+    id: "event-setup",
+    name: "Event Set-Up",
+    description: "Help prepare Carter Green and the festival area before the event.",
+    shifts: [
+      {
+        id: "event-setup-1100-1300",
+        startTime: "1100",
+        endTime: "1300",
+        capacity: 10,
+      },
+      {
+        id: "event-setup-1300-1500",
+        startTime: "1300",
+        endTime: "1500",
+        capacity: 10,
+      },
+      {
+        id: "event-setup-1500-1700",
+        startTime: "1500",
+        endTime: "1700",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "vendor-assistant",
+    name: "Vendor Assistant",
+    description: "Assist festival vendors with setup and event-day needs.",
+    shifts: [
+      {
+        id: "vendor-assistant-1300-1430",
+        startTime: "1300",
+        endTime: "1430",
+        capacity: 10,
+      },
+      {
+        id: "vendor-assistant-1430-1600",
+        startTime: "1430",
+        endTime: "1600",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "event-runner-general-support",
+    name: "Event Runner / General Support",
+    description: "Provide general support and help with event operations as needed.",
+    shifts: [
+      {
+        id: "event-runner-1530-1700",
+        startTime: "1530",
+        endTime: "1700",
+        capacity: 10,
+      },
+      {
+        id: "event-runner-1700-1830",
+        startTime: "1700",
+        endTime: "1830",
+        capacity: 10,
+      },
+      {
+        id: "event-runner-1830-2000",
+        startTime: "1830",
+        endTime: "2000",
+        capacity: 10,
+      },
+      {
+        id: "event-runner-2000-2100",
+        startTime: "2000",
+        endTime: "2100",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "swagat-committee",
+    name: "Swagat Committee",
+    description: "Help welcome and guide guests during the festival.",
+    shifts: [
+      {
+        id: "swagat-committee-1600-1730",
+        startTime: "1600",
+        endTime: "1730",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "laddoo-distribution",
+    name: "Laddoo Distribution",
+    description: "Assist with organizing and distributing laddoos to festival attendees.",
+    shifts: [
+      {
+        id: "laddoo-distribution-1600-1730",
+        startTime: "1600",
+        endTime: "1730",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "rangoli-crew",
+    name: "Rangoli Crew",
+    description: "Help with the festival's rangoli area and related activities.",
+    shifts: [
+      {
+        id: "rangoli-crew-1600-1800",
+        startTime: "1600",
+        endTime: "1800",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "back-stage",
+    name: "Back Stage",
+    description: "Assist with backstage coordination for festival performances.",
+    shifts: [
+      {
+        id: "back-stage-1600-1800",
+        startTime: "1600",
+        endTime: "1800",
+        capacity: 10,
+      },
+      {
+        id: "back-stage-1800-2000",
+        startTime: "1800",
+        endTime: "2000",
+        capacity: 10,
+      },
+      {
+        id: "back-stage-2000-2130",
+        startTime: "2000",
+        endTime: "2130",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "diya-distribution",
+    name: "Diya Distribution",
+    description: "Help distribute diyas to festival attendees throughout the evening.",
+    shifts: [
+      {
+        id: "diya-distribution-1600-1730",
+        startTime: "1600",
+        endTime: "1730",
+        capacity: 10,
+      },
+      {
+        id: "diya-distribution-1730-1830",
+        startTime: "1730",
+        endTime: "1830",
+        capacity: 10,
+      },
+      {
+        id: "diya-distribution-1830-1930",
+        startTime: "1830",
+        endTime: "1930",
+        capacity: 10,
+      },
+      {
+        id: "diya-distribution-1930-2030",
+        startTime: "1930",
+        endTime: "2030",
+        capacity: 10,
+      },
+      {
+        id: "diya-distribution-2030-2130",
+        startTime: "2030",
+        endTime: "2130",
+        capacity: 10,
+      },
+    ],
+  },
+
+  {
+    id: "teardown-cleanup",
+    name: "Tear Down & Clean Up",
+    description: "Help clean and restore the festival area after the event.",
+    shifts: [
+      {
+        id: "teardown-cleanup-2000-2130",
+        startTime: "2000",
+        endTime: "2130",
+        capacity: 10,
+      },
+      {
+        id: "teardown-cleanup-2130-2300",
+        startTime: "2130",
+        endTime: "2300",
+        capacity: 10,
+      },
+    ],
+  },
 ];
 
-/**
- * Builds the appointment-slot list from CONFIG.slotsStart to CONFIG.slotsEnd
- * (inclusive) in 15-minute increments. Keeping this generated, rather than
- * hand-typed, means the drive hours only ever need to change in one place.
- */
-function buildTimeSlots() {
-  const toMinutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2));
-  const startMinutes = toMinutes(CONFIG.slotsStart);
-  const endMinutes = toMinutes(CONFIG.slotsEnd);
+// ============================================================================
+// HELPERS
+// ============================================================================
 
-  const slots = [];
-  for (let m = startMinutes; m <= endMinutes; m += 15) {
-    const hour24 = Math.floor(m / 60);
-    const minute = m % 60;
-    const id = `${String(hour24).padStart(2, "0")}${String(minute).padStart(2, "0")}`;
-    const period = hour24 >= 12 ? "PM" : "AM";
-    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-    const label = `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
-    slots.push({ id, label, capacity: CONFIG.slotCapacity });
-  }
-  return slots;
+/**
+ * Convert a 24-hour HHMM value into minutes after midnight.
+ */
+export function timeToMinutes(hhmm) {
+  const hour = Number(hhmm.slice(0, 2));
+  const minute = Number(hhmm.slice(2));
+
+  return hour * 60 + minute;
 }
 
-// Generated appointment slots with a starting capacity. The `capacity` value
-// is a display default only; see app.js and firestore.rules for how real
-// capacity is meant to be tracked (a dedicated, non-PII slotCounts document
-// per slot, updated only via a validated, atomic transition).
-export const TIME_SLOTS = buildTimeSlots();
+/**
+ * Convert a 24-hour HHMM value into a user-friendly label.
+ *
+ * Example:
+ *   "1100" → "11:00 AM"
+ *   "1430" → "2:30 PM"
+ */
+export function formatTime(hhmm) {
+  const hour24 = Number(hhmm.slice(0, 2));
+  const minute = Number(hhmm.slice(2));
+
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * Format a shift as a readable range.
+ *
+ * Example:
+ *   "1100" → "1300"
+ *   becomes "11:00 AM – 1:00 PM"
+ */
+export function formatShiftTime(startTime, endTime) {
+  return `${formatTime(startTime)} – ${formatTime(endTime)}`;
+}
+
+/**
+ * Find a position by its ID.
+ */
+export function getPositionById(positionId) {
+  return VOLUNTEER_POSITIONS.find(
+    (position) => position.id === positionId
+  );
+}
+
+/**
+ * Find a shift by position ID and shift ID.
+ */
+export function getShiftById(positionId, shiftId) {
+  const position = getPositionById(positionId);
+
+  if (!position) {
+    return null;
+  }
+
+  return position.shifts.find((shift) => shift.id === shiftId) || null;
+}
+
+/**
+ * Find a shift and its parent position from a shift ID.
+ */
+export function findShift(shiftId) {
+  for (const position of VOLUNTEER_POSITIONS) {
+    const shift = position.shifts.find(
+      (candidate) => candidate.id === shiftId
+    );
+
+    if (shift) {
+      return {
+        position,
+        shift,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Return every configured shift as a flat array.
+ *
+ * Useful for admin dashboards, validation, exports, and Firestore
+ * configuration checks.
+ */
+export function getAllShifts() {
+  return VOLUNTEER_POSITIONS.flatMap((position) =>
+    position.shifts.map((shift) => ({
+      ...shift,
+      positionId: position.id,
+      positionName: position.name,
+    }))
+  );
+}
