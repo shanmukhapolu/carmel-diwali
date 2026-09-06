@@ -214,45 +214,6 @@ body::before {
   box-shadow: var(--shadow-hero);
 }
 
-/* Decorative rangoli-inspired circles */
-.hero::before {
-  content: "";
-  position: absolute;
-
-  width: 300px;
-  height: 300px;
-
-  right: -110px;
-  top: -120px;
-
-  border-radius: 50%;
-
-  border:
-    1px solid rgba(255, 211, 108, 0.25);
-
-  box-shadow:
-    0 0 0 18px rgba(255, 211, 108, 0.04),
-    0 0 0 36px rgba(255, 211, 108, 0.035),
-    0 0 0 54px rgba(255, 211, 108, 0.025);
-
-  transform: rotate(18deg);
-  pointer-events: none;
-}
-
-.hero::after {
-  content: "✦  ✧  ✦  ✧  ✦";
-
-  position: absolute;
-  right: 34px;
-  bottom: 22px;
-
-  color: rgba(255, 221, 139, 0.45);
-  font-size: 17px;
-  letter-spacing: 9px;
-
-  pointer-events: none;
-}
-
 
 /* ==========================================================================
    HERO HEADER
