@@ -42,7 +42,7 @@ const form = document.getElementById("registration-form");
 const confirmationView = document.getElementById("confirmation-view");
 const statusLive = document.getElementById("status-live");
 
-const positionShiftList = document.getElementById("position-shift-list");
+const positionShiftList = document.getElementById("slot-grid");
 
 const submitBtn = document.getElementById("submit-btn");
 const errSubmit = document.getElementById("err-submit");
@@ -386,7 +386,7 @@ function renderPositionShiftList() {
 
           renderPositionShiftList();
 
-          setError("shift", "");
+          setError("slot", "");
 
           announce(
             `${position.name}, ${formatShiftTime(
@@ -521,10 +521,20 @@ export function validateForm(
   currentSelectedPositionId,
   currentSelectedShiftId
 ) {
-  const firstName = formEl.firstName.value.trim();
-  const lastName = formEl.lastName.value.trim();
-  const email = formEl.email.value.trim();
-  const phone = formatPhoneNumber(formEl.phone.value);
+  const firstName =
+  document.getElementById("firstName")?.value.trim() || "";
+
+const lastName =
+  document.getElementById("lastName")?.value.trim() || "";
+
+const email =
+  document.getElementById("studentEmail")?.value.trim() || "";
+
+const phoneInput =
+  document.getElementById("phone");
+
+const phone =
+  formatPhoneNumber(phoneInput?.value || "");
 
   let valid = true;
   let firstInvalidFieldId = null;
@@ -555,9 +565,9 @@ export function validateForm(
 
   if (!email || !isLikelyValidEmail(email)) {
     fail(
-      "email",
-      "Enter a valid email address."
-    );
+  "studentEmail",
+  "Enter a valid email address."
+);
   }
 
   if (
@@ -569,7 +579,9 @@ export function validateForm(
       "Enter a valid 10-digit phone number."
     );
   } else {
-    formEl.phone.value = phone;
+    if (phoneInput) {
+  phoneInput.value = phone;
+}
   }
 
   const position =
@@ -959,7 +971,7 @@ function handleSubmissionError(error) {
     code === "SHIFT_UNAVAILABLE"
   ) {
     setError(
-      "shift",
+      "slot",
       "That shift just filled up. Please choose another available shift."
     );
 
@@ -1024,7 +1036,7 @@ function showConfirmation({
   confirmationView.classList.remove("hidden");
 
   setText(
-    "sum-volunteer",
+    "sum-student",
     `${firstName} ${lastName}`
   );
 
@@ -1047,7 +1059,7 @@ function showConfirmation({
   );
 
   setText(
-    "sum-shift",
+    "sum-slot",
     formatShiftTime(
       shift.startTime,
       shift.endTime
