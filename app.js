@@ -1,21 +1,31 @@
 // ============================================================================
 // app.js
 //
-// UI + form logic for the blood drive registration form. Firebase
-// initialization lives in firebase-init.js; this file only orchestrates the
-// DOM and talks to the exported Firebase helpers.
+// UI + form logic for the Carmel Diwali Festival volunteer registration form.
 //
-// SECURITY REMINDERS (see README.md for the full model):
+// Firebase initialization lives in firebase-init.js; this file orchestrates
+// the DOM and talks to Firebase.
+//
+// SECURITY REMINDERS:
 //   - Never insert user-entered text with innerHTML. Use textContent.
-//   - Never log student PII to the console.
-//   - Never put student PII into the URL, localStorage, or sessionStorage.
-//   - The client-side age/eligibility checks below are UX only. The
-//     authoritative check happens in firestore.rules, and, in production,
-//     must be re-verified by a trusted backend.
+//   - Never log volunteer PII to the console.
+//   - Never put volunteer PII into URLs, localStorage, or sessionStorage.
+//   - Client-side validation is UX only. Firestore Security Rules and any
+//     trusted backend must provide the authoritative security boundary.
 // ============================================================================
 
-import { CONFIG, SCHOOL_EMAIL_DOMAINS, SENATORS, TIME_SLOTS } from "./config.js";
+import {
+  CONFIG,
+  VOLUNTEER_POSITIONS,
+  formatTime,
+  formatShiftTime,
+  getPositionById,
+  getShiftById,
+  findShift,
+} from "./config.js";
+
 import { db, logSafeEvent } from "./firebase-init.js";
+
 import {
   doc,
   getDoc,
@@ -27,178 +37,87 @@ import {
 // ----------------------------------------------------------------------------
 // DOM references
 // ----------------------------------------------------------------------------
+
 const form = document.getElementById("registration-form");
 const confirmationView = document.getElementById("confirmation-view");
 const statusLive = document.getElementById("status-live");
 
-const ineligibleBanner = document.getElementById("ineligible-banner");
-const consentBanner = document.getElementById("consent-banner");
-
-const senatorGroup = document.getElementById("senator-group");
-const slotGrid = document.getElementById("slot-grid");
+const positionShiftList = document.getElementById("position-shift-list");
 
 const submitBtn = document.getElementById("submit-btn");
 const errSubmit = document.getElementById("err-submit");
 
 // ----------------------------------------------------------------------------
-// Module state (in-memory only; never persisted to browser storage)
+// Module state
 // ----------------------------------------------------------------------------
-let selectedSlotId = null;
-let slotAvailability = {}; // { [slotId]: { capacity, count } }
+
+let selectedPositionId = null;
+let selectedShiftId = null;
+
+let shiftAvailability = {};
 let submissionInFlight = false;
-let driveConfig = { ...CONFIG };
-let timeSlots = [...TIME_SLOTS];
+
+let eventConfig = { ...CONFIG };
 
 // ============================================================================
 // Pure helper functions
 // ============================================================================
 
-/**
- * Calculates a person's age as of a specific date (NOT the current date).
- * Both inputs are "YYYY-MM-DD" strings and are parsed as UTC calendar dates
- * to avoid timezone-related off-by-one errors.
- * @param {string} dob - date of birth, "YYYY-MM-DD"
- * @param {string} onDate - the date to calculate age as of, "YYYY-MM-DD"
- * @returns {number|null} age in whole years, or null if inputs are invalid
- */
-export function calculateAgeOnDate(dob, onDate) {
-  const dobParts = parseIsoDate(dob);
-  const refParts = parseIsoDate(onDate);
-  if (!dobParts || !refParts) return null;
-
-  let age = refParts.year - dobParts.year;
-  const hasHadBirthdayThisYear =
-    refParts.month > dobParts.month ||
-    (refParts.month === dobParts.month && refParts.day >= dobParts.day);
-
-  if (!hasHadBirthdayThisYear) age -= 1;
-  return age;
-}
-
 function parseIsoDate(value) {
   if (typeof value !== "string") return null;
+
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+
   if (!match) return null;
+
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+
   return { year, month, day };
 }
 
 function formatDisplayDate(isoDate, { weekday = false } = {}) {
   const parts = parseIsoDate(isoDate);
+
   if (!parts) return isoDate;
-  const d = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-  return d.toLocaleDateString("en-US", {
+
+  const date = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day)
+  );
+
+  return date.toLocaleDateString("en-US", {
     ...(weekday ? { weekday: "long" } : {}),
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: driveConfig.timeZone || "America/New_York",
+    timeZone: eventConfig.timeZone || "America/New_York",
   });
 }
 
-
-function formatSlotLabel(hhmm) {
-  const hour24 = Number(String(hhmm).slice(0, 2));
-  const minute = Number(String(hhmm).slice(2));
-  const period = hour24 >= 12 ? "PM" : "AM";
-  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
-}
-
-function buildTimeSlotsFromSettings(settings = driveConfig) {
-  const interval = Math.max(5, Number(settings.slotInterval) || 15);
-  const toMinutes = (hhmm) => Number(String(hhmm).slice(0, 2)) * 60 + Number(String(hhmm).slice(2));
-  const slots = [];
-  for (let m = toMinutes(settings.slotsStart); m <= toMinutes(settings.slotsEnd); m += interval) {
-    const id = `${String(Math.floor(m / 60)).padStart(2, "0")}${String(m % 60).padStart(2, "0")}`;
-    slots.push({ id, label: formatSlotLabel(id), capacity: settings.slotCapacity || CONFIG.slotCapacity });
-  }
-  return slots;
-}
-
-async function loadDriveSettings() {
-  try {
-    const snap = await getDoc(doc(db, "driveSettings", CONFIG.bloodDriveId));
-    if (!snap.exists()) return;
-    const data = snap.data();
-    driveConfig = {
-      ...CONFIG,
-      term: data.term || inferTerm(data.eventName || CONFIG.eventName),
-      eventName: data.eventName || CONFIG.eventName,
-      bloodDriveDate: data.bloodDriveDate || CONFIG.bloodDriveDate,
-      location: data.location || CONFIG.location,
-      slotsStart: data.slotsStart || CONFIG.slotsStart,
-      slotsEnd: data.slotsEnd || CONFIG.slotsEnd,
-      slotInterval: Number(data.slotInterval) || 15,
-      timeZone: data.timeZone || CONFIG.timeZone,
-      timeZoneLabel: data.timeZoneLabel || CONFIG.timeZoneLabel,
-    };
-    timeSlots = buildTimeSlotsFromSettings(driveConfig);
-  } catch (error) {
-    logRegistrationStep("Drive settings load failed; using bundled defaults", { code: error?.code || error?.message || "unknown" });
-  }
-}
-
-function inferTerm(name) {
-  return String(name || "").toLowerCase().includes("spring") ? "spring" : "fall";
-}
-
-function termLabel() {
-  return driveConfig.term === "spring" ? "spring" : "fall";
-}
-
-function eventRegistrationTitle() {
-  return `${driveConfig.eventName || "Blood Drive"} Registration`;
-}
-
-function renderConfigurableCopy() {
-  const title = eventRegistrationTitle();
-  document.title = title;
-  document.querySelector('meta[name="description"]')?.setAttribute("content", `Register for ${driveConfig.eventName}. Each donation saves 3 lives.`);
-  document.querySelector(".title").textContent = title;
-  const about = document.querySelector(".about-text");
-  if (about) {
-    const lives = document.createElement("strong");
-    lives.textContent = "Each donation saves 3 lives";
-    about.replaceChildren(
-      `The ${driveConfig.eventName} is a chance to make a meaningful impact before the school day is even over. Blood is needed every day for emergency care, surgeries, cancer treatments, trauma patients, and people managing serious illnesses. Because blood cannot be manufactured, hospitals depend on volunteer donors to keep shelves stocked and patients cared for. Your appointment is simple, guided from start to finish, and one donation can help multiple patients. `,
-      lives,
-      "."
-    );
-  }
-  const notice = document.querySelector(".notice p");
-  if (notice) {
-    const eligibility = document.createElement("strong");
-    eligibility.textContent = "Eligibility:";
-    const mustBe = document.createElement("strong");
-    mustBe.textContent = "must be";
-    const mayNot = document.createElement("strong");
-    mayNot.textContent = "may not be";
-    notice.replaceChildren(eligibility, " you must meet the blood drive's requirements to register. Students ", mustBe, " at least 16 years old on the blood-drive date and ", mayNot, ` participating in a ${termLabel()} sport.`);
-  }
-  const slotHelp = document.querySelector("#fieldset-appointment .field:nth-of-type(2) .help");
-  if (slotHelp) slotHelp.textContent = `Appointments run from ${formatSlotLabel(driveConfig.slotsStart)} to ${formatSlotLabel(driveConfig.slotsEnd)}. Please make sure to arrive promptly to ${driveConfig.location} at your time slot.`;
-  const sportLabel = document.querySelector('label[for="eligNoSport"]');
-  if (sportLabel) sportLabel.textContent = `I confirm that I am not participating in a ${termLabel()} sport.`;
-  submitBtn.textContent = `Register for ${driveConfig.eventName || "the Blood Drive"}`;
-}
-
 function isLikelyValidEmail(value) {
-  // Intentionally simple syntax check, not a full RFC 5322 validator.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    String(value || "").trim()
+  );
 }
 
-/**
- * Convenience-only check for a known school email domain. NOT a security
- * control; see SCHOOL_EMAIL_DOMAINS in config.js.
- */
 function formatPhoneNumber(value) {
-  const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  const digits = String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, 10);
+
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  }
+
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
@@ -206,165 +125,356 @@ function normalizePhoneInput(event) {
   event.target.value = formatPhoneNumber(event.target.value);
 }
 
-function isSchoolDomainEmail(value) {
-  const at = value.lastIndexOf("@");
-  if (at === -1) return false;
-  const domain = value.slice(at + 1).trim().toLowerCase();
-  return SCHOOL_EMAIL_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`));
+function formatShiftDuration(startTime, endTime) {
+  const start = Number(startTime.slice(0, 2)) * 60 +
+    Number(startTime.slice(2));
+
+  const end = Number(endTime.slice(0, 2)) * 60 +
+    Number(endTime.slice(2));
+
+  const minutes = end - start;
+
+  if (minutes <= 0) {
+    return "";
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours} hr ${remainingMinutes} min`;
+  }
+
+  if (hours > 0) {
+    return `${hours} hr`;
+  }
+
+  return `${remainingMinutes} min`;
 }
 
 // ============================================================================
-// Rendering
+// Event configuration
+// ============================================================================
+
+async function loadEventSettings() {
+  try {
+    const snap = await getDoc(
+      doc(db, "eventSettings", CONFIG.eventId)
+    );
+
+    if (!snap.exists()) {
+      return;
+    }
+
+    const data = snap.data();
+
+    eventConfig = {
+      ...CONFIG,
+      eventName: data.eventName || CONFIG.eventName,
+      eventDate: data.eventDate || CONFIG.eventDate,
+      location: data.location || CONFIG.location,
+      timeZone: data.timeZone || CONFIG.timeZone,
+      timeZoneLabel:
+        data.timeZoneLabel || CONFIG.timeZoneLabel,
+    };
+  } catch (error) {
+    logRegistrationStep(
+      "Event settings load failed; using bundled defaults",
+      {
+        code: error?.code || error?.message || "unknown",
+      }
+    );
+  }
+}
+
+function eventRegistrationTitle() {
+  return `${eventConfig.eventName} Volunteer Registration`;
+}
+
+function renderConfigurableCopy() {
+  document.title = eventRegistrationTitle();
+
+  const metaDescription = document.querySelector(
+    'meta[name="description"]'
+  );
+
+  if (metaDescription) {
+    metaDescription.setAttribute(
+      "content",
+      `Register to volunteer at ${eventConfig.eventName}.`
+    );
+  }
+
+  const title = document.querySelector(".title");
+
+  if (title) {
+    title.textContent = eventRegistrationTitle();
+  }
+
+  const submitLabel =
+    `Register for ${eventConfig.eventName}`;
+
+  if (submitBtn) {
+    submitBtn.textContent = submitLabel;
+  }
+
+  const dateElements = document.querySelectorAll(
+    "[data-event-date]"
+  );
+
+  dateElements.forEach((element) => {
+    element.textContent = formatDisplayDate(
+      eventConfig.eventDate,
+      { weekday: true }
+    );
+  });
+
+  const locationElements = document.querySelectorAll(
+    "[data-event-location]"
+  );
+
+  locationElements.forEach((element) => {
+    element.textContent = eventConfig.location;
+  });
+}
+
+// ============================================================================
+// Header
 // ============================================================================
 
 function renderHeader() {
-  document.getElementById("fact-date").textContent = formatDisplayDate(driveConfig.bloodDriveDate, { weekday: true });
+  const factDate = document.getElementById("fact-date");
+  const factTime = document.getElementById("fact-time");
+  const factLocation = document.getElementById("fact-location");
 
-  const firstSlot = timeSlots[0];
-  const lastSlot = timeSlots[timeSlots.length - 1];
-  document.getElementById("fact-time").textContent =
-    firstSlot && lastSlot ? `${firstSlot.label} – ${lastSlot.label}` : "";
+  if (factDate) {
+    factDate.textContent = formatDisplayDate(
+      eventConfig.eventDate,
+      { weekday: true }
+    );
+  }
 
-  document.getElementById("fact-location").textContent = driveConfig.location;
-}
+  if (factTime) {
+    factTime.textContent = "Volunteer shifts throughout the day";
+  }
 
-function renderSenatorOptions() {
-  senatorGroup.textContent = "";
-  for (const senator of SENATORS) {
-    const label = document.createElement("label");
-    label.className = "senator-chip";
-    label.setAttribute("for", `senator-${senator.id}`);
-
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.id = `senator-${senator.id}`;
-    input.name = "senators";
-    input.value = senator.id;
-    input.addEventListener("change", () => {
-      label.classList.toggle("checked", input.checked);
-    });
-
-    const text = document.createElement("span");
-    text.textContent = senator.name; // textContent only; never innerHTML
-
-    label.appendChild(input);
-    label.appendChild(text);
-    senatorGroup.appendChild(label);
+  if (factLocation) {
+    factLocation.textContent = eventConfig.location;
   }
 }
 
-function renderAppointmentSlots() {
-  slotGrid.textContent = "";
-  for (const slot of timeSlots) {
-    const availability = slotAvailability[slot.id] || { capacity: slot.capacity, count: 0 };
-    const remaining = Math.max(0, availability.capacity - availability.count);
-    const isFull = remaining <= 0;
-    const isSelected = selectedSlotId === slot.id;
+// ============================================================================
+// Position / shift rendering
+// ============================================================================
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "slot-btn" + (isSelected ? " selected" : "");
-    btn.disabled = isFull;
-    btn.setAttribute("aria-pressed", String(isSelected));
-    btn.dataset.slotId = slot.id;
-
-    const timeEl = document.createElement("span");
-    timeEl.textContent = slot.label;
-
-    const subEl = document.createElement("span");
-    subEl.className = "slot-sub";
-    if (isFull) {
-      subEl.textContent = "Full";
-    } else if (isSelected) {
-      subEl.textContent = "✓ Selected";
-    } else {
-      subEl.textContent = `${remaining} spot${remaining === 1 ? "" : "s"} left`;
-    }
-
-    btn.appendChild(timeEl);
-    btn.appendChild(subEl);
-
-    if (!isFull) {
-      btn.addEventListener("click", () => {
-        selectedSlotId = slot.id;
-        renderAppointmentSlots();
-        setError("err-slot", "");
-      });
-    }
-
-    slotGrid.appendChild(btn);
+function renderPositionShiftList() {
+  if (!positionShiftList) {
+    return;
   }
+
+  positionShiftList.textContent = "";
+
+  for (const position of VOLUNTEER_POSITIONS) {
+    const positionCard = document.createElement("section");
+
+    positionCard.className = "position-card";
+    positionCard.dataset.positionId = position.id;
+
+    const positionHeader = document.createElement("div");
+    positionHeader.className = "position-header";
+
+    const title = document.createElement("h3");
+    title.className = "position-title";
+    title.textContent = position.name;
+
+    const description = document.createElement("p");
+    description.className = "position-description";
+    description.textContent = position.description;
+
+    positionHeader.appendChild(title);
+    positionHeader.appendChild(description);
+
+    const shiftList = document.createElement("div");
+    shiftList.className = "shift-list";
+    shiftList.setAttribute(
+      "role",
+      "group"
+    );
+    shiftList.setAttribute(
+      "aria-label",
+      `${position.name} shifts`
+    );
+
+    for (const shift of position.shifts) {
+      const availability =
+        shiftAvailability[shift.id] || {
+          capacity: shift.capacity,
+          count: 0,
+        };
+
+      const capacity = Number(availability.capacity);
+      const count = Number(availability.count);
+
+      const remaining = Math.max(
+        0,
+        capacity - count
+      );
+
+      const isFull = remaining <= 0;
+
+      const isSelected =
+        selectedPositionId === position.id &&
+        selectedShiftId === shift.id;
+
+      const button = document.createElement("button");
+
+      button.type = "button";
+      button.className =
+        "shift-btn" +
+        (isSelected ? " selected" : "") +
+        (isFull ? " full" : "");
+
+      button.disabled = isFull;
+
+      button.setAttribute(
+        "aria-pressed",
+        String(isSelected)
+      );
+
+      button.dataset.positionId = position.id;
+      button.dataset.shiftId = shift.id;
+
+      const timeElement = document.createElement("span");
+      timeElement.className = "shift-time";
+      timeElement.textContent = formatShiftTime(
+        shift.startTime,
+        shift.endTime
+      );
+
+      const duration = formatShiftDuration(
+        shift.startTime,
+        shift.endTime
+      );
+
+      const capacityElement = document.createElement("span");
+      capacityElement.className = "shift-capacity";
+
+      if (isFull) {
+        capacityElement.textContent = "Full";
+      } else if (isSelected) {
+        capacityElement.textContent = "✓ Selected";
+      } else {
+        capacityElement.textContent =
+          `${remaining} spot${remaining === 1 ? "" : "s"} left`;
+      }
+
+      button.appendChild(timeElement);
+      button.appendChild(capacityElement);
+
+      if (duration) {
+        const durationElement = document.createElement("span");
+        durationElement.className = "shift-duration";
+        durationElement.textContent = duration;
+
+        button.appendChild(durationElement);
+      }
+
+      if (!isFull) {
+        button.addEventListener("click", () => {
+          selectedPositionId = position.id;
+          selectedShiftId = shift.id;
+
+          renderPositionShiftList();
+
+          setError("shift", "");
+
+          announce(
+            `${position.name}, ${formatShiftTime(
+              shift.startTime,
+              shift.endTime
+            )} selected.`
+          );
+        });
+      }
+
+      shiftList.appendChild(button);
+    }
+
+    positionCard.appendChild(positionHeader);
+    positionCard.appendChild(shiftList);
+
+    positionShiftList.appendChild(positionCard);
+  }
+}
+
+// ============================================================================
+// Shift availability
+// ============================================================================
+
+function shiftDocId(shiftId) {
+  return `${eventConfig.eventId}_${shiftId}`;
 }
 
 /**
- * Best-effort read of current slot capacity/count for display purposes only.
- * This is NOT the security boundary; the atomic check happens inside the
- * Firestore transaction in reserveSlotAndCreateRegistration(). If this read
- * fails (e.g. offline, not yet seeded), slots fall back to showing their
- * configured capacity with zero recorded registrations.
+ * Best-effort read of current shift availability.
+ *
+ * This is only for display. The authoritative capacity check happens
+ * inside the Firestore transaction in reserveShiftAndCreateRegistration().
  */
-async function loadSlotAvailability() {
+async function loadShiftAvailability() {
   const results = await Promise.allSettled(
-    timeSlots.map(async (slot) => {
-      const ref = doc(db, "slotCounts", slotDocId(slot.id));
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        return [slot.id, { capacity: data.capacity, count: data.count }];
-      }
-      return [slot.id, { capacity: slot.capacity, count: 0 }];
-    })
+    VOLUNTEER_POSITIONS.flatMap((position) =>
+      position.shifts.map(async (shift) => {
+        const ref = doc(
+          db,
+          "shiftCounts",
+          shiftDocId(shift.id)
+        );
+
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const data = snap.data();
+
+          return [
+            shift.id,
+            {
+              capacity:
+                typeof data.capacity === "number"
+                  ? data.capacity
+                  : shift.capacity,
+
+              count:
+                typeof data.count === "number"
+                  ? data.count
+                  : 0,
+            },
+          ];
+        }
+
+        return [
+          shift.id,
+          {
+            capacity: shift.capacity,
+            count: 0,
+          },
+        ];
+      })
+    )
   );
 
   const next = {};
+
   for (const result of results) {
     if (result.status === "fulfilled") {
-      const [slotId, availability] = result.value;
-      next[slotId] = availability;
+      const [shiftId, availability] = result.value;
+      next[shiftId] = availability;
     }
   }
-  slotAvailability = next;
-  renderAppointmentSlots();
-}
 
-function slotDocId(slotId) {
-  return `${driveConfig.bloodDriveId}_${slotId}`;
-}
+  shiftAvailability = next;
 
-// ============================================================================
-// Eligibility
-// ============================================================================
-
-function updateEligibilityUI() {
-  const dobValue = document.getElementById("dob").value;
-  const result = validateEligibility(dobValue);
-
-  ineligibleBanner.classList.toggle("hidden", result.status !== "ineligible");
-  consentBanner.classList.toggle("hidden", result.status !== "consent-required");
-
-  const disableSubmission = result.status === "ineligible" && dobValue !== "";
-  submitBtn.disabled = disableSubmission || submissionInFlight;
-
-  if (result.status === "ineligible" && dobValue !== "") {
-    logSafeEvent("blood_drive_ineligible_blocked");
-  }
-
-  return result;
-}
-
-/**
- * Independently determines eligibility from date of birth. This result is
- * authoritative over the checkboxes; a checked eligibility checkbox can
- * never override an under-16 date of birth.
- * @param {string} dobValue - "YYYY-MM-DD"
- * @returns {{status: "invalid"|"ineligible"|"consent-required"|"eligible", age: number|null}}
- */
-export function validateEligibility(dobValue) {
-  const age = calculateAgeOnDate(dobValue, driveConfig.bloodDriveDate);
-  if (age === null) return { status: "invalid", age: null };
-  if (age < driveConfig.minimumAge) return { status: "ineligible", age };
-  if (age === driveConfig.minimumAge) return { status: "consent-required", age };
-  return { status: "eligible", age };
+  renderPositionShiftList();
 }
 
 // ============================================================================
@@ -372,118 +482,345 @@ export function validateEligibility(dobValue) {
 // ============================================================================
 
 function setError(fieldId, message) {
-  const el = document.getElementById(`err-${fieldId}`);
-  if (el) el.textContent = message || "";
+  const errorElement = document.getElementById(
+    `err-${fieldId}`
+  );
+
+  if (errorElement) {
+    errorElement.textContent = message || "";
+  }
 
   const input = document.getElementById(fieldId);
+
   if (input) {
-    if (message) input.setAttribute("aria-invalid", "true");
-    else input.removeAttribute("aria-invalid");
+    if (message) {
+      input.setAttribute("aria-invalid", "true");
+    } else {
+      input.removeAttribute("aria-invalid");
+    }
   }
 }
 
 function clearAllErrors() {
-  document.querySelectorAll(".error").forEach((el) => {
-    el.textContent = "";
+  document.querySelectorAll(".error").forEach((element) => {
+    element.textContent = "";
   });
-  document.querySelectorAll("[aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
+
+  document
+    .querySelectorAll("[aria-invalid]")
+    .forEach((element) => {
+      element.removeAttribute("aria-invalid");
+    });
 }
 
 /**
- * Validates the full form. Returns a plain object describing validity and
- * a normalized payload safe to submit. Never throws.
+ * Validate the complete volunteer registration form.
  */
-export function validateForm(formEl, currentSelectedSlotId) {
+export function validateForm(
+  formEl,
+  currentSelectedPositionId,
+  currentSelectedShiftId
+) {
   const firstName = formEl.firstName.value.trim();
   const lastName = formEl.lastName.value.trim();
-  const studentEmail = formEl.studentEmail.value.trim();
-  const parentEmail = formEl.parentEmail.value.trim();
+  const email = formEl.email.value.trim();
   const phone = formatPhoneNumber(formEl.phone.value);
-  const dob = formEl.dob.value;
-  const studentId = formEl.studentId.value.trim();
-  const nhsSenior = formEl.nhsSenior.checked;
-  const eligAge = formEl.eligAge.checked;
-  const eligNoSport = formEl.eligNoSport.checked;
-  const selectedSenators = Array.from(formEl.querySelectorAll('input[name="senators"]:checked')).map(
-    (el) => el.value
-  );
 
   let valid = true;
   let firstInvalidFieldId = null;
+
   const fail = (fieldId, message) => {
     setError(fieldId, message);
-    if (!firstInvalidFieldId) firstInvalidFieldId = fieldId;
+
+    if (!firstInvalidFieldId) {
+      firstInvalidFieldId = fieldId;
+    }
+
     valid = false;
   };
 
   if (!firstName || firstName.length < 2) {
-    fail("firstName", "Enter the student's first name.");
+    fail(
+      "firstName",
+      "Enter your first name."
+    );
   }
 
   if (!lastName || lastName.length < 2) {
-    fail("lastName", "Enter the student's last name.");
+    fail(
+      "lastName",
+      "Enter your last name."
+    );
   }
 
-  if (!studentEmail || !isLikelyValidEmail(studentEmail)) {
-    fail("studentEmail", "Enter a valid email address.");
-  } else if (isSchoolDomainEmail(studentEmail)) {
-    fail("studentEmail", "Please use a personal email address, not your school email.");
+  if (!email || !isLikelyValidEmail(email)) {
+    fail(
+      "email",
+      "Enter a valid email address."
+    );
   }
 
-  if (!parentEmail || !isLikelyValidEmail(parentEmail)) {
-    fail("parentEmail", "Enter a valid parent/guardian email address.");
-  }
-
-  if (!phone || phone.replace(/\D/g, "").length !== 10) {
-    fail("phone", "Enter a valid 10-digit phone number.");
+  if (
+    !phone ||
+    phone.replace(/\D/g, "").length !== 10
+  ) {
+    fail(
+      "phone",
+      "Enter a valid 10-digit phone number."
+    );
   } else {
     formEl.phone.value = phone;
   }
 
-  const eligibility = validateEligibility(dob);
-  if (eligibility.status === "invalid") {
-    fail("dob", "Enter a valid date of birth.");
-  } else if (eligibility.status === "ineligible") {
-    fail("dob", "You must be at least 16 years old on the blood-drive date.");
+  const position =
+    currentSelectedPositionId
+      ? getPositionById(currentSelectedPositionId)
+      : null;
+
+  const shift =
+    currentSelectedPositionId &&
+    currentSelectedShiftId
+      ? getShiftById(
+          currentSelectedPositionId,
+          currentSelectedShiftId
+        )
+      : null;
+
+  if (!position) {
+    fail(
+      "shift",
+      "Choose a volunteer position."
+    );
   }
 
-  if (!/^\d{9}$/.test(studentId)) {
-    fail("studentId", "Enter your 9-digit student ID number.");
-  }
-
-  if (!eligAge) {
-    fail("eligAge", "You must confirm this to register.");
-  }
-  if (!eligNoSport) {
-    fail("eligNoSport", `You must confirm you are not participating in a ${termLabel()} sport.`);
-  }
-
-  if (selectedSenators.length === 0) {
-    fail("senators", "Select at least one senator who assisted you.");
-  }
-
-  if (!currentSelectedSlotId) {
-    fail("slot", "Choose an available appointment time.");
+  if (!shift) {
+    fail(
+      "shift",
+      "Choose an available volunteer shift."
+    );
   }
 
   return {
     valid,
     firstInvalidFieldId,
-    eligibility,
+    position,
+    shift,
+
     payload: {
       firstName,
       lastName,
-      studentEmail,
-      parentEmail,
+      email,
       phone,
-      dob,
-      studentId,
-      senatorIds: selectedSenators,
-      appointmentSlotId: currentSelectedSlotId,
-      eligibilityAgeConfirmed: eligAge,
-      eligibilityNoFallSportConfirmed: eligNoSport,
-      nhsSeniorMember: nhsSenior,
+
+      positionId:
+        currentSelectedPositionId,
+
+      shiftId:
+        currentSelectedShiftId,
     },
+  };
+}
+
+// ============================================================================
+// Firestore registration
+// ============================================================================
+
+/**
+ * Atomically reserves capacity and creates the volunteer registration.
+ *
+ * Firestore structure:
+ *
+ * shiftCounts/{eventId_shiftId}
+ * registrations/{registrationId}
+ * registrationGuards/{email-based guard}
+ *
+ * The capacity check and registration creation happen in one transaction,
+ * preventing two simultaneous registrations from exceeding capacity.
+ */
+async function reserveShiftAndCreateRegistration(
+  payload
+) {
+  const shiftRef = doc(
+    db,
+    "shiftCounts",
+    shiftDocId(payload.shiftId)
+  );
+
+  const registrationRef = doc(
+    collection(db, "registrations")
+  );
+
+  const emailGuardRef = doc(
+    db,
+    "registrationGuards",
+    `email_${encodeURIComponent(
+      payload.email.toLowerCase()
+    )}`
+  );
+
+  const shiftResult = findShift(payload.shiftId);
+
+  if (
+    !shiftResult ||
+    shiftResult.position.id !== payload.positionId
+  ) {
+    throw new Error("SHIFT_UNAVAILABLE");
+  }
+
+  const { position, shift } = shiftResult;
+
+  await runTransaction(db, async (tx) => {
+    const [
+      shiftSnap,
+      emailGuardSnap,
+    ] = await Promise.all([
+      tx.get(shiftRef),
+      tx.get(emailGuardRef),
+    ]);
+
+    if (emailGuardSnap.exists()) {
+      throw new Error(
+        "DUPLICATE_REGISTRATION"
+      );
+    }
+
+    if (!shiftSnap.exists()) {
+      tx.set(shiftRef, {
+        eventId: eventConfig.eventId,
+        shiftId: shift.id,
+        positionId: position.id,
+        positionName: position.name,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        label: formatShiftTime(
+          shift.startTime,
+          shift.endTime
+        ),
+        capacity: shift.capacity,
+        count: 1,
+      });
+
+      tx.set(
+        registrationRef,
+        buildRegistrationRecord(
+          payload,
+          position,
+          shift
+        )
+      );
+
+      tx.set(emailGuardRef, {
+        registrationId: registrationRef.id,
+        createdAt: serverTimestamp(),
+      });
+
+      return;
+    }
+
+    const shiftData = shiftSnap.data();
+
+    if (
+      typeof shiftData.capacity !== "number" ||
+      typeof shiftData.count !== "number"
+    ) {
+      throw new Error(
+        "SHIFT_UNAVAILABLE"
+      );
+    }
+
+    if (
+      shiftData.count >= shiftData.capacity
+    ) {
+      throw new Error("SHIFT_FULL");
+    }
+
+    tx.update(shiftRef, {
+      count: shiftData.count + 1,
+    });
+
+    tx.set(
+      registrationRef,
+      buildRegistrationRecord(
+        payload,
+        position,
+        shift
+      )
+    );
+
+    tx.set(emailGuardRef, {
+      registrationId: registrationRef.id,
+      createdAt: serverTimestamp(),
+    });
+  });
+
+  return registrationRef.id;
+}
+
+function buildRegistrationRecord(
+  payload,
+  position,
+  shift
+) {
+  return {
+    schemaVersion:
+      eventConfig.schemaVersion,
+
+    eventId:
+      eventConfig.eventId,
+
+    eventName:
+      eventConfig.eventName,
+
+    eventDate:
+      eventConfig.eventDate,
+
+    location:
+      eventConfig.location,
+
+    firstName:
+      payload.firstName,
+
+    lastName:
+      payload.lastName,
+
+    email:
+      payload.email,
+
+    phone:
+      payload.phone,
+
+    positionId:
+      position.id,
+
+    positionName:
+      position.name,
+
+    shiftId:
+      shift.id,
+
+    shiftStartTime:
+      shift.startTime,
+
+    shiftEndTime:
+      shift.endTime,
+
+    shiftLabel:
+      formatShiftTime(
+        shift.startTime,
+        shift.endTime
+      ),
+
+    status:
+      "registered",
+
+    checkInTime:
+      null,
+
+    checkOutTime:
+      null,
+
+    createdAt:
+      serverTimestamp(),
   };
 }
 
@@ -491,219 +828,297 @@ export function validateForm(formEl, currentSelectedSlotId) {
 // Submission
 // ============================================================================
 
-/**
- * Atomically reserves capacity and creates the registration document in a
- * single Firestore transaction. If a slotCounts document has not been seeded
- * yet, the first valid registration initializes it with count 1 so registration
- * is not blocked by setup lag; concurrent students still cannot overbook.
- */
-async function reserveSlotAndCreateRegistration(payload) {
-  const slotRef = doc(db, "slotCounts", slotDocId(payload.appointmentSlotId));
-  const registrationRef = doc(collection(db, "registrations"));
-  const studentGuardRef = doc(db, "registrationGuards", `studentId_${payload.studentId}`);
-  const emailGuardRef = doc(db, "registrationGuards", `studentEmail_${encodeURIComponent(payload.studentEmail.toLowerCase())}`);
-
-  await runTransaction(db, async (tx) => {
-    const [slotSnap, studentGuardSnap, emailGuardSnap] = await Promise.all([tx.get(slotRef), tx.get(studentGuardRef), tx.get(emailGuardRef)]);
-    if (studentGuardSnap.exists() || emailGuardSnap.exists()) throw new Error("DUPLICATE_REGISTRATION");
-    if (!slotSnap.exists()) {
-      const slot = timeSlots.find((s) => s.id === payload.appointmentSlotId);
-      if (!slot) {
-        throw new Error("SLOT_UNAVAILABLE");
-      }
-
-      tx.set(slotRef, {
-        bloodDriveId: driveConfig.bloodDriveId,
-        slotId: slot.id,
-        label: slot.label,
-        capacity: slot.capacity,
-        count: 1,
-      });
-      tx.set(registrationRef, buildRegistrationRecord(payload));
-      tx.set(studentGuardRef, { registrationId: registrationRef.id, createdAt: serverTimestamp() });
-      tx.set(emailGuardRef, { registrationId: registrationRef.id, createdAt: serverTimestamp() });
-      return;
-    }
-    const slotData = slotSnap.data();
-    if (typeof slotData.capacity !== "number" || typeof slotData.count !== "number") {
-      throw new Error("SLOT_UNAVAILABLE");
-    }
-    if (slotData.count >= slotData.capacity) {
-      throw new Error("SLOT_FULL");
-    }
-
-    tx.update(slotRef, { count: slotData.count + 1 });
-    tx.set(registrationRef, buildRegistrationRecord(payload));
-    tx.set(studentGuardRef, { registrationId: registrationRef.id, createdAt: serverTimestamp() });
-    tx.set(emailGuardRef, { registrationId: registrationRef.id, createdAt: serverTimestamp() });
-  });
-
-  return registrationRef.id;
-}
-
-function buildRegistrationRecord(payload) {
-  return {
-    schemaVersion: driveConfig.schemaVersion,
-    bloodDriveId: driveConfig.bloodDriveId,
-    bloodDriveDate: driveConfig.bloodDriveDate,
-    location: driveConfig.location,
-    firstName: payload.firstName,
-    lastName: payload.lastName,
-    studentEmail: payload.studentEmail,
-    parentEmail: payload.parentEmail,
-    phone: payload.phone,
-    dob: payload.dob,
-    studentId: payload.studentId,
-    senatorIds: payload.senatorIds,
-    appointmentSlotId: payload.appointmentSlotId,
-    ageOnDriveDate: payload.eligibility.age,
-    parentConsentStatus: payload.eligibility.status === "consent-required" ? "required" : "not_required",
-    eligibilityAgeConfirmed: payload.eligibilityAgeConfirmed,
-    eligibilityNoFallSportConfirmed: payload.eligibilityNoFallSportConfirmed,
-    nhsSeniorMember: payload.nhsSeniorMember,
-    createdAt: serverTimestamp(),
-  };
-}
-
 async function submitRegistration(event) {
   event.preventDefault();
-  if (submissionInFlight) return;
+
+  if (submissionInFlight) {
+    return;
+  }
 
   clearAllErrors();
   setError("submit", "");
 
-  const { valid, firstInvalidFieldId, eligibility, payload } = validateForm(form, selectedSlotId);
+  const {
+    valid,
+    firstInvalidFieldId,
+    position,
+    shift,
+    payload,
+  } = validateForm(
+    form,
+    selectedPositionId,
+    selectedShiftId
+  );
+
   if (!valid) {
     scrollToField(firstInvalidFieldId);
-    announce("Please fix the highlighted fields before submitting.");
+
+    announce(
+      "Please fix the highlighted fields before submitting."
+    );
+
     return;
   }
 
   submissionInFlight = true;
+
   submitBtn.disabled = true;
   submitBtn.textContent = "Registering…";
 
   try {
-    logRegistrationStep("Submitting registration transaction");
-    const confirmationId = await reserveSlotAndCreateRegistration({ ...payload, eligibility });
-    logRegistrationStep("Registration transaction completed");
+    logRegistrationStep(
+      "Submitting volunteer registration transaction"
+    );
 
-    logSafeEvent("blood_drive_registration_success");
+    const confirmationId =
+      await reserveShiftAndCreateRegistration(
+        payload
+      );
+
+    logRegistrationStep(
+      "Volunteer registration transaction completed"
+    );
+
+    logSafeEvent(
+      "diwali_volunteer_registration_success"
+    );
+
     showConfirmation({
       firstName: payload.firstName,
       lastName: payload.lastName,
-      senatorIds: payload.senatorIds,
-      appointmentSlotId: payload.appointmentSlotId,
-      parentConsentRequired: eligibility.status === "consent-required",
+
+      position,
+      shift,
+
       confirmationId,
     });
   } catch (error) {
-    logSafeEvent("blood_drive_registration_error");
+    logSafeEvent(
+      "diwali_volunteer_registration_error"
+    );
+
     handleSubmissionError(error);
   } finally {
     submissionInFlight = false;
+
     submitBtn.disabled = false;
-    submitBtn.textContent = `Register for ${driveConfig.eventName || "the Blood Drive"}`;
+
+    submitBtn.textContent =
+      `Register for ${eventConfig.eventName}`;
   }
 }
 
-function scrollToField(fieldId) {
-  const target = document.getElementById(fieldId) || document.getElementById(`err-${fieldId}`);
-  if (!target) return;
-  target.scrollIntoView({ behavior: "smooth", block: "center" });
-  if (typeof target.focus === "function") target.focus({ preventScroll: true });
-}
+// ============================================================================
+// Submission errors
+// ============================================================================
 
 function handleSubmissionError(error) {
-  // Never surface raw Firebase error internals to the student.
-  const code = error && (error.code || error.message);
-  logRegistrationStep("Registration failed", { code: code || "unknown" });
+  const code =
+    error &&
+    (error.code || error.message);
+
+  logRegistrationStep(
+    "Volunteer registration failed",
+    {
+      code:
+        code || "unknown",
+    }
+  );
 
   if (code === "permission-denied") {
     setError(
       "submit",
-      "Registration could not be saved because Firebase permissions blocked the request. Please ask the organizers to deploy the latest Firestore rules."
+      "Registration could not be saved because Firebase permissions blocked the request. Please ask the organizers to check the latest Firestore rules."
     );
-    announce("Registration could not be saved because Firebase permissions blocked the request.");
+
+    announce(
+      "Registration could not be saved because Firebase permissions blocked the request."
+    );
+
     return;
   }
 
-  if (code === "DUPLICATE_REGISTRATION") {
-    setError("submit", "Looks like you already completed the registration. Please check your email for a confirmation email.");
-    announce("Looks like you already completed the registration. Please check your email for a confirmation email.");
+  if (
+    code ===
+    "DUPLICATE_REGISTRATION"
+  ) {
+    setError(
+      "submit",
+      "It looks like this email has already been used to register for the festival."
+    );
+
+    announce(
+      "It looks like this email has already been used to register for the festival."
+    );
+
     return;
   }
 
-  if (code === "SLOT_FULL" || code === "SLOT_UNAVAILABLE") {
-    setError("slot", "That appointment just filled up. Please choose another time.");
-    loadSlotAvailability();
-    announce("That appointment just filled up. Please choose another time.");
+  if (
+    code === "SHIFT_FULL" ||
+    code === "SHIFT_UNAVAILABLE"
+  ) {
+    setError(
+      "shift",
+      "That shift just filled up. Please choose another available shift."
+    );
+
+    loadShiftAvailability();
+
+    announce(
+      "That shift just filled up. Please choose another available shift."
+    );
+
     return;
   }
 
   setError(
     "submit",
-    "We could not complete your registration. Please try again or contact the blood-drive organizers."
+    "We could not complete your registration. Please try again or contact the festival organizers."
   );
-  announce("We could not complete your registration. Please try again.");
+
+  announce(
+    "We could not complete your registration. Please try again."
+  );
 }
 
-function logRegistrationStep(message, details = {}) {
-  // Safe diagnostics only. Do not include names, emails, phone numbers, DOB, or student IDs.
-  console.info("[blood-drive-registration]", message, details);
+// ============================================================================
+// Safe diagnostics
+// ============================================================================
+
+function logRegistrationStep(
+  message,
+  details = {}
+) {
+  // Never include names, emails, phone numbers, DOBs, addresses, or
+  // other volunteer PII in diagnostics.
+  console.info(
+    "[diwali-volunteer-registration]",
+    message,
+    details
+  );
 }
 
 function announce(message) {
-  // Non-PII status text only.
-  statusLive.textContent = message;
+  if (statusLive) {
+    statusLive.textContent = message;
+  }
 }
 
 // ============================================================================
 // Confirmation view
 // ============================================================================
 
-function showConfirmation({ firstName, lastName, senatorIds, appointmentSlotId, parentConsentRequired, confirmationId }) {
-  document.body.classList.add("confirmation-mode");
+function showConfirmation({
+  firstName,
+  lastName,
+  position,
+  shift,
+  confirmationId,
+}) {
+  document.body.classList.add(
+    "confirmation-mode"
+  );
+
   form.classList.add("hidden");
   confirmationView.classList.remove("hidden");
 
-  const slot = timeSlots.find((s) => s.id === appointmentSlotId);
-  const senatorNames = senatorIds
-    .map((id) => SENATORS.find((s) => s.id === id)?.name)
-    .filter(Boolean)
-    .join(", ");
+  setText(
+    "sum-volunteer",
+    `${firstName} ${lastName}`
+  );
 
-  setText("sum-student", `${firstName} ${lastName}`);
-  setText("sum-date", formatDisplayDate(driveConfig.bloodDriveDate, { weekday: true }));
-  setText("sum-location", driveConfig.location);
-  setText("sum-slot", slot ? slot.label : "");
-  setText("sum-senators", senatorNames);
-  setText("sum-confid", confirmationId);
+  setText(
+    "sum-date",
+    formatDisplayDate(
+      eventConfig.eventDate,
+      { weekday: true }
+    )
+  );
 
-  document.getElementById("consent-download-block").classList.toggle("hidden", !parentConsentRequired);
+  setText(
+    "sum-location",
+    eventConfig.location
+  );
 
-  confirmationView.setAttribute("tabindex", "-1");
+  setText(
+    "sum-position",
+    position.name
+  );
+
+  setText(
+    "sum-shift",
+    formatShiftTime(
+      shift.startTime,
+      shift.endTime
+    )
+  );
+
+  setText(
+    "sum-confid",
+    confirmationId
+  );
+
+  const eventNameElement =
+    document.getElementById(
+      "sum-event"
+    );
+
+  if (eventNameElement) {
+    eventNameElement.textContent =
+      eventConfig.eventName;
+  }
+
+  confirmationView.setAttribute(
+    "tabindex",
+    "-1"
+  );
+
   confirmationView.focus();
 }
 
 function setText(id, value) {
-  document.getElementById(id).textContent = value; // textContent only; never innerHTML
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+    element.textContent =
+      value ?? "";
+  }
 }
+
+// ============================================================================
+// Reset
+// ============================================================================
 
 function resetForm() {
   form.reset();
-  selectedSlotId = null;
+
+  selectedPositionId = null;
+  selectedShiftId = null;
+
   clearAllErrors();
-  ineligibleBanner.classList.add("hidden");
-  consentBanner.classList.add("hidden");
-  document.querySelectorAll(".senator-chip.checked").forEach((el) => el.classList.remove("checked"));
 
-  document.body.classList.remove("confirmation-mode");
-  confirmationView.classList.add("hidden");
-  form.classList.remove("hidden");
+  document.body.classList.remove(
+    "confirmation-mode"
+  );
 
-  loadSlotAvailability();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  confirmationView.classList.add(
+    "hidden"
+  );
+
+  form.classList.remove(
+    "hidden"
+  );
+
+  renderPositionShiftList();
+
+  loadShiftAvailability();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
 }
 
 // ============================================================================
@@ -711,26 +1126,75 @@ function resetForm() {
 // ============================================================================
 
 async function init() {
-  await loadDriveSettings();
+  await loadEventSettings();
+
   renderConfigurableCopy();
   renderHeader();
-  renderSenatorOptions();
-  renderAppointmentSlots();
+  renderPositionShiftList();
 
-  document.getElementById("phone").addEventListener("input", normalizePhoneInput);
-  document.getElementById("dob").addEventListener("change", updateEligibilityUI);
-  form.addEventListener("submit", submitRegistration);
-  document.getElementById("print-btn").addEventListener("click", () => window.print());
-  document.getElementById("reset-btn").addEventListener("click", resetForm);
+  const phoneInput =
+    document.getElementById("phone");
 
-  logSafeEvent("blood_drive_form_started");
+  if (phoneInput) {
+    phoneInput.addEventListener(
+      "input",
+      normalizePhoneInput
+    );
+  }
 
-  // Best-effort slot availability warm-up. Failures here must not block the
-  // student from filling out the form. The submit transaction repeats the
-  // capacity check before it writes anything.
-  loadSlotAvailability().catch((error) => {
-    logRegistrationStep("Slot availability warm-up failed", { code: error?.code || error?.message || "unknown" });
-  });
+  if (form) {
+    form.addEventListener(
+      "submit",
+      submitRegistration
+    );
+  }
+
+  const printButton =
+    document.getElementById(
+      "print-btn"
+    );
+
+  if (printButton) {
+    printButton.addEventListener(
+      "click",
+      () => window.print()
+    );
+  }
+
+  const resetButton =
+    document.getElementById(
+      "reset-btn"
+    );
+
+  if (resetButton) {
+    resetButton.addEventListener(
+      "click",
+      resetForm
+    );
+  }
+
+  logSafeEvent(
+    "diwali_volunteer_form_started"
+  );
+
+  // Best-effort availability warm-up.
+  // Failure here does not prevent registration.
+  loadShiftAvailability().catch(
+    (error) => {
+      logRegistrationStep(
+        "Shift availability warm-up failed",
+        {
+          code:
+            error?.code ||
+            error?.message ||
+            "unknown",
+        }
+      );
+    }
+  );
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener(
+  "DOMContentLoaded",
+  init
+);
