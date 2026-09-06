@@ -1,8 +1,8 @@
 {
-  "name": "blood-drive-functions",
+  "name": "carmel-diwali-functions",
   "version": "0.1.0",
   "private": true,
-  "description": "Firebase Cloud Functions for the CHS blood drive registration app.",
+  "description": "Firebase Cloud Functions for the Carmel Diwali Festival volunteer registration app.",
   "main": "index.js",
   "engines": {
     "node": "22"

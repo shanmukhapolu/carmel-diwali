@@ -1,6 +1,86 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Activity | CHS Blood Drive</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="admin.css"></head>
-<body class="admin-auth-checking"><header class="topbar"><div class="topbar-inner"><div><div class="brand-title">Carmel High School Blood Drive</div><div id="drive-meta" class="brand-sub"></div></div><div class="admin-meta"><span id="admin-email"></span><button id="logout" class="secondary">Logout</button></div></div></header>
-<main class="layout"><nav class="nav"></nav><section class="panel"><p class="eyebrow">Recent activity</p><h1>Activity</h1><div class="toolbar simple-toolbar"><div><label for="activity-type">Action</label><select id="activity-type"><option value="">All activity</option><option value="checkin">Check-in</option><option value="checkout">Check-out</option><option value="late">Marked late</option></select></div><div><label for="activity-staff">Admin</label><select id="activity-staff"><option value="">All admins</option></select></div></div></section><section class="panel"><div id="activity-list" class="list"></div></section><p id="error" class="error"></p></main><script type="module" src="admin.js"></script></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+
+  <title>Activity | Carmel Diwali Festival</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="admin-auth-checking">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <div>
+        <div class="brand-title">
+          Carmel Diwali Festival of Lights
+        </div>
+
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <nav class="nav"></nav>
+
+    <section class="panel">
+      <p class="eyebrow">Volunteer Operations</p>
+
+      <h1>Activity</h1>
+
+      <div class="toolbar simple-toolbar">
+
+        <div>
+          <label for="activity-type">Action</label>
+
+          <select id="activity-type">
+            <option value="">All activity</option>
+            <option value="checkin">Check-in</option>
+            <option value="checkout">Check-out</option>
+            <option value="late">Marked late</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="activity-staff">Staff member</label>
+
+          <select id="activity-staff">
+            <option value="">All staff</option>
+          </select>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="panel">
+      <div id="activity-list" class="list"></div>
+    </section>
+
+    <p id="error" class="error"></p>
+
+  </main>
+
+  <script type="module" src="admin.js"></script>
+
+</body>
 </html>

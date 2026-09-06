@@ -4,38 +4,152 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Settings | Admin</title>
+
+  <title>Settings | Carmel Diwali Festival</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
   <link rel="stylesheet" href="admin.css">
 </head>
+
 <body class="admin-auth-checking">
-<header class="topbar"><div class="topbar-inner"><div><div class="brand-title">Carmel High School Blood Drive</div><div id="drive-meta" class="brand-sub"></div></div><div class="admin-meta"><span id="admin-email"></span><button id="logout" class="secondary">Logout</button></div></div></header>
-<main class="layout settings-layout">
-  <nav class="nav"></nav>
-  <section class="panel page-hero">
-    <p class="eyebrow">Admin only</p>
-    <h1>Blood Drive Settings</h1>
-    <p class="muted">Configure the semester, drive details, appointment window, and slot capacity. Times are always displayed in EST.</p>
-  </section>
-  <section class="panel">
-    <div class="settings-grid">
-      <label>Term<select id="setting-term"><option value="fall">Fall Blood Drive</option><option value="spring">Spring Blood Drive</option></select></label>
-      <label>Event name<input id="setting-event-name"></label>
-      <label>Drive date<input id="setting-date" type="date"></label>
-      <label>Location<input id="setting-location"></label>
-      <label>Start time<input id="setting-start-time" type="time"></label>
-      <label>End time<input id="setting-end-time" type="time"></label>
-      <label>Timeslot interval<select id="setting-slot-interval"><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select></label>
-      <label>Timezone<input id="setting-timezone" value="EST" disabled></label>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <div>
+        <div class="brand-title">
+          Carmel Diwali Festival of Lights
+        </div>
+
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+
     </div>
-    <button id="save-drive-settings" class="primary" type="button">Save settings</button>
-    <p id="settings-message" class="success"></p>
-  </section>
-  <section class="panel">
-    <div class="summary-line"><div><p class="eyebrow">Appointment capacity</p><h2>Timeslot capacity</h2><p class="muted">This list updates instantly when start time, end time, or interval changes.</p></div><span id="slot-preview-count" class="badge"></span></div>
-    <div id="slot-capacity-grid" class="slot-capacity-grid"></div>
-  </section>
-  <p id="error" class="error"></p>
-</main><script type="module" src="admin.js"></script></body></html>
+  </header>
+
+  <main class="layout settings-layout">
+
+    <nav class="nav"></nav>
+
+    <section class="panel page-hero">
+      <p class="eyebrow">Admin Only</p>
+
+      <h1>Festival Settings</h1>
+
+      <p class="muted">
+        Configure the festival details, location, date, and volunteer
+        shift capacities.
+      </p>
+    </section>
+
+    <section class="panel">
+
+      <div class="settings-grid">
+
+        <label>
+          Event name
+          <input
+            id="setting-event-name"
+            type="text"
+            autocomplete="off"
+          >
+        </label>
+
+        <label>
+          Event date
+          <input
+            id="setting-date"
+            type="date"
+          >
+        </label>
+
+        <label>
+          Location
+          <input
+            id="setting-location"
+            type="text"
+            autocomplete="off"
+          >
+        </label>
+
+        <label>
+          Timezone
+          <input
+            id="setting-timezone"
+            value="America/New_York"
+            disabled
+          >
+        </label>
+
+      </div>
+
+      <button
+        id="save-event-settings"
+        class="primary"
+        type="button"
+      >
+        Save settings
+      </button>
+
+      <p
+        id="settings-message"
+        class="success"
+      ></p>
+
+    </section>
+
+    <section class="panel">
+
+      <div class="summary-line">
+
+        <div>
+          <p class="eyebrow">Volunteer Capacity</p>
+
+          <h2>Shift Capacity</h2>
+
+          <p class="muted">
+            Set the maximum number of volunteers for each shift.
+            Shifts are organized by volunteer position.
+          </p>
+        </div>
+
+        <span
+          id="shift-preview-count"
+          class="badge"
+        ></span>
+
+      </div>
+
+      <div
+        id="shift-capacity-grid"
+        class="slot-capacity-grid"
+      ></div>
+
+    </section>
+
+    <p
+      id="error"
+      class="error"
+    ></p>
+
+  </main>
+
+  <script
+    type="module"
+    src="admin.js"
+  ></script>
+
+</body>
+</html>

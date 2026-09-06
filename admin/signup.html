@@ -1,1 +1,92 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Admin Account Setup | CHS Blood Drive</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="admin.css"></head><body class="auth-body"><main class="auth-card"><p class="eyebrow">Admin</p><h1>Create admin account</h1><p>This creates a Firebase Auth account and a Admin record. However, access is only availble after Admin status is changed to enabled. Please contact an organizer to get access to the Admin account.</p><form id="signup-form"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" required><p id="error" class="error" role="alert"></p><div class="auth-actions"><button id="submit" class="primary" type="submit">Create Account</button><a class="btn secondary" href="/admin/login.html">Sign in instead</a></div></form></main><script type="module" src="signup.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+
+  <title>Admin Account Setup | Carmel Diwali Festival</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="auth-body">
+
+  <main class="auth-card">
+
+    <p class="eyebrow">Volunteer Administration</p>
+
+    <h1>Create admin account</h1>
+
+    <p>
+      This creates a Firebase Authentication account and an administrator
+      record. Access is only available after an administrator enables the
+      account. Contact an event organizer after creating your account to
+      request access.
+    </p>
+
+    <form id="signup-form">
+
+      <label for="email">Email</label>
+
+      <input
+        id="email"
+        type="email"
+        autocomplete="email"
+        required
+      >
+
+      <label for="password">Password</label>
+
+      <input
+        id="password"
+        type="password"
+        autocomplete="new-password"
+        minlength="8"
+        required
+      >
+
+      <p
+        id="error"
+        class="error"
+        role="alert"
+      ></p>
+
+      <div class="auth-actions">
+
+        <button
+          id="submit"
+          class="primary"
+          type="submit"
+        >
+          Create Account
+        </button>
+
+        <a
+          class="btn secondary"
+          href="/admin/login.html"
+        >
+          Sign in instead
+        </a>
+
+      </div>
+
+    </form>
+
+  </main>
+
+  <script
+    type="module"
+    src="signup.js"
+  ></script>
+
+</body>
+</html>

@@ -1,6 +1,114 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Check-In | CHS Blood Drive</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="admin.css"></head>
-<body class="admin-auth-checking"><header class="topbar"><div class="topbar-inner"><div><div class="brand-title">Carmel High School Blood Drive</div><div id="drive-meta" class="brand-sub"></div></div><div class="admin-meta"><span id="admin-email"></span><button id="logout" class="secondary">Logout</button></div></div></header>
-<main class="layout checkin-layout"><nav class="nav"></nav><section class="checkin-main"><section class="panel checkin-hero"><p class="eyebrow">Live operations</p><h1>Check-in</h1><label for="checkin-search">Search by student ID, name, email, phone, or confirmation ID</label><input id="checkin-search" class="checkin-search" autocomplete="off" autofocus placeholder="Search students, IDs, emails, phones…"><p id="checkin-message" class="success"></p><p id="checkin-status" class="muted">Loading registrations…</p></section><section id="checkin-results" class="checkin-results"></section><section class="panel expected-panel"><div class="summary-line"><div><p class="eyebrow">Expected soon</p><h2>Current and next timeslots</h2><p class="muted">Updates automatically as appointments approach.</p></div></div><div id="expected-soon" class="checkin-results expected-list"></div></section></section><aside id="checkin-summary" class="checkin-summary panel"></aside><p id="error" class="error"></p></main><script type="module" src="admin.js"></script></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+
+  <title>Volunteer Check-In | Carmel Diwali Festival</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="admin-auth-checking">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <div>
+        <div class="brand-title">
+          Carmel Diwali Festival of Lights
+        </div>
+
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="layout checkin-layout">
+
+    <nav class="nav"></nav>
+
+    <section class="checkin-main">
+
+      <section class="panel checkin-hero">
+        <p class="eyebrow">Live Volunteer Operations</p>
+
+        <h1>Volunteer Check-In</h1>
+
+        <label for="checkin-search">
+          Search by name, email, phone, or confirmation ID
+        </label>
+
+        <input
+          id="checkin-search"
+          class="checkin-search"
+          autocomplete="off"
+          autofocus
+          placeholder="Search volunteers, names, emails, phones…"
+        >
+
+        <p id="checkin-message" class="success"></p>
+
+        <p id="checkin-status" class="muted">
+          Loading volunteer registrations…
+        </p>
+      </section>
+
+      <section
+        id="checkin-results"
+        class="checkin-results"
+      ></section>
+
+      <section class="panel expected-panel">
+
+        <div class="summary-line">
+
+          <div>
+            <p class="eyebrow">Expected Soon</p>
+
+            <h2>Current and upcoming shifts</h2>
+
+            <p class="muted">
+              Volunteers whose shifts are approaching will appear here.
+            </p>
+          </div>
+
+        </div>
+
+        <div
+          id="expected-soon"
+          class="checkin-results expected-list"
+        ></div>
+
+      </section>
+
+    </section>
+
+    <aside
+      id="checkin-summary"
+      class="checkin-summary panel"
+    ></aside>
+
+    <p id="error" class="error"></p>
+
+  </main>
+
+  <script type="module" src="admin.js"></script>
+
+</body>
 </html>

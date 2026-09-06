@@ -2,19 +2,64 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function adminProfile() { return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data; }
-    function enabledRole(role) { return signedIn() && adminProfile().status == "enabled" && adminProfile().role == role; }
-    function isAdmin() { return enabledRole("admin"); }
-    function isCheckin() { return enabledRole("checkin"); }
-    function canCheckin() { return isAdmin() || isCheckin(); }
-    function validOutcome(value) { return value in ["single", "double", "deferred", "other"]; }
+
+    // ------------------------------------------------------------------------
+    // Authentication / authorization helpers
+    // ------------------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminProfile() {
+      return get(
+        /databases/$(database)/documents/admins/$(request.auth.uid)
+      ).data;
+    }
+
+    function enabledRole(role) {
+      return signedIn()
+        && adminProfile().status == "enabled"
+        && adminProfile().role == role;
+    }
+
+    function isAdmin() {
+      return enabledRole("admin");
+    }
+
+    function isCheckin() {
+      return enabledRole("checkin");
+    }
+
+    function canCheckin() {
+      return isAdmin() || isCheckin();
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Volunteer registrations
+    // ------------------------------------------------------------------------
+    //
+    // Public users can create a registration.
+    // Only authorized administrators/check-in staff can read registrations.
+    // Only admins can modify or delete registrations.
+    //
 
     match /registrations/{registrationId} {
       allow read: if isAdmin() || isCheckin();
+
       allow create: if true;
+
       allow update, delete: if isAdmin();
     }
+
+
+    // ------------------------------------------------------------------------
+    // Event-day check-in / check-out
+    // ------------------------------------------------------------------------
+    //
+    // Each check-in document is associated with a volunteer registration.
+    //
 
     match /checkins/{registrationId} {
       allow read: if canCheckin();
@@ -22,34 +67,94 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+    // ------------------------------------------------------------------------
+    // Check-in activity log
+    // ------------------------------------------------------------------------
+
     match /checkinActivity/{activityId} {
       allow read: if canCheckin();
       allow create: if canCheckin();
       allow update, delete: if isAdmin();
     }
 
+
+    // ------------------------------------------------------------------------
+    // Registration guards
+    // ------------------------------------------------------------------------
+    //
+    // Used to prevent duplicate registrations or other public-side race
+    // conditions. Public creation/read behavior can be tightened further
+    // depending on the exact guard implementation in app.js.
+    //
+
     match /registrationGuards/{guardId} {
       allow read, create: if true;
       allow update, delete: if isAdmin();
     }
 
-    match /slotCounts/{slotDocId} {
+
+    // ------------------------------------------------------------------------
+    // Shift capacity counters
+    // ------------------------------------------------------------------------
+    //
+    // Public users need to read shift availability.
+    //
+    // The frontend may create/update counters during registration.
+    // Admins retain full control.
+    //
+    // IMPORTANT:
+    // The exact write validation should be tightened once the final
+    // registration/shift transaction logic is confirmed.
+    //
+
+    match /shiftCounts/{shiftDocId} {
       allow read: if true;
       allow write: if isAdmin() || request.auth == null;
     }
 
-    match /driveSettings/{driveId} {
+
+    // ------------------------------------------------------------------------
+    // Event settings
+    // ------------------------------------------------------------------------
+    //
+    // Public users can read settings needed to display the event.
+    // Only administrators can modify them.
+    //
+
+    match /eventSettings/{eventId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+
+    // ------------------------------------------------------------------------
+    // Volunteer/admin accounts
+    // ------------------------------------------------------------------------
+    //
+    // A user may create their own disabled "none" profile.
+    // Only administrators can enable roles or modify/delete profiles.
+    //
+
     match /admins/{adminId} {
-      allow read: if signedIn() && (adminId == request.auth.uid || isAdmin());
-      allow create: if signedIn() && adminId == request.auth.uid
+      allow read: if signedIn()
+        && (adminId == request.auth.uid || isAdmin());
+
+      allow create: if signedIn()
+        && adminId == request.auth.uid
         && request.resource.data.role == "none"
         && request.resource.data.status == "disabled";
+
       allow update, delete: if isAdmin();
     }
+
+
+    // ------------------------------------------------------------------------
+    // Catch-all
+    // ------------------------------------------------------------------------
+    //
+    // Administrators can access documents not covered above.
+    //
 
     match /{document=**} {
       allow read, write: if isAdmin();

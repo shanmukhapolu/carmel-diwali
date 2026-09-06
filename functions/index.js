@@ -5,45 +5,70 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 /**
- * Keeps slot availability tied to actual registrations.
+ * Keeps volunteer shift availability synchronized with registrations.
  *
- * When an organizer deletes a registration from Firestore, this trigger
- * decrements the matching non-PII slot counter so that the public form shows
- * the reopened appointment spot and allows another student to register.
+ * When an organizer deletes a volunteer registration from Firestore, this
+ * trigger decrements the matching non-PII shift counter so that the public
+ * signup form immediately shows the reopened spot.
  */
-exports.releaseSlotOnRegistrationDelete = onDocumentDeleted("registrations/{registrationId}", async (event) => {
-  const deletedRegistration = event.data?.data();
-  if (!deletedRegistration) return;
+exports.releaseShiftOnRegistrationDelete = onDocumentDeleted(
+  "registrations/{registrationId}",
+  async (event) => {
+    const deletedRegistration = event.data?.data();
 
-  const { bloodDriveId, appointmentSlotId } = deletedRegistration;
-  if (typeof bloodDriveId !== "string" || typeof appointmentSlotId !== "string") {
-    logger.warn("Deleted registration missing slot metadata", { registrationId: event.params.registrationId });
-    return;
+    if (!deletedRegistration) return;
+
+    const { eventId, shiftId } = deletedRegistration;
+
+    if (
+      typeof eventId !== "string" ||
+      typeof shiftId !== "string"
+    ) {
+      logger.warn(
+        "Deleted registration missing shift metadata",
+        {
+          registrationId: event.params.registrationId,
+        }
+      );
+      return;
+    }
+
+    const shiftRef = admin
+      .firestore()
+      .doc(`shiftCounts/${eventId}_${shiftId}`);
+
+    await admin.firestore().runTransaction(async (tx) => {
+      const shiftSnap = await tx.get(shiftRef);
+
+      if (!shiftSnap.exists) {
+        logger.warn(
+          "Shift counter missing while releasing deleted registration",
+          {
+            registrationId: event.params.registrationId,
+            eventId,
+            shiftId,
+          }
+        );
+        return;
+      }
+
+      const currentCount = shiftSnap.get("count");
+
+      if (typeof currentCount !== "number") {
+        logger.warn(
+          "Shift counter count is not numeric while releasing deleted registration",
+          {
+            registrationId: event.params.registrationId,
+            eventId,
+            shiftId,
+          }
+        );
+        return;
+      }
+
+      tx.update(shiftRef, {
+        count: Math.max(0, currentCount - 1),
+      });
+    });
   }
-
-  const slotRef = admin.firestore().doc(`slotCounts/${bloodDriveId}_${appointmentSlotId}`);
-
-  await admin.firestore().runTransaction(async (tx) => {
-    const slotSnap = await tx.get(slotRef);
-    if (!slotSnap.exists) {
-      logger.warn("Slot counter missing while releasing deleted registration", {
-        registrationId: event.params.registrationId,
-        bloodDriveId,
-        appointmentSlotId,
-      });
-      return;
-    }
-
-    const currentCount = slotSnap.get("count");
-    if (typeof currentCount !== "number") {
-      logger.warn("Slot counter count is not numeric while releasing deleted registration", {
-        registrationId: event.params.registrationId,
-        bloodDriveId,
-        appointmentSlotId,
-      });
-      return;
-    }
-
-    tx.update(slotRef, { count: Math.max(0, currentCount - 1) });
-  });
-});
+);

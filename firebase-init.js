@@ -2,9 +2,9 @@
 // firebase-init.js
 //
 // Firebase initialization, kept intentionally separate from UI logic
-//  app.js). This module is responsible ONLY for:
+// (app.js). This module is responsible ONLY for:
 //   - initializing the Firebase app
-//   - exposing the Firestore instance and a couple of narrow helpers
+//   - exposing the Firestore instance and narrow helpers
 //
 // ----------------------------------------------------------------------------
 // SECURITY NOTE: read before editing this file
@@ -26,11 +26,15 @@
 // ============================================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getAnalytics, logEvent, isSupported as analyticsIsSupported } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
+import {
+  getAnalytics,
+  logEvent,
+  isSupported as analyticsIsSupported,
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
-// Firebase web configuration for the "blood-drive-test" project. The Web API
-// key is not a secret; see the security note above.
+// Firebase web configuration for the Carmel Diwali Festival volunteer app.
+// The Web API key is not a secret; see the security note above.
 
 const firebaseConfig = {
   apiKey: "AIzaSyA31-qvxuiFPxBhhFcdmv7vgxH0l4Ehe5U",
@@ -39,7 +43,7 @@ const firebaseConfig = {
   storageBucket: "volunteerdiwali.firebasestorage.app",
   messagingSenderId: "24394973552",
   appId: "1:24394973552:web:09cc6f81388ba04186cfb5",
-  measurementId: "G-M77J7HX6L4"
+  measurementId: "G-M77J7HX6L4",
 };
 
 export const app = initializeApp(firebaseConfig);
@@ -47,9 +51,11 @@ export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
 // Analytics is optional and may be unavailable (e.g. blocked by an ad
-// blocker, or unsupported browser). Never let analytics failures break the
-// registration flow.
+// blocker, unsupported browser, or privacy settings). Never let analytics
+// failures break the volunteer registration flow.
+
 let analyticsInstance = null;
+
 analyticsIsSupported()
   .then((supported) => {
     if (supported) {
@@ -60,27 +66,32 @@ analyticsIsSupported()
     analyticsInstance = null;
   });
 
-// Allow-listed, non-PII event names only. Do NOT pass student names, emails,
-// IDs, phone numbers, or dates of birth as event parameters; see PII
-// protection requirements in README.md.
+// Allow-listed, non-PII event names only.
+//
+// Do NOT pass volunteer names, emails, phone numbers, shift information,
+// or other identifying information as event parameters.
+//
+// Analytics should only be used for general usage/error tracking.
 const ALLOWED_EVENTS = new Set([
-  "blood_drive_form_started",
-  "blood_drive_registration_success",
-  "blood_drive_registration_error",
-  "blood_drive_ineligible_blocked",
+  "diwali_volunteer_form_started",
+  "diwali_volunteer_registration_success",
+  "diwali_volunteer_registration_error",
 ]);
 
 /**
- * Logs a non-PII product analytics event. Silently ignores any event name
- * that is not explicitly allow-listed above, and silently no-ops if
- * analytics failed to initialize.
+ * Logs a non-PII product analytics event.
+ *
+ * Silently ignores any event name that is not explicitly allow-listed
+ * and silently no-ops if analytics failed to initialize.
+ *
  * @param {string} eventName
  */
 export function logSafeEvent(eventName) {
   if (!analyticsInstance || !ALLOWED_EVENTS.has(eventName)) return;
+
   try {
     logEvent(analyticsInstance, eventName);
   } catch (_err) {
-    // Never let analytics errors surface to the student.
+    // Never let analytics errors surface to the volunteer.
   }
 }

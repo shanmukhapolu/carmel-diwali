@@ -1,8 +1,8 @@
 {
-  "name": "carmel-blood-drive-registration",
+  "name": "carmel-diwali-volunteer-registration",
   "version": "0.1.0",
   "private": true,
-  "description": "Carmel High School Blood Drive Registration",
+  "description": "Carmel Diwali Festival Volunteer Registration and Management",
   "scripts": {
     "dev": "http-server . -p 3000 -c-1 -a 0.0.0.0",
     "start": "http-server . -p 3000 -c-1 -a 0.0.0.0"

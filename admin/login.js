@@ -1,5 +1,13 @@
-import { auth, getAdminProfile, UNAUTHORIZED } from "./auth.js";
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import {
+  auth,
+  getAdminProfile,
+  UNAUTHORIZED
+} from "./auth.js";
+
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 
 const form = document.getElementById("login-form");
 const errorEl = document.getElementById("error");
@@ -17,12 +25,19 @@ function show(message = "") {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+
   show();
   setBusy(true);
 
   try {
     const email = form.email.value.trim().toLowerCase();
-    const credential = await signInWithEmailAndPassword(auth, email, form.password.value);
+
+    const credential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      form.password.value
+    );
+
     const profile = await getAdminProfile(credential.user);
 
     if (!profile) {
@@ -33,14 +48,21 @@ form.addEventListener("submit", async (event) => {
 
     window.location.replace("/admin/");
   } catch (error) {
-    console.info("[Admin Login] sign in failed", { code: error?.code || "unknown" });
-    show("Sign-in failed. Check your email, password, and enabled admin profile.");
+    console.info("[Diwali Admin Login] sign in failed", {
+      code: error?.code || "unknown"
+    });
+
+    show(
+      "Sign-in failed. Check your email, password, and enabled admin profile."
+    );
+
     setBusy(false);
   }
 });
 
 forgot.addEventListener("click", async () => {
   show();
+
   const email = form.email.value.trim().toLowerCase();
 
   if (!email) {
@@ -50,9 +72,17 @@ forgot.addEventListener("click", async () => {
 
   try {
     await sendPasswordResetEmail(auth, email);
-    show("Password reset email sent if that account exists.");
+
+    show(
+      "Password reset email sent if that account exists."
+    );
   } catch (error) {
-    console.info("[Admin Login] password reset failed", { code: error?.code || "unknown" });
-    show("Password reset could not be started. Try again later.");
+    console.info("[Diwali Admin Login] password reset failed", {
+      code: error?.code || "unknown"
+    });
+
+    show(
+      "Password reset could not be started. Try again later."
+    );
   }
 });

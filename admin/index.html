@@ -4,37 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Admin Dashboard | CHS Blood Drive</title>
+  <title>Admin Dashboard | Carmel Diwali Festival</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
 </head>
+
 <body class="admin-auth-checking">
   <header class="topbar">
     <div class="topbar-inner">
       <div>
-        <div class="brand-title">Carmel High School Blood Drive</div>
-        <div id="drive-meta" class="brand-sub"></div>
+        <div class="brand-title">Carmel Diwali Festival of Lights</div>
+        <div id="event-meta" class="brand-sub"></div>
       </div>
+
       <div class="admin-meta">
         <span id="admin-email"></span>
         <button id="logout" class="secondary">Logout</button>
       </div>
     </div>
   </header>
+
   <main class="layout">
     <nav class="nav">
-      <a href="registrations.html">Registrations</a>
+      <a href="registrations.html">Volunteers</a>
       <a href="statistics.html">Statistics</a>
     </nav>
+
     <section class="panel">
-      <p class="eyebrow">Simple Firebase Admin</p>
+      <p class="eyebrow">Volunteer Management</p>
+
       <h1>Admin dashboard</h1>
-      <p>Use Registrations to pull the latest student registration documents from Firebase, or Statistics for simple totals.</p>
+
+      <p>
+        Use Volunteers to view and manage volunteer registrations from
+        Firebase, or Statistics to see signup and attendance totals.
+      </p>
     </section>
+
     <p id="error" class="error"></p>
   </main>
+
   <script type="module" src="admin.js"></script>
 </body>
 </html>
