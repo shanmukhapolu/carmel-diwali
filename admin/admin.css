@@ -1,8 +1,8 @@
 :root {
   --admin-bg: #f8f1e7;
-  --admin-bg-deep: #2b0d24;
-
-  --admin-surface: #ffffff;
+  --admin-bg-soft: #fff8ef;
+  --admin-surface: rgba(255, 255, 255, 0.96);
+  --admin-surface-solid: #ffffff;
   --admin-surface-soft: #fffaf3;
 
   --admin-border: #eadfce;
@@ -10,6 +10,7 @@
 
   --admin-text: #24151d;
   --admin-muted: #75656b;
+  --admin-muted-light: #9b8b91;
 
   --admin-maroon: #681c3d;
   --admin-maroon-dark: #4b102b;
@@ -21,30 +22,29 @@
   --admin-gold: #c99527;
   --admin-gold-soft: #f8edcf;
 
-  --admin-blue: #075da8;
-  --admin-blue-dark: #064b88;
-  --admin-blue-deep: #063763;
-  --admin-blue-soft: #edf5ff;
+  --admin-success: #28734d;
+  --admin-success-bg: #eaf6ef;
 
-  --admin-success-bg: #e8f6ee;
-  --admin-success-text: #1f6b42;
-
-  --admin-warning-bg: #fff4d9;
-  --admin-warning-text: #8a5a00;
+  --admin-warning: #936200;
+  --admin-warning-bg: #fff5dc;
 
   --admin-danger: #b4233b;
   --admin-danger-bg: #fdecef;
 
   --admin-radius-sm: 10px;
-  --admin-radius-md: 16px;
-  --admin-radius-lg: 22px;
+  --admin-radius-md: 14px;
+  --admin-radius-lg: 20px;
+  --admin-radius-xl: 24px;
 
   --admin-shadow:
     0 1px 2px rgba(49, 9, 30, 0.04),
-    0 18px 44px -28px rgba(49, 9, 30, 0.24);
+    0 12px 32px -24px rgba(49, 9, 30, 0.22);
+
+  --admin-shadow-lg:
+    0 20px 50px -34px rgba(49, 9, 30, 0.28);
 
   --admin-focus:
-    0 0 0 3px rgba(216, 111, 25, 0.18);
+    0 0 0 3px rgba(216, 111, 25, 0.16);
 
   --admin-font:
     "Inter",
@@ -62,6 +62,7 @@
     sans-serif;
 }
 
+
 /* ==========================================================================
    Base
    ========================================================================== */
@@ -77,23 +78,28 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(
-      circle at 8% 0%,
-      rgba(201, 149, 39, 0.12),
-      transparent 28rem
-    ),
-    radial-gradient(
-      circle at 92% 8%,
-      rgba(216, 111, 25, 0.08),
-      transparent 24rem
-    ),
-    var(--admin-bg);
-
   color: var(--admin-text);
   font-family: var(--admin-font);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+
+  background:
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(201, 149, 39, 0.11),
+      transparent 26rem
+    ),
+    radial-gradient(
+      circle at 94% 12%,
+      rgba(216, 111, 25, 0.07),
+      transparent 24rem
+    ),
+    linear-gradient(
+      180deg,
+      #fbf5ec 0%,
+      #f8f1e7 55%,
+      #f5eadc 100%
+    );
 }
 
 ::selection {
@@ -116,14 +122,15 @@ h3 {
 }
 
 h1 {
-  margin-bottom: 8px;
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  margin-bottom: 7px;
+  font-size: clamp(1.8rem, 3vw, 2.45rem);
+  line-height: 1.08;
   color: var(--admin-maroon-deep);
 }
 
 h2 {
-  margin-bottom: 14px;
-  font-size: 1.18rem;
+  margin-bottom: 12px;
+  font-size: 1.15rem;
   color: var(--admin-maroon-dark);
 }
 
@@ -139,9 +146,14 @@ label {
   display: block;
   margin-bottom: 6px;
   color: #4d3c43;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 750;
 }
+
+
+/* ==========================================================================
+   Form controls
+   ========================================================================== */
 
 input,
 select,
@@ -155,10 +167,11 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--admin-border);
-  border-radius: 14px;
-  background: #fffdf9;
+  border-radius: 12px;
+  background: rgba(255, 253, 249, 0.96);
   color: var(--admin-text);
   outline: none;
+
   transition:
     border-color 0.16s ease,
     box-shadow 0.16s ease,
@@ -177,19 +190,20 @@ textarea {
   resize: vertical;
 }
 
-input::placeholder {
-  color: #a89ba0;
+input::placeholder,
+textarea::placeholder {
+  color: #aa9da2;
 }
 
 input:focus,
 select:focus,
-textarea:focus,
-button:focus-visible,
-a:focus-visible {
+textarea:focus {
   border-color: var(--admin-saffron);
+  background: #ffffff;
   box-shadow: var(--admin-focus);
   outline: none;
 }
+
 
 /* ==========================================================================
    Buttons
@@ -198,24 +212,25 @@ a:focus-visible {
 button,
 .btn {
   min-height: 42px;
-  border: 0;
-  border-radius: 12px;
-  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 9px 15px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
 
-  font-weight: 700;
+  font-weight: 750;
   cursor: pointer;
   text-decoration: none;
 
   transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease;
+    transform 0.14s ease,
+    box-shadow 0.14s ease,
+    background 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
 }
 
 button:hover,
@@ -223,16 +238,23 @@ button:hover,
   transform: translateY(-1px);
 }
 
+button:focus-visible,
+.btn:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--admin-focus);
+}
+
 .primary {
+  color: #ffffff;
   background:
     linear-gradient(
       135deg,
       var(--admin-saffron),
       var(--admin-saffron-dark)
     );
-  color: #ffffff;
   box-shadow:
-    0 12px 24px -18px rgba(185, 83, 13, 0.8);
+    0 10px 24px -18px rgba(185, 83, 13, 0.85);
 }
 
 .primary:hover {
@@ -240,35 +262,36 @@ button:hover,
 }
 
 .secondary {
-  background: #ffffff;
   color: var(--admin-maroon);
-  border: 1px solid var(--admin-border);
+  background: #ffffff;
+  border-color: var(--admin-border);
 }
 
 .secondary:hover {
-  border-color: var(--admin-gold);
   background: var(--admin-surface-soft);
+  border-color: var(--admin-gold);
 }
 
 .danger,
 .danger-lite {
   color: var(--admin-danger);
   background: var(--admin-danger-bg);
-  border: 1px solid rgba(180, 35, 59, 0.18);
+  border-color: rgba(180, 35, 59, 0.16);
 }
 
 button:disabled {
   cursor: wait;
-  opacity: 0.6;
+  opacity: 0.55;
   transform: none;
 }
 
 .small-button {
   min-height: 34px;
-  padding: 7px 11px;
-  border-radius: 10px;
-  font-size: 0.82rem;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 0.8rem;
 }
+
 
 /* ==========================================================================
    Cards / Panels
@@ -281,7 +304,7 @@ button:disabled {
 .ops-card,
 .checkin-card,
 .activity-card {
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--admin-surface);
   border: 1px solid rgba(234, 223, 206, 0.95);
   border-radius: var(--admin-radius-lg);
   box-shadow: var(--admin-shadow);
@@ -293,11 +316,13 @@ button:disabled {
 }
 
 .panel {
-  padding: clamp(20px, 2.2vw, 30px);
+  padding: clamp(20px, 2.2vw, 28px);
   margin-bottom: 18px;
 }
 
 .stat-card {
+  position: relative;
+  overflow: hidden;
   padding: 18px;
 }
 
@@ -309,20 +334,20 @@ button:disabled {
 .eyebrow {
   margin-bottom: 8px;
   color: var(--admin-saffron);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
 .error {
   color: var(--admin-danger);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
 .success {
-  color: var(--admin-success-text);
+  color: var(--admin-success);
   font-weight: 700;
 }
 
@@ -333,6 +358,7 @@ button:disabled {
 .muted {
   color: var(--admin-muted);
 }
+
 
 /* ==========================================================================
    Authentication
@@ -347,7 +373,7 @@ button:disabled {
   background:
     radial-gradient(
       circle at 50% 0%,
-      rgba(201, 149, 39, 0.2),
+      rgba(201, 149, 39, 0.18),
       transparent 28rem
     ),
     linear-gradient(
@@ -361,6 +387,7 @@ button:disabled {
 .auth-card {
   position: relative;
   overflow: hidden;
+  box-shadow: var(--admin-shadow-lg);
 }
 
 .auth-card::before {
@@ -369,7 +396,7 @@ button:disabled {
   top: 0;
   left: 0;
   right: 0;
-  height: 5px;
+  height: 4px;
 
   background:
     linear-gradient(
@@ -393,8 +420,7 @@ button:disabled {
 
 .auth-actions {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
   margin-top: 8px;
 }
 
@@ -402,6 +428,7 @@ button:disabled {
 .auth-actions button {
   width: 100%;
 }
+
 
 /* ==========================================================================
    Authentication loading
@@ -420,7 +447,7 @@ body.admin-auth-checking::before {
   background:
     radial-gradient(
       circle at 50% 20%,
-      rgba(201, 149, 39, 0.16),
+      rgba(201, 149, 39, 0.15),
       transparent 24rem
     ),
     var(--admin-bg);
@@ -437,6 +464,7 @@ body.admin-auth-checking .shell {
   visibility: hidden;
 }
 
+
 /* ==========================================================================
    Topbar
    ========================================================================== */
@@ -444,27 +472,28 @@ body.admin-auth-checking .shell {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 20;
 
-  border-bottom: 1px solid rgba(234, 223, 206, 0.9);
+  border-bottom: 1px solid rgba(234, 223, 206, 0.35);
 
   background:
     linear-gradient(
       90deg,
-      rgba(49, 9, 30, 0.97),
-      rgba(104, 28, 61, 0.97) 55%,
-      rgba(75, 16, 43, 0.97)
+      rgba(49, 9, 30, 0.98),
+      rgba(104, 28, 61, 0.97) 52%,
+      rgba(75, 16, 43, 0.98)
     );
 
-  box-shadow: 0 8px 30px -24px rgba(49, 9, 30, 0.8);
+  box-shadow:
+    0 8px 30px -24px rgba(49, 9, 30, 0.8);
+
   backdrop-filter: blur(16px);
 }
 
 .topbar-inner {
   width: 100%;
   margin: 0 auto;
-
-  padding: 16px clamp(18px, 2.8vw, 40px);
+  padding: 15px clamp(18px, 2.8vw, 40px);
 
   display: flex;
   align-items: center;
@@ -475,36 +504,38 @@ body.admin-auth-checking .shell {
 .brand-title {
   color: #fff9ee;
   font-family: var(--admin-display);
-  font-size: 1.04rem;
+  font-size: 1.03rem;
   font-weight: 800;
   letter-spacing: -0.01em;
 }
 
 .brand-sub {
-  margin-top: 3px;
-  color: rgba(255, 248, 238, 0.72);
-  font-size: 0.88rem;
+  margin-top: 2px;
+  color: rgba(255, 248, 238, 0.68);
+  font-size: 0.82rem;
 }
 
 .admin-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 
-  color: rgba(255, 248, 238, 0.78);
-  font-size: 0.9rem;
+  color: rgba(255, 248, 238, 0.76);
+  font-size: 0.86rem;
 }
 
 .topbar .secondary {
   color: #fff9ee;
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .topbar .secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.22);
 }
+
 
 /* ==========================================================================
    Main layout / navigation
@@ -522,31 +553,32 @@ body.admin-auth-checking .shell {
 
 .nav {
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
 
-  padding: 5px;
+  padding: 4px;
   margin-bottom: 18px;
 
   border: 1px solid var(--admin-border);
-  border-radius: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
 
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(49, 9, 30, 0.04);
+  box-shadow:
+    0 1px 2px rgba(49, 9, 30, 0.04);
 }
 
 .nav a {
-  padding: 9px 15px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
 
   color: var(--admin-muted);
   text-decoration: none;
 
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.86rem;
+  font-weight: 750;
 
   transition:
-    background 0.16s ease,
-    color 0.16s ease;
+    background 0.14s ease,
+    color 0.14s ease;
 }
 
 .nav a:hover {
@@ -555,6 +587,8 @@ body.admin-auth-checking .shell {
 }
 
 .nav a.active {
+  color: #ffffff;
+
   background:
     linear-gradient(
       135deg,
@@ -562,9 +596,10 @@ body.admin-auth-checking .shell {
       var(--admin-maroon-dark)
     );
 
-  color: #ffffff;
-  box-shadow: 0 10px 22px -18px rgba(49, 9, 30, 0.8);
+  box-shadow:
+    0 8px 18px -16px rgba(49, 9, 30, 0.9);
 }
+
 
 /* ==========================================================================
    Toolbars / filters
@@ -576,7 +611,7 @@ body.admin-auth-checking .shell {
     minmax(260px, 1.6fr)
     repeat(3, minmax(145px, 1fr));
 
-  gap: 14px;
+  gap: 12px;
   align-items: end;
   margin-top: 18px;
 }
@@ -588,7 +623,7 @@ body.admin-auth-checking .shell {
 .filter-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .simple-toolbar {
@@ -600,8 +635,8 @@ body.admin-auth-checking .shell {
 
 .registrations-toolbar {
   grid-template-columns:
-    minmax(320px, 2fr)
-    repeat(4, minmax(155px, 1fr));
+    minmax(300px, 2fr)
+    repeat(4, minmax(145px, 1fr));
 }
 
 .registrations-toolbar .wide-field {
@@ -626,6 +661,7 @@ body.admin-auth-checking .shell {
   flex-wrap: wrap;
 }
 
+
 /* ==========================================================================
    Tables
    ========================================================================== */
@@ -634,7 +670,7 @@ body.admin-auth-checking .shell {
   overflow: auto;
 
   border: 1px solid var(--admin-border);
-  border-radius: 18px;
+  border-radius: 16px;
 
   background: #ffffff;
 }
@@ -649,13 +685,12 @@ table {
 
 th,
 td {
-  padding: 13px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--admin-border);
 
   text-align: left;
   white-space: nowrap;
-
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 th {
@@ -668,7 +703,7 @@ th {
 
   cursor: pointer;
 
-  font-size: 0.73rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -680,6 +715,7 @@ th[data-sort] {
 
 tbody tr {
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 
 tbody tr:hover td {
@@ -690,8 +726,9 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
+
 /* ==========================================================================
-   Badges
+   Status badges
    ========================================================================== */
 
 .badge {
@@ -699,29 +736,30 @@ tbody tr:last-child td {
   align-items: center;
 
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 9px;
 
   background: var(--admin-gold-soft);
   color: var(--admin-maroon);
 
-  font-size: 0.77rem;
-  font-weight: 700;
+  font-size: 0.74rem;
+  font-weight: 750;
 }
 
 .badge.ok {
   background: var(--admin-success-bg);
-  color: var(--admin-success-text);
+  color: var(--admin-success);
 }
 
 .badge.warn {
   background: var(--admin-warning-bg);
-  color: var(--admin-warning-text);
+  color: var(--admin-warning);
 }
 
 .badge.bad {
   background: var(--admin-danger-bg);
   color: var(--admin-danger);
 }
+
 
 /* ==========================================================================
    Pagination / summaries
@@ -732,18 +770,18 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 12px;
   flex-wrap: wrap;
 }
 
 .pager {
-  margin-top: 16px;
+  margin-top: 15px;
 }
 
 .pager strong {
   color: var(--admin-maroon);
 }
+
 
 /* ==========================================================================
    Statistics
@@ -752,17 +790,12 @@ tbody tr:last-child td {
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 13px;
   margin-bottom: 18px;
 }
 
 .stats-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.stat-card {
-  position: relative;
-  overflow: hidden;
 }
 
 .stat-card::before {
@@ -788,34 +821,36 @@ tbody tr:last-child td {
   margin-top: 8px;
 
   color: var(--admin-maroon-deep);
-
   font-family: var(--admin-display);
+
   font-size: 2rem;
   font-weight: 800;
-
   letter-spacing: -0.035em;
 }
 
 .stat-note {
-  color: var(--admin-muted);
-  font-size: 0.78rem;
-  font-weight: 650;
   margin-top: 4px;
+
+  color: var(--admin-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
 }
 
 .stats-tabs {
   display: flex;
-  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 8px;
+
   margin-top: 18px;
 }
 
 .stats-tabs .active {
-  background: var(--admin-maroon);
   color: #ffffff;
+  background: var(--admin-maroon);
   border-color: var(--admin-maroon);
 }
+
 
 /* ==========================================================================
    Charts
@@ -853,7 +888,7 @@ tbody tr:last-child td {
 
   min-width: 46px;
 
-  border-radius: 10px 10px 4px 4px;
+  border-radius: 9px 9px 4px 4px;
 
   background:
     linear-gradient(
@@ -862,7 +897,8 @@ tbody tr:last-child td {
       var(--admin-maroon)
     );
 
-  box-shadow: 0 10px 20px -18px rgba(104, 28, 61, 0.9);
+  box-shadow:
+    0 10px 20px -18px rgba(104, 28, 61, 0.9);
 }
 
 .bar strong {
@@ -870,18 +906,17 @@ tbody tr:last-child td {
   top: -24px;
 
   color: var(--admin-maroon);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
 }
 
 .bar span {
   position: absolute;
-
   right: -8px;
   bottom: -30px;
   left: -8px;
 
   color: var(--admin-muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   text-align: center;
 }
 
@@ -904,14 +939,9 @@ tbody tr:last-child td {
   white-space: nowrap;
 }
 
-.senator-panel .chart {
-  gap: 18px;
-  min-height: 310px;
-  padding-bottom: 86px;
-}
 
 /* ==========================================================================
-   Lists / leaderboards
+   Lists
    ========================================================================== */
 
 .list {
@@ -923,7 +953,7 @@ tbody tr:last-child td {
   padding: 11px 12px;
 
   border: 1px solid var(--admin-border);
-  border-radius: 14px;
+  border-radius: 12px;
 
   background: #ffffff;
   color: #4d3c43;
@@ -939,7 +969,7 @@ tbody tr:last-child td {
 }
 
 .leaderboard-list .leaderboard-row {
-  border-left: 5px solid var(--admin-saffron);
+  border-left: 4px solid var(--admin-saffron);
   color: var(--admin-maroon);
   font-weight: 750;
 }
@@ -959,9 +989,8 @@ tbody tr:last-child td {
     );
 
   color: var(--admin-maroon);
-
   font-family: var(--admin-display);
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 800;
 
   box-shadow:
@@ -971,17 +1000,18 @@ tbody tr:last-child td {
 .appointment-list .subtle-row {
   padding: 9px 11px;
   color: var(--admin-muted);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
 }
 
+
 /* ==========================================================================
-   Detail / modal
+   Modal / detail view
    ========================================================================== */
 
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 30;
 
   display: grid;
   place-items: center;
@@ -989,7 +1019,7 @@ tbody tr:last-child td {
   padding: 18px;
 
   background: rgba(49, 9, 30, 0.48);
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(6px);
 }
 
 .modal-card {
@@ -999,29 +1029,29 @@ tbody tr:last-child td {
   overflow: auto;
 
   padding: 22px;
+
+  box-shadow: var(--admin-shadow-lg);
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .detail-item {
   padding: 11px 12px;
 
   border: 1px solid var(--admin-border);
-  border-radius: 14px;
+  border-radius: 12px;
 
   background: var(--admin-surface-soft);
 }
 
 .detail-label {
   color: var(--admin-muted);
-
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
-
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1053,11 +1083,12 @@ tbody tr:last-child td {
   background: #2a1220;
   color: #f9eee1;
 
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   line-height: 1.55;
 
   white-space: pre-wrap;
 }
+
 
 /* ==========================================================================
    Pie / donut charts
@@ -1085,10 +1116,10 @@ tbody tr:last-child td {
 }
 
 .donut {
+  position: relative;
+
   width: 148px;
   height: 148px;
-
-  position: relative;
 
   margin: 10px auto;
 
@@ -1102,9 +1133,9 @@ tbody tr:last-child td {
   inset: 34px;
 
   border-radius: 50%;
-
   background: #ffffff;
 }
+
 
 /* ==========================================================================
    Settings
@@ -1114,7 +1145,7 @@ tbody tr:last-child td {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 
-  gap: 14px;
+  gap: 13px;
   margin: 18px 0;
 }
 
@@ -1126,7 +1157,7 @@ tbody tr:last-child td {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 
-  gap: 12px;
+  gap: 10px;
   margin-top: 16px;
 }
 
@@ -1140,7 +1171,7 @@ tbody tr:last-child td {
   padding: 12px;
 
   border: 1px solid var(--admin-border);
-  border-radius: 16px;
+  border-radius: 14px;
 
   background: #ffffff;
 }
@@ -1152,14 +1183,15 @@ tbody tr:last-child td {
 .slot-heading {
   display: block;
 
-  color: var(--admin-maroon);
-
-  font-family: var(--admin-display);
-  font-size: 1.6rem;
-  font-weight: 800;
-
   margin-bottom: 10px;
+
+  color: var(--admin-maroon);
+  font-family: var(--admin-display);
+
+  font-size: 1.45rem;
+  font-weight: 800;
 }
+
 
 /* ==========================================================================
    Check-in / event-day operations
@@ -1199,13 +1231,13 @@ tbody tr:last-child td {
 }
 
 .checkin-search {
-  min-height: 72px;
+  min-height: 66px;
 
-  border-radius: 22px;
+  border-radius: 18px;
 
-  padding: 16px 20px;
+  padding: 15px 19px;
 
-  font-size: clamp(1.08rem, 1.7vw, 1.35rem);
+  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
 
   background: #ffffff;
 
@@ -1216,7 +1248,7 @@ tbody tr:last-child td {
 
 .checkin-results {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .checkin-card {
@@ -1226,9 +1258,9 @@ tbody tr:last-child td {
 
   gap: 16px;
 
-  padding: 18px 20px;
+  padding: 17px 19px;
 
-  border-radius: 20px;
+  border-radius: 18px;
 
   box-shadow:
     0 10px 32px -30px rgba(49, 9, 30, 0.35);
@@ -1244,13 +1276,13 @@ tbody tr:last-child td {
 
 .checkin-actions {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
 }
 
 .big-action {
   min-height: 48px;
-  border-radius: 14px;
+  border-radius: 13px;
 }
 
 .expected-panel {
@@ -1259,7 +1291,7 @@ tbody tr:last-child td {
 
 .checkin-summary {
   position: sticky;
-  top: 92px;
+  top: 90px;
   display: block;
 }
 
@@ -1267,25 +1299,25 @@ tbody tr:last-child td {
   display: grid;
   grid-template-columns: 1fr;
 
-  gap: 10px;
+  gap: 8px;
   margin: 0;
 }
 
 .checkin-summary .stat-card {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 13px 15px;
+  border-radius: 14px;
 }
 
 .checkin-summary .stat-value {
-  font-size: 1.75rem;
+  font-size: 1.7rem;
 }
 
 .checkin-summary h2 {
-  margin: 0 0 12px;
+  margin: 0 0 11px;
 
   color: var(--admin-maroon);
   font-family: var(--admin-display);
-  font-size: 1.35rem;
+  font-size: 1.3rem;
 }
 
 .checkin-stat-list {
@@ -1300,10 +1332,11 @@ tbody tr:last-child td {
 
   gap: 16px;
 
-  padding: 12px 0;
+  padding: 11px 0;
 
   border: 0;
   border-bottom: 1px solid var(--admin-border);
+
   border-radius: 0;
 
   background: transparent;
@@ -1316,9 +1349,8 @@ tbody tr:last-child td {
 .checkin-summary .checkin-stat-row span {
   color: var(--admin-muted);
 
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 750;
-
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -1327,14 +1359,14 @@ tbody tr:last-child td {
   color: var(--admin-maroon);
 
   font-family: var(--admin-display);
-  font-size: 1.5rem;
+  font-size: 1.45rem;
 }
 
 .activity-row {
-  padding: 14px;
+  padding: 13px;
 
   border: 1px solid var(--admin-border);
-  border-radius: 14px;
+  border-radius: 13px;
 
   background: #ffffff;
 }
@@ -1353,9 +1385,10 @@ tbody tr:last-child td {
 
 .activity-card time {
   color: var(--admin-muted);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
+
 
 /* ==========================================================================
    Operations dashboard
@@ -1364,8 +1397,7 @@ tbody tr:last-child td {
 .ops-dashboard {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  gap: 14px;
+  gap: 13px;
 }
 
 .ops-dashboard > .stats-grid {
@@ -1382,15 +1414,16 @@ tbody tr:last-child td {
 
   border-collapse: collapse;
 
-  font-size: 0.86rem;
+  font-size: 0.84rem;
 }
 
 .compact-table th,
 .compact-table td {
-  border-bottom: 1px solid var(--admin-border);
   padding: 8px;
+  border-bottom: 1px solid var(--admin-border);
   text-align: left;
 }
+
 
 /* ==========================================================================
    Responsive
@@ -1412,17 +1445,12 @@ tbody tr:last-child td {
 
 @media (max-width: 980px) {
   .checkin-layout,
-  .checkin-summary,
   .pie-panel {
     grid-template-columns: 1fr;
   }
 
   .checkin-summary {
     position: static;
-  }
-
-  .checkin-layout {
-    grid-template-columns: 1fr;
   }
 
   .appointment-list {
@@ -1443,16 +1471,6 @@ tbody tr:last-child td {
   }
 }
 
-@media (max-width: 900px) {
-  .appointment-list {
-    grid-template-columns: 1fr;
-  }
-
-  .ops-dashboard {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 760px) {
   .simple-toolbar {
     grid-template-columns: 1fr;
@@ -1461,7 +1479,7 @@ tbody tr:last-child td {
   .auth-card,
   .panel {
     padding: 20px;
-    border-radius: 20px;
+    border-radius: 18px;
   }
 
   .topbar-inner {
@@ -1512,6 +1530,7 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
 
 /* ==========================================================================
    Print
