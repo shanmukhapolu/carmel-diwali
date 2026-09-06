@@ -275,31 +275,59 @@ function renderPositionShiftList() {
   positionShiftList.textContent = "";
 
   for (const position of VOLUNTEER_POSITIONS) {
-    const positionCard = document.createElement("section");
+    const positionCard =
+      document.createElement("section");
 
     positionCard.className = "position-card";
-    positionCard.dataset.positionId = position.id;
+    positionCard.dataset.positionId =
+      position.id;
 
-    const positionHeader = document.createElement("div");
-    positionHeader.className = "position-header";
+    const positionHeader =
+      document.createElement("div");
 
-    const title = document.createElement("h3");
-    title.className = "position-title";
-    title.textContent = position.name;
+    positionHeader.className =
+      "position-header";
 
-    const description = document.createElement("p");
-    description.className = "position-description";
-    description.textContent = position.description;
+    const headerText =
+      document.createElement("div");
 
-    positionHeader.appendChild(title);
-    positionHeader.appendChild(description);
+    headerText.className =
+      "position-header-text";
 
-    const shiftList = document.createElement("div");
-    shiftList.className = "shift-list";
+    const title =
+      document.createElement("h3");
+
+    title.className =
+      "position-title";
+
+    title.textContent =
+      position.name;
+
+    const description =
+      document.createElement("p");
+
+    description.className =
+      "position-description";
+
+    description.textContent =
+      position.description || "";
+
+    headerText.appendChild(title);
+    headerText.appendChild(description);
+
+    positionHeader.appendChild(headerText);
+
+    const shiftList =
+      document.createElement("div");
+
+    shiftList.className =
+      "shift-list";
+
     shiftList.setAttribute(
       "role",
       "group"
     );
+
     shiftList.setAttribute(
       "aria-label",
       `${position.name} shifts`
@@ -312,23 +340,30 @@ function renderPositionShiftList() {
           count: 0,
         };
 
-      const capacity = Number(availability.capacity);
-      const count = Number(availability.count);
+      const capacity =
+        Number(availability.capacity);
 
-      const remaining = Math.max(
-        0,
-        capacity - count
-      );
+      const count =
+        Number(availability.count);
 
-      const isFull = remaining <= 0;
+      const remaining =
+        Math.max(
+          0,
+          capacity - count
+        );
+
+      const isFull =
+        remaining <= 0;
 
       const isSelected =
         selectedPositionId === position.id &&
         selectedShiftId === shift.id;
 
-      const button = document.createElement("button");
+      const button =
+        document.createElement("button");
 
       button.type = "button";
+
       button.className =
         "shift-btn" +
         (isSelected ? " selected" : "") +
@@ -341,69 +376,105 @@ function renderPositionShiftList() {
         String(isSelected)
       );
 
-      button.dataset.positionId = position.id;
-      button.dataset.shiftId = shift.id;
+      button.dataset.positionId =
+        position.id;
 
-      const timeElement = document.createElement("span");
-      timeElement.className = "shift-time";
-      timeElement.textContent = formatShiftTime(
-        shift.startTime,
-        shift.endTime
-      );
+      button.dataset.shiftId =
+        shift.id;
 
-      const duration = formatShiftDuration(
-        shift.startTime,
-        shift.endTime
-      );
+      const timeElement =
+        document.createElement("span");
 
-      const capacityElement = document.createElement("span");
-      capacityElement.className = "shift-capacity";
+      timeElement.className =
+        "shift-time";
+
+      timeElement.textContent =
+        formatShiftTime(
+          shift.startTime,
+          shift.endTime
+        );
+
+      const duration =
+        formatShiftDuration(
+          shift.startTime,
+          shift.endTime
+        );
+
+      const capacityElement =
+        document.createElement("span");
+
+      capacityElement.className =
+        "shift-capacity";
 
       if (isFull) {
-        capacityElement.textContent = "Full";
+        capacityElement.textContent =
+          "Full";
       } else if (isSelected) {
-        capacityElement.textContent = "✓ Selected";
+        capacityElement.textContent =
+          "✓ Selected";
       } else {
         capacityElement.textContent =
-          `${remaining} spot${remaining === 1 ? "" : "s"} left`;
+          `${remaining} spot${
+            remaining === 1 ? "" : "s"
+          } left`;
       }
 
       button.appendChild(timeElement);
       button.appendChild(capacityElement);
 
       if (duration) {
-        const durationElement = document.createElement("span");
-        durationElement.className = "shift-duration";
-        durationElement.textContent = duration;
+        const durationElement =
+          document.createElement("span");
 
-        button.appendChild(durationElement);
+        durationElement.className =
+          "shift-duration";
+
+        durationElement.textContent =
+          duration;
+
+        button.appendChild(
+          durationElement
+        );
       }
 
       if (!isFull) {
-        button.addEventListener("click", () => {
-          selectedPositionId = position.id;
-          selectedShiftId = shift.id;
+        button.addEventListener(
+          "click",
+          () => {
+            selectedPositionId =
+              position.id;
 
-          renderPositionShiftList();
+            selectedShiftId =
+              shift.id;
 
-          setError("slot", "");
+            renderPositionShiftList();
 
-          announce(
-            `${position.name}, ${formatShiftTime(
-              shift.startTime,
-              shift.endTime
-            )} selected.`
-          );
-        });
+            setError("slot", "");
+
+            announce(
+              `${position.name}, ${formatShiftTime(
+                shift.startTime,
+                shift.endTime
+              )} selected.`
+            );
+          }
+        );
       }
 
       shiftList.appendChild(button);
     }
 
-    positionCard.appendChild(positionHeader);
-    positionCard.appendChild(shiftList);
+    positionCard.appendChild(
+      positionHeader
+    );
 
-    positionShiftList.appendChild(positionCard);
+    positionCard.appendChild(
+      shiftList
+    );
+
+    positionShiftList.appendChild(
+      positionCard
+    );
   }
 }
 
@@ -522,19 +593,25 @@ export function validateForm(
   currentSelectedShiftId
 ) {
   const firstName =
-  document.getElementById("firstName")?.value.trim() || "";
+    document.getElementById("firstName")?.value.trim() || "";
 
-const lastName =
-  document.getElementById("lastName")?.value.trim() || "";
+  const lastName =
+    document.getElementById("lastName")?.value.trim() || "";
 
-const email =
-  document.getElementById("studentEmail")?.value.trim() || "";
+  const email =
+    document.getElementById("studentEmail")?.value.trim() || "";
 
-const phoneInput =
-  document.getElementById("phone");
+  const phoneInput =
+    document.getElementById("phone");
 
-const phone =
-  formatPhoneNumber(phoneInput?.value || "");
+  const phone =
+    formatPhoneNumber(phoneInput?.value || "");
+
+  const notes =
+    document.getElementById("notes")?.value.trim() || "";
+
+  const eligAge =
+    document.getElementById("eligAge");
 
   let valid = true;
   let firstInvalidFieldId = null;
@@ -565,9 +642,9 @@ const phone =
 
   if (!email || !isLikelyValidEmail(email)) {
     fail(
-  "studentEmail",
-  "Enter a valid email address."
-);
+      "studentEmail",
+      "Enter a valid email address."
+    );
   }
 
   if (
@@ -578,10 +655,8 @@ const phone =
       "phone",
       "Enter a valid 10-digit phone number."
     );
-  } else {
-    if (phoneInput) {
-  phoneInput.value = phone;
-}
+  } else if (phoneInput) {
+    phoneInput.value = phone;
   }
 
   const position =
@@ -600,15 +675,22 @@ const phone =
 
   if (!position) {
     fail(
-      "shift",
+      "slot",
       "Choose a volunteer position."
     );
   }
 
   if (!shift) {
     fail(
-      "shift",
+      "slot",
       "Choose an available volunteer shift."
+    );
+  }
+
+  if (!eligAge?.checked) {
+    fail(
+      "eligAge",
+      "Please confirm that you can attend your selected shift."
     );
   }
 
@@ -617,18 +699,14 @@ const phone =
     firstInvalidFieldId,
     position,
     shift,
-
     payload: {
       firstName,
       lastName,
       email,
       phone,
-
-      positionId:
-        currentSelectedPositionId,
-
-      shiftId:
-        currentSelectedShiftId,
+      positionId: currentSelectedPositionId,
+      shiftId: currentSelectedShiftId,
+      notes,
     },
   };
 }
@@ -800,6 +878,9 @@ function buildRegistrationRecord(
 
     phone:
       payload.phone,
+
+    notes:
+      payload.notes || "",
 
     positionId:
       position.id,

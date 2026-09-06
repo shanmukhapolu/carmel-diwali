@@ -409,40 +409,24 @@
 
       <!-- ============================= VOLUNTEER CONFIRMATION ============================= -->
       <fieldset id="fieldset-eligibility">
-        <legend>Volunteer Confirmation</legend>
+  <legend>Volunteer Confirmation</legend>
 
-        <div class="checkbox-row">
-          <input
-            type="checkbox"
-            id="eligAge"
-            name="eligAge"
-            required
-          />
+  <div class="checkbox-row checkbox-row-highlight">
+    <input
+      type="checkbox"
+      id="eligAge"
+      name="eligAge"
+      required
+    />
 
-          <label for="eligAge">
-            I confirm that I can attend my selected volunteer shift and will
-            follow instructions from the event organizers.
-          </label>
-        </div>
+    <label for="eligAge">
+      I confirm that I can attend my selected volunteer shift, will arrive
+      on time, and will follow instructions from the event organizers.
+    </label>
+  </div>
 
-        <p class="error" id="err-eligAge" aria-live="polite"></p>
-
-        <div class="checkbox-row">
-          <input
-            type="checkbox"
-            id="eligNoSport"
-            name="eligNoSport"
-            required
-          />
-
-          <label for="eligNoSport">
-            I understand that I am responsible for arriving on time for my
-            scheduled shift and completing the volunteer check-in process.
-          </label>
-        </div>
-
-        <p class="error" id="err-eligNoSport" aria-live="polite"></p>
-      </fieldset>
+  <p class="error" id="err-eligAge" aria-live="polite"></p>
+</fieldset>
 
       <!-- ============================= SUBMIT ============================= -->
       <div class="submit-row">

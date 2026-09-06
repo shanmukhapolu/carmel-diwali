@@ -2,81 +2,101 @@
    CARMEL DIWALI FESTIVAL — VOLUNTEER REGISTRATION
    Festival of Lights visual system
    ========================================================================== */
-
 :root {
-  /* Core palette */
+  /* Diwali Royal Purple Palette */
+
   --color-bg: #160b18;
-  --color-bg-deep: #0c0713;
+  --color-bg-deep: #0d0612;
 
-  --color-surface: #fffdf8;
-  --color-surface-warm: #fff8ed;
-  --color-surface-soft: #fff4df;
+  --color-surface: #ffffff;
+  --color-surface-warm: #fffaff;
+  --color-surface-soft: #faf3fc;
 
-  --color-border: #ead9bd;
-  --color-border-strong: #d9b77a;
+  --color-border: #e5d9e8;
+  --color-border-strong: #c9a7d1;
 
-  --color-text: #241521;
-  --color-text-muted: #756574;
+  --color-text: #241927;
+  --color-text-muted: #746878;
 
-  /* Diwali colors */
-  --color-gold: #e6a928;
-  --color-gold-light: #f8d477;
-  --color-gold-dark: #a96709;
+  /* Primary Diwali colors */
 
-  --color-saffron: #e86f24;
-  --color-saffron-dark: #b94b0b;
+  --color-purple: #9932cc;
+  --color-purple-dark: #6f1a91;
+  --color-purple-deep: #4b145f;
 
-  --color-maroon: #711b35;
-  --color-maroon-dark: #4b1027;
+  --color-gold: #ffd700;
+  --color-gold-light: #ffe77a;
+  --color-gold-dark: #c79a00;
 
-  --color-purple: #392052;
-  --color-purple-dark: #21112f;
+  --color-magenta: #ff1493;
+  --color-magenta-dark: #8b008b;
+
+  --color-plum: #dda0dd;
+
+  /* Supporting colors */
+
+  --color-saffron: #e88b2a;
+  --color-saffron-dark: #b96513;
+
+  --color-maroon: #8b008b;
+  --color-maroon-dark: #4b145f;
 
   --color-teal: #087f78;
   --color-teal-dark: #075e5a;
 
-  --color-accent: #c47a0a;
-  --color-accent-dark: #9b5b05;
-  --color-accent-deep: #5a2b0a;
-  --color-accent-tint: #fff2d4;
+  --color-accent: #9932cc;
+  --color-accent-dark: #6f1a91;
+  --color-accent-deep: #4b145f;
+  --color-accent-tint: #faf0ff;
 
   --color-danger: #b4233b;
   --color-danger-tint: #fdebed;
 
-  --color-success-tint: #e9f6ef;
+  --color-success-tint: #edf8f2;
   --color-success-text: #236844;
 
-  --color-full-bg: #efedf0;
+  --color-full-bg: #f1eff2;
   --color-full-text: #99939d;
 
   /* Typography */
-  --font-display: "Manrope", "Inter", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  --font-display:
+    "Manrope",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  --font-sans:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 
   /* Radius */
+
   --radius-sm: 11px;
   --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 30px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
 
   /* Shadows */
+
   --shadow-card:
-    0 2px 5px rgba(38, 18, 25, 0.05),
-    0 24px 60px -34px rgba(38, 18, 25, 0.32);
+    0 3px 8px rgba(50, 20, 60, 0.04),
+    0 24px 60px -34px rgba(50, 20, 60, 0.24);
 
   --shadow-hero:
-    0 30px 70px -32px rgba(28, 8, 22, 0.7);
+    0 30px 70px -32px rgba(35, 8, 45, 0.65);
 
   --shadow-gold:
-    0 10px 30px -15px rgba(196, 122, 10, 0.55);
+    0 10px 30px -15px rgba(255, 215, 0, 0.4);
 
   --focus-ring:
-    0 0 0 3px rgba(230, 169, 40, 0.25);
+    0 0 0 3px rgba(153, 50, 204, 0.18);
 }
-
 
 /* ==========================================================================
    GLOBAL
@@ -598,20 +618,58 @@ body {
 
 .card {
   position: relative;
-
   padding: 42px;
-
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(153, 50, 204, 0.13);
   border-radius: var(--radius-lg);
-
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.99),
-      rgba(255, 252, 246, 0.99)
+      rgba(255, 255, 255, 0.985),
+      rgba(255, 251, 255, 0.985)
     );
+  box-shadow:
+    0 4px 12px rgba(50, 20, 60, 0.04),
+    0 30px 70px -35px rgba(50, 20, 60, 0.24);
+}
 
-  box-shadow: var(--shadow-card);
+.card fieldset + fieldset {
+  padding-top: 8px;
+}
+
+legend {
+  color: #4b145f;
+  border-bottom-color: #e7dbea;
+}
+
+.field-label,
+label {
+  color: #302334;
+}
+
+.help {
+  color: #786c7c;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"] {
+  border-color: #ddd4e0;
+  background: #fff;
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="tel"]:hover,
+input[type="date"]:hover {
+  border-color: #c8b5cf;
+}
+
+input:focus-visible {
+  border-color: #9932cc;
+  box-shadow:
+    0 0 0 3px rgba(153, 50, 204, 0.14),
+    0 4px 14px rgba(153, 50, 204, 0.05);
 }
 
 @media (max-width: 640px) {
@@ -760,6 +818,66 @@ input[type="date"] {
     background 0.12s ease;
 }
 
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 14px 16px;
+  border: 1.5px solid #ddd4e0;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.55;
+  box-shadow: 0 1px 2px rgba(57, 20, 70, 0.03);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+textarea::placeholder {
+  color: #aaa0ae;
+}
+
+textarea:hover {
+  border-color: #c9b6d0;
+}
+
+textarea:focus-visible {
+  outline: none;
+  border-color: #9932cc;
+  background: #fff;
+  box-shadow:
+    0 0 0 3px rgba(153, 50, 204, 0.14),
+    0 4px 14px rgba(153, 50, 204, 0.06);
+}
+
+#fieldset-additional {
+  padding: 22px;
+  margin-top: -12px;
+  border: 1px solid rgba(153, 50, 204, 0.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(153, 50, 204, 0.035),
+      rgba(255, 255, 255, 0.9)
+    );
+}
+
+#fieldset-additional legend {
+  margin-bottom: 17px;
+  padding-bottom: 11px;
+  border-bottom-color: rgba(153, 50, 204, 0.12);
+}
+
+#fieldset-additional .field {
+  margin-bottom: 0;
+}
+
 input:focus-visible {
   outline: none;
 
@@ -891,210 +1009,196 @@ input[aria-invalid="true"] {
   border-color: #c3e3d1;
 }
 
-
 /* ==========================================================================
    VOLUNTEER POSITION / SHIFT UI
    ========================================================================== */
 
-/*
- * These classes are designed for the new Diwali app.
-
- * Desired hierarchy:
-
-   EVENT SET-UP
-      11:00 AM – 1:00 PM
-      1:00 PM – 3:00 PM
-      3:00 PM – 5:00 PM
-
-   VENDOR ASSISTANT
-      1:00 PM – 2:30 PM
-      2:30 PM – 4:00 PM
-
-   etc.
- */
-
-.position-grid {
-  display: grid;
-
-  grid-template-columns: 1fr;
-
-  gap: 14px;
+.position-grid,
+#slot-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
 }
 
 .position-card {
+  width: 100%;
   overflow: hidden;
-
-  border:
-    1px solid var(--color-border);
-
-  border-radius: 17px;
-
-  background: #fffdfa;
-
+  border: 1px solid rgba(153, 50, 204, 0.18);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow:
+    0 4px 18px rgba(57, 20, 70, 0.06),
+    0 16px 40px rgba(57, 20, 70, 0.05);
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .position-card:hover {
-  border-color: #d6b46d;
-
+  border-color: rgba(153, 50, 204, 0.35);
   box-shadow:
-    0 12px 32px -25px rgba(113, 27, 53, 0.45);
+    0 8px 24px rgba(57, 20, 70, 0.08),
+    0 20px 50px rgba(57, 20, 70, 0.08);
+  transform: translateY(-1px);
 }
 
 .position-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  gap: 15px;
-
-  padding: 16px 18px;
-
+  gap: 16px;
+  width: 100%;
+  padding: 18px 22px;
   background:
     linear-gradient(
       135deg,
-      #fff7e5,
-      #fff0d1
+      rgba(153, 50, 204, 0.09),
+      rgba(221, 160, 221, 0.12)
     );
+  border-bottom: 1px solid rgba(153, 50, 204, 0.12);
+}
 
-  border-bottom: 1px solid #ead9bd;
+.position-header-text {
+  min-width: 0;
 }
 
 .position-title {
   margin: 0;
-
-  color: var(--color-maroon-dark);
-
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
 }
 
 .position-description {
-  margin: 3px 0 0;
-
-  color: var(--color-text-muted);
-
-  font-size: 12.5px;
+  max-width: 720px;
 }
+
+.position-title {
+  margin: 0;
+  color: #4b145f;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.position-description {
+  margin: 4px 0 0;
+  color: #76647a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Shift area underneath each position */
 
 .shift-list {
   display: grid;
-
   grid-template-columns: repeat(
     auto-fit,
-    minmax(180px, 1fr)
+    minmax(190px, 1fr)
   );
-
-  gap: 9px;
-
-  padding: 14px;
+  gap: 11px;
+  width: 100%;
+  padding: 16px 18px 18px;
+  background: #fff;
 }
 
 .shift-btn {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-
-  min-height: 68px;
-
-  padding: 12px 14px;
-
-  border:
-    1.5px solid #ded5c9;
-
-  border-radius: 13px;
-
-  background: #fff;
-
-  color: var(--color-text);
-
+  justify-content: center;
+  min-height: 74px;
+  width: 100%;
+  padding: 13px 15px;
+  border: 1.5px solid #e3dbe6;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #291c2d;
   font: inherit;
-
   cursor: pointer;
-
   text-align: left;
-
   transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    transform 0.08s ease,
-    box-shadow 0.12s ease;
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.shift-duration {
+  margin-top: 3px;
+  color: #918694;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.shift-btn.selected .shift-duration {
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .shift-btn:hover:not(:disabled) {
-  border-color: var(--color-gold-dark);
-
-  background: #fff9ed;
-
+  border-color: #9932cc;
+  background: #fcf7ff;
+  box-shadow: 0 5px 16px rgba(153, 50, 204, 0.10);
   transform: translateY(-1px);
 }
 
 .shift-btn:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring);
+  border-color: #9932cc;
+  box-shadow:
+    0 0 0 3px rgba(153, 50, 204, 0.18);
 }
 
 .shift-btn.selected {
-  border-color: var(--color-maroon);
-
+  border-color: #9932cc;
   background:
     linear-gradient(
       135deg,
-      var(--color-maroon),
-      #8d2943
+      #8b008b,
+      #9932cc
     );
-
-  color: #fff;
-
+  color: #ffffff;
   box-shadow:
-    0 10px 25px -17px rgba(113, 27, 53, 0.7);
-}
-
-.shift-btn:disabled {
-  background: var(--color-full-bg);
-
-  border-color: #dedde1;
-
-  color: var(--color-full-text);
-
-  cursor: not-allowed;
+    0 8px 22px rgba(139, 0, 139, 0.22);
 }
 
 .shift-time {
+  color: inherit;
   font-size: 14px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .shift-capacity {
-  margin-top: 3px;
-
-  color: var(--color-text-muted);
-
+  margin-top: 5px;
+  color: #7c6d80;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .shift-btn.selected .shift-capacity {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.78);
 }
 
+.shift-btn:disabled {
+  background: #f3f1f3;
+  border-color: #e1dde2;
+  color: #9b959d;
+  cursor: not-allowed;
+}
 
-/* ==========================================================================
-   LEGACY SLOT SUPPORT
-   ========================================================================== */
+.shift-btn:disabled .shift-capacity {
+  color: #aaa4ac;
+}
+
+/* Legacy .slot-btn support */
 
 .slot-grid {
-  display: grid;
-
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(112px, 1fr)
-  );
-
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
 }
 
 .slot-btn {
@@ -1102,76 +1206,74 @@ input[aria-invalid="true"] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  gap: 3px;
-
   min-height: 64px;
-
-  padding: 12px 8px;
-
-  border: 1.5px solid #ded5c9;
-  border-radius: 13px;
-
+  padding: 12px 14px;
+  border: 1.5px solid #e3dbe6;
+  border-radius: 14px;
   background: #fff;
-
-  color: var(--color-text);
-
+  color: #291c2d;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
-
   cursor: pointer;
-
   transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    color 0.12s ease,
-    transform 0.08s ease;
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
 }
 
 .slot-btn:hover:not(:disabled) {
-  border-color: var(--color-gold-dark);
-
-  background: #fff9ed;
-
+  border-color: #9932cc;
+  background: #fcf7ff;
   transform: translateY(-1px);
 }
 
 .slot-btn:focus-visible {
   outline: none;
-
-  box-shadow: var(--focus-ring);
+  box-shadow:
+    0 0 0 3px rgba(153, 50, 204, 0.18);
 }
 
 .slot-btn.selected {
-  background: var(--color-maroon);
-
-  border-color: var(--color-maroon);
-
+  background: #8b008b;
+  border-color: #8b008b;
   color: #fff;
 }
 
 .slot-btn.selected .slot-sub {
-  color: #f9d8a0;
+  color: #f4c9f4;
 }
 
 .slot-btn .slot-sub {
-  color: var(--color-text-muted);
-
+  color: #76647a;
   font-size: 11px;
   font-weight: 500;
 }
 
 .slot-btn:disabled {
-  background: var(--color-full-bg);
-
-  color: var(--color-full-text);
-
+  background: #f3f1f3;
+  color: #9b959d;
   cursor: not-allowed;
 }
 
 .slot-btn:disabled .slot-sub {
-  color: var(--color-full-text);
+  color: #aaa4ac;
+}
+
+@media (max-width: 640px) {
+  .position-header {
+    padding: 16px 17px;
+  }
+
+  .shift-list {
+    grid-template-columns: 1fr;
+    padding: 13px;
+  }
+
+  .shift-btn {
+    min-height: 68px;
+  }
 }
 
 
@@ -1213,32 +1315,27 @@ input[aria-invalid="true"] {
 
 .btn-primary {
   width: 100%;
-
   color: #fff;
-
-  border-color: var(--color-maroon);
-
+  border-color: #8b008b;
   background:
     linear-gradient(
       135deg,
-      #741d37,
-      #a04426
+      #8b008b,
+      #9932cc
     );
-
   box-shadow:
-    0 12px 28px -18px rgba(113, 27, 53, 0.7);
+    0 12px 28px -18px rgba(139, 0, 139, 0.65);
 }
 
 .btn-primary:hover:not(:disabled) {
   background:
     linear-gradient(
       135deg,
-      #5e152d,
-      #8e351d
+      #730073,
+      #8427b0
     );
-
   box-shadow:
-    0 15px 32px -18px rgba(113, 27, 53, 0.8);
+    0 15px 32px -18px rgba(139, 0, 139, 0.75);
 }
 
 .btn-primary:active:not(:disabled) {
