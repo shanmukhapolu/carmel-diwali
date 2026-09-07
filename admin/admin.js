@@ -94,126 +94,6 @@ requireAdmin({
 
 
 /* =========================================================
-   SETTINGS
-========================================================= */
-
-async function initSettingsPage() {
-  await loadShiftCapacities();
-
-  const ref = doc(
-    db,
-    "eventSettings",
-    CONFIG.eventId
-  );
-
-  try {
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
-
-    setInputValue(
-      "setting-event-name",
-      data.eventName || CONFIG.eventName
-    );
-
-    setInputValue(
-      "setting-date",
-      data.eventDate || CONFIG.eventDate
-    );
-
-    setInputValue(
-      "setting-location",
-      data.location || CONFIG.location
-    );
-
-    setInputValue(
-      "setting-timezone",
-      data.timeZoneLabel || EVENT_TIME_ZONE_LABEL
-    );
-
-  } catch {
-    setInputValue(
-      "setting-event-name",
-      CONFIG.eventName
-    );
-
-    setInputValue(
-      "setting-date",
-      CONFIG.eventDate
-    );
-
-    setInputValue(
-      "setting-location",
-      CONFIG.location
-    );
-
-    setInputValue(
-      "setting-timezone",
-      EVENT_TIME_ZONE_LABEL
-    );
-  }
-
-  renderShiftCapacityEditor();
-
-  $("save-event-settings")?.addEventListener(
-    "click",
-    async () => {
-      try {
-        await setDoc(
-          ref,
-          {
-            eventId: CONFIG.eventId,
-
-            eventName:
-              $("setting-event-name")?.value ||
-              CONFIG.eventName,
-
-            eventDate:
-              $("setting-date")?.value ||
-              CONFIG.eventDate,
-
-            location:
-              $("setting-location")?.value ||
-              CONFIG.location,
-
-            timeZone: EVENT_TIME_ZONE,
-
-            timeZoneLabel:
-              $("setting-timezone")?.value ||
-              EVENT_TIME_ZONE_LABEL,
-
-            updatedAt: serverTimestamp()
-          },
-          { merge: true }
-        );
-
-        setText(
-          "settings-message",
-          "Event settings saved."
-        );
-      } catch (error) {
-        console.error(
-          "[Admin Dashboard] settings save failed:",
-          error
-        );
-
-        setText(
-          "settings-message",
-          "Could not save event settings."
-        );
-      }
-    }
-  );
-}
-
-function setInputValue(id, value) {
-  const element = $(id);
-  if (element) {
-    element.value = value || "";
-  }
-}
-
-
-/* =========================================================
    SHELL / NAVIGATION
 ========================================================= */
 
@@ -778,6 +658,24 @@ function showManageCancelModal(record, onSuccess) {
               `email_${encodeURIComponent(
                 String(record.email).toLowerCase().trim()
               )}`
+            )
+          ).catch(() => {});
+        }
+
+        const normLast =
+          record.normalizedLastName ||
+          normalizeLastName(record.lastName);
+
+        const normPhone =
+          record.normalizedPhone ||
+          normalizePhoneNumber(record.phone);
+
+        if (normLast && normPhone) {
+          await deleteDoc(
+            doc(
+              db,
+              "registrationGuards",
+              `name_phone_${normLast}_${normPhone}`
             )
           ).catch(() => {});
         }
@@ -2319,6 +2217,201 @@ function openPrintableExport(
 
 
 /* =========================================================
+   EDIT
+========================================================= */
+
+function showEditModal(record) {
+  const root = $("modal-root");
+  if (!root) return;
+
+  root.textContent = "";
+
+  const modal = modalShell(
+    `Edit registration for ${
+      record.firstName || "this"
+    } ${record.lastName || "volunteer"}`
+  );
+
+  const form = document.createElement("form");
+  form.className = "settings-grid";
+  form.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+
+  function fieldWrap(labelHtml, input) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = labelHtml;
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  const firstNameInput = document.createElement("input");
+  firstNameInput.type = "text";
+  firstNameInput.value = record.firstName || "";
+  firstNameInput.placeholder = "First name";
+  firstNameInput.required = true;
+
+  const lastNameInput = document.createElement("input");
+  lastNameInput.type = "text";
+  lastNameInput.value = record.lastName || "";
+  lastNameInput.placeholder = "Last name";
+  lastNameInput.required = true;
+
+  const emailInput = document.createElement("input");
+  emailInput.type = "email";
+  emailInput.value = record.email || "";
+  emailInput.placeholder = "volunteer@example.com";
+  emailInput.required = true;
+
+  const phoneInput = document.createElement("input");
+  phoneInput.type = "tel";
+  phoneInput.value = record.phone || "";
+  phoneInput.placeholder = "(317) 555-0100";
+  phoneInput.required = true;
+
+  const is18Row = document.createElement("div");
+  is18Row.style.display = "flex";
+  is18Row.style.gap = "16px";
+  is18Row.style.marginTop = "8px";
+  is18Row.style.alignItems = "center";
+
+  const yesRadio = document.createElement("input");
+  yesRadio.type = "radio";
+  yesRadio.name = "edit-is18OrOlder";
+  yesRadio.value = "yes";
+  yesRadio.required = true;
+  if (record.is18OrOlder === true) yesRadio.checked = true;
+  const yesLabel = document.createElement("label");
+  yesLabel.style.display = "inline-flex";
+  yesLabel.style.alignItems = "center";
+  yesLabel.style.gap = "6px";
+  yesLabel.style.cursor = "pointer";
+  yesLabel.style.fontWeight = "500";
+  yesLabel.appendChild(yesRadio);
+  const yesSpan = document.createElement("span");
+  yesSpan.textContent = "Yes (18+)";
+  yesLabel.appendChild(yesSpan);
+
+  const noRadio = document.createElement("input");
+  noRadio.type = "radio";
+  noRadio.name = "edit-is18OrOlder";
+  noRadio.value = "no";
+  noRadio.required = true;
+  if (record.is18OrOlder === false) noRadio.checked = true;
+  const noLabel = document.createElement("label");
+  noLabel.style.display = "inline-flex";
+  noLabel.style.alignItems = "center";
+  noLabel.style.gap = "6px";
+  noLabel.style.cursor = "pointer";
+  noLabel.style.fontWeight = "500";
+  noLabel.appendChild(noRadio);
+  const noSpan = document.createElement("span");
+  noSpan.textContent = "No (<18)";
+  noLabel.appendChild(noSpan);
+
+  is18Row.append(yesLabel, noLabel);
+
+  const notesInput = document.createElement("input");
+  notesInput.type = "text";
+  notesInput.value = record.notes || "";
+  notesInput.placeholder = "Special skills, requests, or organizer notes";
+
+  const error = document.createElement("p");
+  error.className = "error";
+
+  const confirmBtn = smallButton(
+    "Save Changes",
+    async () => {
+      const newFirstName = firstNameInput.value.trim();
+      const newLastName = lastNameInput.value.trim();
+      const newEmail = emailInput.value.trim();
+      const newPhone = phoneInput.value.trim();
+      const newNotes = notesInput.value.trim();
+      const is18Raw = form.querySelector('input[name="edit-is18OrOlder"]:checked')?.value;
+      const newIs18OrOlder = is18Raw === "yes" ? true : is18Raw === "no" ? false : null;
+
+      if (!newFirstName || !newLastName || !newEmail || !newPhone || newIs18OrOlder === null) {
+        error.textContent = "All fields are required. Please complete the form.";
+        return;
+      }
+
+      try {
+        await runTransaction(db, async (tx) => {
+          const regRef = doc(db, REGISTRATIONS_COLLECTION, record.id);
+          tx.update(regRef, {
+            firstName: newFirstName,
+            lastName: newLastName,
+            email: newEmail,
+            phone: newPhone,
+            is18OrOlder: newIs18OrOlder,
+            notes: newNotes,
+          });
+
+          if (record.email && newEmail.toLowerCase().trim() !== record.email.toLowerCase().trim()) {
+            const oldKey = `email_${encodeURIComponent(String(record.email).toLowerCase().trim())}`;
+            const newKey = `email_${encodeURIComponent(String(newEmail).toLowerCase().trim())}`;
+            tx.delete(doc(db, "registrationGuards", oldKey));
+            tx.set(doc(db, "registrationGuards", newKey), {
+              registrationId: record.id,
+              createdAt: serverTimestamp(),
+            });
+          }
+        });
+
+        const idx = registrations.findIndex((r) => r.id === record.id);
+        if (idx >= 0) {
+          registrations[idx] = {
+            ...registrations[idx],
+            firstName: newFirstName,
+            lastName: newLastName,
+            email: newEmail,
+            phone: newPhone,
+            is18OrOlder: newIs18OrOlder,
+            notes: newNotes,
+          };
+        }
+
+        root.textContent = "";
+        renderRegistrations();
+      } catch (editError) {
+        console.error("[Admin] Edit failed:", editError);
+        error.textContent = "Update failed. Please try again or check the console.";
+      }
+    },
+    "primary"
+  );
+
+  form.append(
+    fieldWrap("<label>First Name <span class='req'>*</span></label>", firstNameInput),
+    fieldWrap("<label>Last Name <span class='req'>*</span></label>", lastNameInput),
+    fieldWrap("<label>Email Address <span class='req'>*</span></label>", emailInput),
+    fieldWrap("<label>Phone Number <span class='req'>*</span></label>", phoneInput),
+    fieldWrap("<label>18 or Older? <span class='req'>*</span></label>", is18Row),
+    (() => {
+      const wrap = document.createElement("div");
+      wrap.style.gridColumn = "1 / -1";
+      const label = document.createElement("label");
+      label.htmlFor = "edit-notes";
+      label.textContent = "Notes (Optional)";
+      wrap.appendChild(label);
+      wrap.appendChild(notesInput);
+      return wrap;
+    })(),
+    (() => {
+      const wrap = document.createElement("div");
+      wrap.style.gridColumn = "1 / -1";
+      wrap.style.marginTop = "8px";
+      wrap.appendChild(error);
+      wrap.appendChild(confirmBtn);
+      return wrap;
+    })()
+  );
+
+  modal.card.appendChild(form);
+
+  root.appendChild(modal.overlay);
+}
+
+
+/* =========================================================
    DELETE
 ========================================================= */
 
@@ -2514,9 +2607,17 @@ function showDeleteModal(record) {
             ).catch(() => {});
           }
 
-          if (record.normalizedLastName && record.normalizedPhone) {
+          const normLast =
+            record.normalizedLastName ||
+            normalizeLastName(record.lastName);
+
+          const normPhone =
+            record.normalizedPhone ||
+            normalizePhoneNumber(record.phone);
+
+          if (normLast && normPhone) {
             const namePhoneKey =
-              `name_phone_${record.normalizedLastName}_${record.normalizedPhone}`;
+              `name_phone_${normLast}_${normPhone}`;
 
             await deleteDoc(
               doc(db, "registrationGuards", namePhoneKey)

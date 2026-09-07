@@ -923,6 +923,12 @@ export function buildRegistrationRecord(
     phone:
       payload.phone,
 
+    normalizedLastName:
+      normalizeLastName(payload.lastName),
+
+    normalizedPhone:
+      normalizePhoneNumber(payload.phone),
+
     is18OrOlder:
       typeof payload.is18OrOlder === "boolean"
         ? payload.is18OrOlder
