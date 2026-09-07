@@ -12,7 +12,6 @@ import {
 
 import { db } from "../firebase-init.js";
 import { requireAdmin, logout, isEnabledAdmin } from "./auth.js";
-import { reserveShiftAndCreateRegistration } from "../app.js";
 
 import {
   collection,
@@ -67,11 +66,6 @@ let tableState = {
 requireAdmin({
   onReady: (user, profile) => {
     initShell(user, profile);
-
-    if (location.pathname.includes("manage")) {
-      initManagePage(user, profile);
-      return;
-    }
 
     if (location.pathname.includes("checkin")) {
       initCheckinPage(user, profile);
@@ -132,7 +126,6 @@ function renderNavigation(profile) {
     const adminLinks = [
       ["Dashboard", "/admin/"],
       ["Volunteers", "/admin/registrations.html"],
-      ["Manage", "/admin/manage.html"],
       ["Check-In", "/admin/checkin.html"],
       ["Statistics", "/admin/statistics.html"]
     ];
@@ -156,10 +149,6 @@ function renderNavigation(profile) {
       current = "index.html";
     }
 
-    if (location.pathname.includes("manage")) {
-      current = "manage.html";
-    }
-
     adminLinks.forEach(([label, href]) => {
       const a = document.createElement("a");
 
@@ -169,8 +158,7 @@ function renderNavigation(profile) {
       if (
         href.endsWith(current) ||
         (href === "/admin/" && current === "index.html") ||
-        (href === "/admin/checkin.html" && current === "checkin.html") ||
-        (href === "/admin/manage.html" && current === "manage.html")
+        (href === "/admin/checkin.html" && current === "checkin.html")
       ) {
         a.className = "active";
       }
@@ -178,536 +166,6 @@ function renderNavigation(profile) {
       nav.appendChild(a);
     });
   });
-}
-
-
-/* =========================================================
-   MANAGE REGISTRATIONS PAGE
-========================================================= */
-
-async function initManagePage(user, profile) {
-  await loadShiftCapacities();
-
-  // ---- Populate the manual-registration shift selector ----
-  const manualShiftSel = $("manual-shift");
-
-  if (manualShiftSel) {
-    manualShiftSel.textContent = "";
-
-    manualShiftSel.append(
-      new Option("Select an available shift…", "")
-    );
-
-    VOLUNTEER_POSITIONS.forEach((position) => {
-      position.shifts?.forEach((shift) => {
-        const capData =
-          shiftCapacities.get(shift.id) || {
-            capacity: shift.capacity || 0,
-            count: 0
-          };
-
-        const remaining =
-          Math.max(
-            0,
-            Number(capData.capacity) -
-              Number(capData.count)
-          );
-
-        const label =
-          `${position.name} — ${formatShiftTime(shift)}` +
-          (remaining > 0
-            ? ` (${remaining} available)`
-            : " (Full)");
-
-        const opt = new Option(
-          label,
-          `${position.id}::${shift.id}`
-        );
-
-        opt.disabled = remaining <= 0;
-
-        manualShiftSel.append(opt);
-      });
-    });
-  }
-
-  // ---- Lookup form ----
-  const lookupForm = $("lookup-form");
-  const lookupStatus = $("lookup-status");
-  const lookupSection = $("lookup-results-section");
-  const lookupRows = $("lookup-rows");
-  const lookupCount = $("lookup-results-count");
-
-  function hideLookupResults() {
-    if (lookupSection) {
-      lookupSection.style.display = "none";
-    }
-  }
-
-  $("btn-lookup-reset")?.addEventListener("click", () => {
-    if ($("lookup-lastname")) $("lookup-lastname").value = "";
-    if ($("lookup-phone"))    $("lookup-phone").value = "";
-    hideLookupResults();
-
-    if (lookupStatus) {
-      lookupStatus.textContent =
-        "Enter a last name or phone number to look up registrations.";
-    }
-  });
-
-  lookupForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const rawLast = $("lookup-lastname")?.value.trim() || "";
-    const rawPhone = $("lookup-phone")?.value.trim() || "";
-
-    if (!rawLast && !rawPhone) {
-      if (lookupStatus) {
-        lookupStatus.textContent =
-          "Please enter a last name, phone number, or both.";
-      }
-
-      return;
-    }
-
-    if (lookupStatus) {
-      lookupStatus.textContent = "Searching…";
-    }
-
-    const normLast = normalizeLastName(rawLast);
-    const normPhone = normalizePhoneNumber(rawPhone);
-
-    try {
-      // Load all registrations and filter client-side.
-      // (A small dataset; no server-side compound query needed.)
-      const snap = await getDocs(
-        query(
-          collection(db, REGISTRATIONS_COLLECTION),
-          orderBy("createdAt", "desc")
-        )
-      );
-
-      const results = snap.docs
-        .map((d) => serialize({ id: d.id, ...d.data() }))
-        .filter((r) => {
-          const rLast = normalizeLastName(r.lastName);
-          const rPhone = normalizePhoneNumber(r.phone);
-
-          const lastMatch =
-            !normLast || rLast === normLast;
-
-          const phoneMatch =
-            !normPhone || rPhone === normPhone;
-
-          return lastMatch && phoneMatch;
-        });
-
-      if (lookupSection) {
-        lookupSection.style.display = "";
-      }
-
-      if (lookupCount) {
-        lookupCount.textContent =
-          `${results.length} result${results.length !== 1 ? "s" : ""}`;
-      }
-
-      if (lookupStatus) {
-        lookupStatus.textContent = "";
-      }
-
-      // Render results rows.
-      if (lookupRows) {
-        lookupRows.textContent = "";
-
-        if (!results.length) {
-          const row = document.createElement("tr");
-          const cell = document.createElement("td");
-
-          cell.colSpan = 9;
-          cell.textContent =
-            "No registrations found matching those criteria.";
-
-          row.appendChild(cell);
-          lookupRows.appendChild(row);
-          return;
-        }
-
-        results.forEach((record) => {
-          const row = document.createElement("tr");
-
-          [
-            record.id,
-
-            `${record.firstName || ""} ${record.lastName || ""}`.trim(),
-
-            record.is18OrOlder === true
-              ? "Yes (18+)"
-              : record.is18OrOlder === false
-              ? "No (<18)"
-              : "—",
-
-            record.phone,
-
-            record.email,
-
-            positionLabel(
-              record.positionId,
-              record.positionName || record.position
-            ),
-
-            shiftLabel(record.shiftId, record.shiftLabel),
-
-            operationalLabel(record.checkin?.status)
-          ].forEach((value) => {
-            const cell = document.createElement("td");
-            cell.textContent = value ?? "";
-            row.appendChild(cell);
-          });
-
-          // Actions cell.
-          const actionsCell = document.createElement("td");
-          actionsCell.className = "table-actions";
-
-          actionsCell.appendChild(
-            smallButton(
-              "Cancel Registration",
-              () =>
-                showManageCancelModal(
-                  record,
-                  () => {
-                    // Refresh the lookup results after cancel.
-                    lookupForm.dispatchEvent(
-                      new Event("submit", { cancelable: true })
-                    );
-                  }
-                ),
-              "danger-lite"
-            )
-          );
-
-          row.appendChild(actionsCell);
-
-          row.addEventListener("click", () => showDetail(record));
-
-          actionsCell.addEventListener("click", (e) =>
-            e.stopPropagation()
-          );
-
-          lookupRows.appendChild(row);
-        });
-      }
-    } catch (lookupError) {
-      console.error("[Admin Manage] lookup failed:", lookupError);
-
-      if (lookupStatus) {
-        lookupStatus.textContent =
-          "Could not search registrations. Please try again.";
-      }
-    }
-  });
-
-  // ---- Manual registration form ----
-  const manualForm = $("manual-reg-form");
-  const manualError = $("manual-error");
-  const manualSuccess = $("manual-success");
-
-  manualForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (manualError) manualError.textContent = "";
-    if (manualSuccess) manualSuccess.textContent = "";
-
-    const firstName = $("manual-firstname")?.value.trim() || "";
-    const lastName  = $("manual-lastname")?.value.trim()  || "";
-    const email     = $("manual-email")?.value.trim()     || "";
-    const phone     = $("manual-phone")?.value.trim()     || "";
-    const notes     = $("manual-notes")?.value.trim()     || "";
-
-    const is18Raw = document.querySelector(
-      "input[name='manual-is18OrOlder']:checked"
-    )?.value;
-
-    const is18OrOlder =
-      is18Raw === "yes" ? true :
-      is18Raw === "no"  ? false :
-      null;
-
-    const shiftValue = $("manual-shift")?.value || "";
-
-    if (!firstName || !lastName || !email || !phone || !shiftValue || is18OrOlder === null) {
-      if (manualError) {
-        manualError.textContent =
-          "All fields are required. Please complete the form.";
-      }
-
-      return;
-    }
-
-    const [positionId, shiftId] = shiftValue.split("::");
-
-    const submitBtn = $("btn-manual-submit");
-
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Registering…";
-    }
-
-    try {
-      const confirmationId =
-        await reserveShiftAndCreateRegistration({
-          firstName,
-          lastName,
-          email,
-          phone,
-          is18OrOlder,
-          positionId,
-          shiftId,
-          notes,
-          registeredByAdmin: true,
-          registeredByUid: user.uid,
-          registeredByName: adminDisplayName(profile, user)
-        });
-
-      if (manualSuccess) {
-        manualSuccess.textContent =
-          `Registration created. Confirmation ID: ${confirmationId}`;
-      }
-
-      manualForm.reset();
-
-      // Refresh capacity display.
-      await loadShiftCapacities();
-
-      // Rebuild the shift selector so the capacity counts update.
-      if (manualShiftSel) {
-        manualShiftSel.textContent = "";
-        manualShiftSel.append(
-          new Option("Select an available shift…", "")
-        );
-
-        VOLUNTEER_POSITIONS.forEach((position) => {
-          position.shifts?.forEach((shift) => {
-            const capData =
-              shiftCapacities.get(shift.id) || {
-                capacity: shift.capacity || 0,
-                count: 0
-              };
-
-            const remaining =
-              Math.max(
-                0,
-                Number(capData.capacity) -
-                  Number(capData.count)
-              );
-
-            const label =
-              `${position.name} — ${formatShiftTime(shift)}` +
-              (remaining > 0
-                ? ` (${remaining} available)`
-                : " (Full)");
-
-            const opt = new Option(
-              label,
-              `${position.id}::${shift.id}`
-            );
-
-            opt.disabled = remaining <= 0;
-
-            manualShiftSel.append(opt);
-          });
-        });
-      }
-    } catch (regError) {
-      const code = regError?.message || regError?.code || "";
-
-      let message =
-        "Could not complete registration. Please try again.";
-
-      if (code === "DUPLICATE_REGISTRATION") {
-        message =
-          "A registration with this email already exists.";
-      } else if (code === "DUPLICATE_NAME_PHONE") {
-        message =
-          "A registration with this last name and phone number already exists.";
-      } else if (code === "SHIFT_FULL") {
-        message =
-          "That shift is now full. Please choose another.";
-      } else if (code === "SHIFT_UNAVAILABLE") {
-        message =
-          "The selected shift is unavailable.";
-      }
-
-      if (manualError) {
-        manualError.textContent = message;
-      }
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Create Volunteer Registration";
-      }
-    }
-  });
-}
-
-
-/* =========================================================
-   MANAGE — CANCEL / DELETE MODAL
-========================================================= */
-
-function showManageCancelModal(record, onSuccess) {
-  const root = $("modal-root");
-  if (!root) return;
-
-  root.textContent = "";
-
-  const modal = modalShell(
-    `Cancel registration for ${
-      record.firstName || "this"
-    } ${record.lastName || "volunteer"}?`
-  );
-
-  const reason = document.createElement("select");
-
-  [
-    ["", "Select a required reason"],
-    ["volunteer_cancelled", "Volunteer cancelled"],
-    ["duplicate", "Duplicate registration"],
-    ["data_entry_error", "Data entry error"],
-    ["other", "Other"]
-  ].forEach(([v, l]) => reason.append(new Option(l, v)));
-
-  const other = document.createElement("textarea");
-  other.placeholder = "Required when Other is selected";
-  other.className = "hidden";
-
-  const error = document.createElement("p");
-  error.className = "error";
-
-  const confirmBtn = smallButton(
-    "Cancel Registration & Restore Shift Slot",
-    async () => {
-      if (
-        !reason.value ||
-        (reason.value === "other" && !other.value.trim())
-      ) {
-        error.textContent =
-          "Choose a reason. If you select Other, add a written explanation.";
-
-        return;
-      }
-
-      try {
-        // Audit log.
-        await setDoc(
-          doc(collection(db, "registrationDeletionLogs")),
-          {
-            registrationId: record.id,
-            shiftId: record.shiftId,
-            reason: reason.value,
-            otherReason: other.value.trim(),
-            deletedAt: serverTimestamp()
-          }
-        );
-
-        // Atomic delete + capacity restore.
-        await runTransaction(db, async (tx) => {
-          const regRef = doc(
-            db,
-            REGISTRATIONS_COLLECTION,
-            record.id
-          );
-
-          const regSnap = await tx.get(regRef);
-
-          if (!regSnap.exists()) return;
-
-          if (record.shiftId) {
-            const countRef = doc(
-              db,
-              SHIFT_COUNTS_COLLECTION,
-              shiftDocId(record.shiftId)
-            );
-
-            const countSnap = await tx.get(countRef);
-
-            if (countSnap.exists()) {
-              tx.update(countRef, {
-                count: Math.max(
-                  0,
-                  (Number(countSnap.data().count) || 0) - 1
-                )
-              });
-            }
-          }
-
-          tx.delete(regRef);
-        });
-
-        // Best-effort cleanup.
-        await deleteDoc(
-          doc(db, CHECKINS_COLLECTION, record.id)
-        ).catch(() => {});
-
-        if (record.email) {
-          await deleteDoc(
-            doc(
-              db,
-              "registrationGuards",
-              `email_${encodeURIComponent(
-                String(record.email).toLowerCase().trim()
-              )}`
-            )
-          ).catch(() => {});
-        }
-
-        const normLast =
-          record.normalizedLastName ||
-          normalizeLastName(record.lastName);
-
-        const normPhone =
-          record.normalizedPhone ||
-          normalizePhoneNumber(record.phone);
-
-        if (normLast && normPhone) {
-          await deleteDoc(
-            doc(
-              db,
-              "registrationGuards",
-              `name_phone_${normLast}_${normPhone}`
-            )
-          ).catch(() => {});
-        }
-
-        root.textContent = "";
-        onSuccess?.();
-
-      } catch (cancelError) {
-        console.error("[Admin Manage] cancel failed:", cancelError);
-        error.textContent =
-          "Cancellation failed. Please try again or check the console.";
-      }
-    },
-    "danger"
-  );
-
-  reason.addEventListener("input", () =>
-    other.classList.toggle("hidden", reason.value !== "other")
-  );
-
-  modal.card.append(
-    detailSection("Registration to cancel", [
-      ["Volunteer", `${record.firstName || ""} ${record.lastName || ""}`.trim()],
-      ["Position", positionLabel(record.positionId, record.positionName || record.position)],
-      ["Shift", shiftLabel(record.shiftId, record.shiftLabel)],
-      ["Confirmation ID", record.id]
-    ]),
-    reason,
-    other,
-    error,
-    confirmBtn
-  );
-
-  root.appendChild(modal.overlay);
 }
 
 
@@ -2537,8 +1995,10 @@ function showDeleteModal(record) {
             }
           );
 
-          // --- 2. Atomically restore shift capacity and delete the
-          //        registration in a single transaction.
+          // --- 2. Delete the registration. The released server-side
+          //        `releaseShiftOnRegistrationDelete` function restores the
+          //        shift capacity exactly once, so the client does not
+          //        decrement shiftCounts here (that would double-count).
           await runTransaction(
             db,
             async (tx) => {
@@ -2554,27 +2014,6 @@ function showDeleteModal(record) {
               if (!regSnap.exists()) {
                 // Already deleted — nothing to do.
                 return;
-              }
-
-              // Restore capacity if a shiftId is known.
-              if (record.shiftId) {
-                const countRef = doc(
-                  db,
-                  SHIFT_COUNTS_COLLECTION,
-                  shiftDocId(record.shiftId)
-                );
-
-                const countSnap =
-                  await tx.get(countRef);
-
-                if (countSnap.exists()) {
-                  const currentCount =
-                    Number(countSnap.data().count) || 0;
-
-                  tx.update(countRef, {
-                    count: Math.max(0, currentCount - 1)
-                  });
-                }
               }
 
               // Delete the registration.
@@ -3210,7 +2649,8 @@ async function initCheckinPage(
       regs,
       checkins,
       results,
-      user
+      user,
+      actorName
     );
 
   } catch (error) {
@@ -3263,7 +2703,8 @@ async function initCheckinPage(
         regs,
         checkins,
         results,
-        user
+        user,
+        actorName
       );
     },
 
@@ -3281,7 +2722,8 @@ async function initCheckinPage(
         regs,
         checkins,
         results,
-        user
+        user,
+        actorName
       )
   );
 
@@ -3611,7 +3053,8 @@ function renderCheckinResults(
   regs,
   checkins,
   root,
-  user
+  user,
+  actorName
 ) {
   if (!root) return;
 
@@ -3647,7 +3090,9 @@ function renderCheckinResults(
         )
         .slice(0, 25);
   } else {
-    matches = regs.slice(0, 25);
+    // Empty search: show every loaded registration so staff never have
+    // to type before seeing volunteers.
+    matches = regs;
   }
 
   setText(
@@ -3675,7 +3120,8 @@ function renderCheckinResults(
                   "registered"
               }
           },
-          user
+          user,
+          actorName
         )
       )
   );
@@ -3684,7 +3130,8 @@ function renderCheckinResults(
 
 function checkinCard(
   record,
-  user
+  user,
+  actorName
 ) {
   const card =
     document.createElement(
@@ -3772,10 +3219,11 @@ function checkinCard(
             record.id,
             "checkin",
             user.uid,
-            adminDisplayName(
-              null,
-              user
-            )
+            actorName ||
+              adminDisplayName(
+                null,
+                user
+              )
           )
       )
     );
@@ -3793,10 +3241,11 @@ function checkinCard(
             record.id,
             "checkout",
             user.uid,
-            adminDisplayName(
-              null,
-              user
-            )
+            actorName ||
+              adminDisplayName(
+                null,
+                user
+              )
           )
       )
     );
@@ -5785,11 +5234,13 @@ function adminName(
   uid,
   fallback = ""
 ) {
+  // Prefer the stored admin display name from the admins directory so
+  // the UI never falls back to an email when a display name exists.
   return (
-    fallback ||
     adminDirectory.get(
       uid
     ) ||
+    fallback ||
     uid ||
     ""
   );
