@@ -1189,31 +1189,33 @@ tbody tr:last-child td {
    ========================================================================== */
 
 .checkin-layout {
-  width: 100%;
-  max-width: 1320px;
+  width: min(1180px, 100%);
   margin: 0 auto;
+  padding: 24px clamp(16px, 2.4vw, 36px);
 
   display: grid;
-  grid-template-columns:
-    minmax(0, 7fr)
-    minmax(280px, 3fr);
+  grid-template-columns: minmax(0, 1fr);
 
-  align-items: start;
-
-  gap: clamp(18px, 2vw, 28px);
+  gap: 18px;
 }
 
 .checkin-layout .nav,
 .checkin-layout #error {
-  grid-column: 1 / -1;
+  grid-column: 1;
 }
 
 .checkin-main {
+  width: 100%;
+  min-width: 0;
+
   display: grid;
   gap: 18px;
 }
 
 .checkin-sidebar {
+  width: 100%;
+  min-width: 0;
+
   display: grid;
   gap: 18px;
 }
@@ -1439,7 +1441,6 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 980px) {
-  .checkin-layout,
   .pie-panel {
     grid-template-columns: 1fr;
   }
@@ -1569,13 +1570,17 @@ tbody tr:last-child td {
 
 @media (max-width: 1024px) {
   .checkin-layout {
-    grid-template-columns: 1fr;
-    max-width: 760px;
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 720px) {
   .checkin-layout {
+    width: 100%;
     max-width: 100%;
+    padding: 16px;
   }
 }
