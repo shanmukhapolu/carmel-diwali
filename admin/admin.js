@@ -102,9 +102,7 @@ function initShell(user, profile) {
 
   setText(
     "admin-email",
-    profile.email ||
-      user.email ||
-      "Admin"
+    adminDisplayName(profile, user)
   );
 
   setText(
@@ -3198,10 +3196,29 @@ async function initCheckinPage(
 
     setText(
       "checkin-status",
-      "Start typing to find a volunteer."
+      regs.length
+        ? `${regs.length} volunteer registration${
+            regs.length === 1 ? "" : "s"
+          } loaded.`
+        : "No volunteer registrations found."
     );
 
-  } catch {
+    // Immediately render all volunteers as cards so the admin does not
+    // have to type into the search box before seeing anyone.
+    renderCheckinResults(
+      "",
+      regs,
+      checkins,
+      results,
+      user
+    );
+
+  } catch (error) {
+    console.error(
+      "[Admin Check-In] Could not load volunteers:",
+      error
+    );
+
     showError(
       "Could not load volunteers for check-in."
     );
@@ -3605,41 +3622,43 @@ function renderCheckinResults(
 
   root.textContent = "";
 
-  if (
-    q.length < 2
-  ) {
-    return;
-  }
+  let matches = regs;
 
-  const matches =
-    regs
-      .filter(
-        (r) =>
-          normalizeSearch(
-            [
-              r.firstName,
-              r.lastName,
-              `${r.firstName || ""} ${
-                r.lastName || ""
-              }`,
-              r.email,
-              r.phone,
-              r.id,
-              r.positionName ||
-                r.position,
-              r.shiftLabel
-            ].join(" ")
-          ).includes(q)
-      )
-      .slice(0, 25);
+  if (q.length >= 2) {
+    matches =
+      regs
+        .filter(
+          (r) =>
+            normalizeSearch(
+              [
+                r.firstName,
+                r.lastName,
+                `${r.firstName || ""} ${
+                  r.lastName || ""
+                }`,
+                r.email,
+                r.phone,
+                r.id,
+                r.positionName ||
+                  r.position,
+                r.shiftLabel
+              ].join(" ")
+            ).includes(q)
+        )
+        .slice(0, 25);
+  } else {
+    matches = regs.slice(0, 25);
+  }
 
   setText(
     "checkin-status",
-    `${matches.length} matching result${
-      matches.length === 1
-        ? ""
-        : "s"
-    }`
+    matches.length
+      ? `${matches.length} volunteer registration${
+          matches.length === 1 ? "" : "s"
+        } shown`
+      : q.length >= 2
+      ? "No volunteers match your search."
+      : "No volunteer registrations found."
   );
 
   matches.forEach(

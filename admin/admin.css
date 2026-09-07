@@ -1190,7 +1190,8 @@ tbody tr:last-child td {
 
 .checkin-layout {
   width: 100%;
-  max-width: none;
+  max-width: 1320px;
+  margin: 0 auto;
 
   display: grid;
   grid-template-columns:
@@ -1215,6 +1216,10 @@ tbody tr:last-child td {
 .checkin-sidebar {
   display: grid;
   gap: 18px;
+}
+
+.checkin-summary {
+  display: block;
 }
 
 .compact-hero h1 {
@@ -1282,8 +1287,6 @@ tbody tr:last-child td {
 }
 
 .checkin-summary {
-  position: sticky;
-  top: 90px;
   display: block;
 }
 
@@ -1561,5 +1564,18 @@ tbody tr:last-child td {
 
   table {
     min-width: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .checkin-layout {
+    grid-template-columns: 1fr;
+    max-width: 760px;
+  }
+}
+
+@media (max-width: 720px) {
+  .checkin-layout {
+    max-width: 100%;
   }
 }

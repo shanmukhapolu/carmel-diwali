@@ -1,0 +1,1 @@
+// manage.js - Public Manage Registrations callable Cloud Functions
