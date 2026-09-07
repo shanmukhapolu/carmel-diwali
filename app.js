@@ -1358,7 +1358,13 @@ async function init() {
   );
 }
 
-document.addEventListener(
-  "DOMContentLoaded",
-  init
-);
+// Only run the registration page initializer when the registration form
+// is present. admin.js imports reserveShiftAndCreateRegistration from this
+// module, so this guard prevents the admin pages from accidentally wiring
+// up registration-form event listeners against DOM elements that don't exist.
+if (document.getElementById("registration-form")) {
+  document.addEventListener(
+    "DOMContentLoaded",
+    init
+  );
+}
