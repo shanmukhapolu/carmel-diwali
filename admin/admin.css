@@ -866,13 +866,7 @@ tbody tr:last-child td {
   width: 100%;
   height: 3px;
 
-  background:
-    linear-gradient(
-      90deg,
-      var(--admin-maroon),
-      var(--admin-saffron),
-      var(--admin-gold)
-    );
+  background: var(--admin-maroon);
 }
 
 .stat-value {
@@ -921,29 +915,25 @@ tbody tr:last-child td {
 
 .chart {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
+  gap: 12px;
 
-  gap: 9px;
-
-  min-height: 260px;
-  height: 260px;
+  min-height: 300px;
+  height: 300px;
 
   overflow-x: auto;
+  overflow-y: visible;
 
-  margin: 16px 0;
-
-  padding: 12px 12px 42px;
+  margin: 22px 0 34px;
+  padding: 34px 18px 70px;
 
   border: 1px solid var(--admin-border);
-
   border-radius: 16px;
 
-  background:
-    linear-gradient(
-      180deg,
-      #ffffff,
-      #fffaf3
-    );
+  /* Solid background — no gradient */
+  background: #ffffff;
+
+  box-shadow: var(--admin-shadow);
 }
 
 .bar {
@@ -954,64 +944,70 @@ tbody tr:last-child td {
 
   min-width: 46px;
 
-  border-radius: 9px 9px 4px 4px;
+  border-radius: 8px 8px 4px 4px;
 
-  background:
-    linear-gradient(
-      180deg,
-      var(--admin-saffron),
-      var(--admin-maroon)
-    );
+  /* Solid graph bars */
+  background: var(--admin-maroon);
 
   box-shadow:
-    0 10px 20px -18px rgba(83, 37, 100, 0.9);
+    0 8px 16px -14px rgba(83, 37, 100, 0.65);
 }
 
 .bar strong {
   position: absolute;
-  top: -24px;
+
+  top: -27px;
 
   color: var(--admin-maroon);
 
   font-size: 0.76rem;
+  font-weight: 800;
+
+  white-space: nowrap;
 }
 
 .bar span {
   position: absolute;
 
-  right: -8px;
-  bottom: -30px;
-  left: -8px;
+  bottom: -42px;
+
+  left: 50%;
+
+  width: max-content;
 
   color: var(--admin-muted);
 
   font-size: 0.7rem;
+  font-weight: 600;
 
   text-align: center;
+
+  transform: translateX(-50%);
+
+  white-space: nowrap;
 }
 
 .diagonal-labels .bar {
-  min-width: 58px;
+  min-width: 52px;
 }
 
 .diagonal-labels .bar span {
-  right: auto;
-  bottom: -64px;
+  bottom: -60px;
+
   left: 50%;
 
-  width: 96px;
+  width: 100px;
 
   text-align: left;
 
   transform:
-    translateX(-12px)
-    rotate(-38deg);
+    translateX(-8px)
+    rotate(-35deg);
 
   transform-origin: top left;
 
   white-space: nowrap;
 }
-
 
 /* ==========================================================================
    LISTS
