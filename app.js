@@ -22,6 +22,8 @@ import {
   getPositionById,
   getShiftById,
   findShift,
+  normalizeLastName,
+  normalizePhoneNumber,
 } from "./config.js";
 
 import { db, logSafeEvent } from "./firebase-init.js";
@@ -647,10 +649,7 @@ export function validateForm(
     );
   }
 
-  if (
-    !phone ||
-    phone.replace(/\D/g, "").length !== 10
-  ) {
+  if (!phone || phone.replace(/\D/g, "").length !== 10) {
     fail(
       "phone",
       "Enter a valid 10-digit phone number."
@@ -658,6 +657,15 @@ export function validateForm(
   } else if (phoneInput) {
     phoneInput.value = phone;
   }
+
+  const ageInput = formEl?.querySelector('input[name="is18OrOlder"]:checked');
+  if (!ageInput) {
+    fail(
+      "is18OrOlder",
+      "Please indicate whether you are 18 years of age or older."
+    );
+  }
+  const is18OrOlder = ageInput ? ageInput.value === "yes" : null;
 
   const position =
     currentSelectedPositionId
@@ -704,6 +712,7 @@ export function validateForm(
       lastName,
       email,
       phone,
+      is18OrOlder,
       positionId: currentSelectedPositionId,
       shiftId: currentSelectedShiftId,
       notes,
@@ -727,7 +736,7 @@ export function validateForm(
  * The capacity check and registration creation happen in one transaction,
  * preventing two simultaneous registrations from exceeding capacity.
  */
-async function reserveShiftAndCreateRegistration(
+export async function reserveShiftAndCreateRegistration(
   payload
 ) {
   const shiftRef = doc(
@@ -744,9 +753,15 @@ async function reserveShiftAndCreateRegistration(
     db,
     "registrationGuards",
     `email_${encodeURIComponent(
-      payload.email.toLowerCase()
+      payload.email.toLowerCase().trim()
     )}`
   );
+
+  const normLast = normalizeLastName(payload.lastName);
+  const normPhone = normalizePhoneNumber(payload.phone);
+  const phoneNameGuardRef = normLast && normPhone
+    ? doc(db, "registrationGuards", `name_phone_${normLast}_${normPhone}`)
+    : null;
 
   const shiftResult = findShift(payload.shiftId);
 
@@ -760,17 +775,28 @@ async function reserveShiftAndCreateRegistration(
   const { position, shift } = shiftResult;
 
   await runTransaction(db, async (tx) => {
-    const [
-      shiftSnap,
-      emailGuardSnap,
-    ] = await Promise.all([
+    const reads = [
       tx.get(shiftRef),
       tx.get(emailGuardRef),
-    ]);
+    ];
+    if (phoneNameGuardRef) {
+      reads.push(tx.get(phoneNameGuardRef));
+    }
+
+    const results = await Promise.all(reads);
+    const shiftSnap = results[0];
+    const emailGuardSnap = results[1];
+    const phoneNameGuardSnap = phoneNameGuardRef ? results[2] : null;
 
     if (emailGuardSnap.exists()) {
       throw new Error(
         "DUPLICATE_REGISTRATION"
+      );
+    }
+
+    if (phoneNameGuardSnap && phoneNameGuardSnap.exists()) {
+      throw new Error(
+        "DUPLICATE_NAME_PHONE"
       );
     }
 
@@ -803,6 +829,15 @@ async function reserveShiftAndCreateRegistration(
         registrationId: registrationRef.id,
         createdAt: serverTimestamp(),
       });
+
+      if (phoneNameGuardRef) {
+        tx.set(phoneNameGuardRef, {
+          registrationId: registrationRef.id,
+          lastName: normLast,
+          phone: normPhone,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       return;
     }
@@ -841,12 +876,21 @@ async function reserveShiftAndCreateRegistration(
       registrationId: registrationRef.id,
       createdAt: serverTimestamp(),
     });
+
+    if (phoneNameGuardRef) {
+      tx.set(phoneNameGuardRef, {
+        registrationId: registrationRef.id,
+        lastName: normLast,
+        phone: normPhone,
+        createdAt: serverTimestamp(),
+      });
+    }
   });
 
   return registrationRef.id;
 }
 
-function buildRegistrationRecord(
+export function buildRegistrationRecord(
   payload,
   position,
   shift
@@ -878,6 +922,11 @@ function buildRegistrationRecord(
 
     phone:
       payload.phone,
+
+    is18OrOlder:
+      typeof payload.is18OrOlder === "boolean"
+        ? payload.is18OrOlder
+        : null,
 
     notes:
       payload.notes || "",
@@ -979,10 +1028,9 @@ async function submitRegistration(event) {
     showConfirmation({
       firstName: payload.firstName,
       lastName: payload.lastName,
-
+      is18OrOlder: payload.is18OrOlder,
       position,
       shift,
-
       confirmationId,
     });
   } catch (error) {
@@ -1047,6 +1095,19 @@ function handleSubmissionError(error) {
     return;
   }
 
+  if (code === "DUPLICATE_NAME_PHONE") {
+    setError(
+      "submit",
+      "A volunteer registration with this last name and phone number already exists."
+    );
+
+    announce(
+      "A volunteer registration with this last name and phone number already exists."
+    );
+
+    return;
+  }
+
   if (
     code === "SHIFT_FULL" ||
     code === "SHIFT_UNAVAILABLE"
@@ -1105,6 +1166,7 @@ function announce(message) {
 function showConfirmation({
   firstName,
   lastName,
+  is18OrOlder,
   position,
   shift,
   confirmationId,
@@ -1119,6 +1181,15 @@ function showConfirmation({
   setText(
     "sum-student",
     `${firstName} ${lastName}`
+  );
+
+  setText(
+    "sum-age",
+    is18OrOlder === true
+      ? "Yes (18 or older)"
+      : is18OrOlder === false
+      ? "No (Under 18)"
+      : "Not specified"
   );
 
   setText(

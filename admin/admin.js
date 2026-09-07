@@ -5,11 +5,14 @@ import {
   formatShiftTime,
   getPositionById,
   getShiftById,
-  findShift
+  findShift,
+  normalizeLastName,
+  normalizePhoneNumber
 } from "../config.js";
 
 import { db } from "../firebase-init.js";
 import { requireAdmin, logout, isEnabledAdmin } from "./auth.js";
+import { reserveShiftAndCreateRegistration } from "../app.js";
 
 import {
   collection,
@@ -23,7 +26,8 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  setDoc
+  setDoc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const REGISTRATIONS_COLLECTION = "registrations";
@@ -61,31 +65,15 @@ let tableState = {
 ========================================================= */
 
 requireAdmin({
-  allowCheckin:
-    location.pathname.includes("checkin") ||
-    location.pathname.includes("checkin-activity"),
-
-  adminOnly:
-    !(
-      location.pathname.includes("checkin") ||
-      location.pathname.includes("checkin-activity")
-    ),
-
   onReady: (user, profile) => {
     initShell(user, profile);
 
-    if (
-      location.pathname.includes("checkin/activity") ||
-      location.pathname.includes("checkin-activity")
-    ) {
-      initActivityPage(user, profile);
+    if (location.pathname.includes("manage")) {
+      initManagePage(user, profile);
       return;
     }
 
-    if (
-      location.pathname.includes("checkin") ||
-      location.pathname.includes("checkin-activity")
-    ) {
+    if (location.pathname.includes("checkin")) {
       initCheckinPage(user, profile);
       return;
     }
@@ -98,10 +86,6 @@ requireAdmin({
     if (location.pathname.includes("statistics")) {
       initStatisticsPage();
       return;
-    }
-
-    if (location.pathname.includes("settings")) {
-      initSettingsPage();
     }
   },
 
@@ -270,44 +254,35 @@ function renderNavigation(profile) {
     const adminLinks = [
       ["Dashboard", "/admin/"],
       ["Volunteers", "/admin/registrations.html"],
-      ["Check-In", "/admin/checkin/"],
-      ["Statistics", "/admin/statistics.html"],
-      ["Settings", "/admin/settings.html"]
+      ["Manage", "/admin/manage.html"],
+      ["Check-In", "/admin/checkin.html"],
+      ["Statistics", "/admin/statistics.html"]
     ];
-
-    const checkinLinks = [
-      ["Check-In", "/admin/checkin/"],
-      ["Recent Activity", "/admin/checkin/activity/"]
-    ];
-
-    const links = isEnabledAdmin(profile)
-      ? adminLinks
-      : checkinLinks;
 
     let current =
       location.pathname.split("/").pop() ||
       "index.html";
 
     if (
-      location.pathname.includes(
-        "checkin/activity"
-      )
-    ) {
-      current = "checkin-activity.html";
-    }
-
-    if (
-      location.pathname.endsWith(
-        "/admin/checkin/"
-      ) ||
-      location.pathname.endsWith(
-        "/admin/checkin"
-      )
+      location.pathname.endsWith("/admin/checkin/") ||
+      location.pathname.endsWith("/admin/checkin") ||
+      location.pathname.includes("checkin")
     ) {
       current = "checkin.html";
     }
 
-    links.forEach(([label, href]) => {
+    if (
+      location.pathname.endsWith("/admin/") ||
+      location.pathname.endsWith("/admin")
+    ) {
+      current = "index.html";
+    }
+
+    if (location.pathname.includes("manage")) {
+      current = "manage.html";
+    }
+
+    adminLinks.forEach(([label, href]) => {
       const a = document.createElement("a");
 
       a.href = href;
@@ -315,19 +290,9 @@ function renderNavigation(profile) {
 
       if (
         href.endsWith(current) ||
-        (
-          href === "/admin/" &&
-          current === "index.html"
-        ) ||
-        (
-          href ===
-            "/admin/checkin/activity/" &&
-          current === "checkin-activity.html"
-        ) ||
-        (
-          href === "/admin/checkin/" &&
-          current === "checkin.html"
-        )
+        (href === "/admin/" && current === "index.html") ||
+        (href === "/admin/checkin.html" && current === "checkin.html") ||
+        (href === "/admin/manage.html" && current === "manage.html")
       ) {
         a.className = "active";
       }
@@ -1228,7 +1193,7 @@ function renderTable(records) {
         "td"
       );
 
-    cell.colSpan = 12;
+    cell.colSpan = 13;
 
     cell.textContent =
       "No volunteers to display.";
@@ -1257,6 +1222,12 @@ function renderTable(records) {
         record.firstName,
 
         record.lastName,
+
+        record.is18OrOlder === true
+          ? "Yes (18+)"
+          : record.is18OrOlder === false
+          ? "No (<18)"
+          : "—",
 
         record.email,
 
@@ -1312,6 +1283,14 @@ function renderTable(records) {
         "table-actions";
 
       actions.append(
+        smallButton(
+          "Edit",
+          () =>
+            showEditModal(
+              record
+            )
+        ),
+
         smallButton(
           "Export",
           () =>
@@ -1489,6 +1468,13 @@ function exportRows(records) {
 
       lastName:
         r.lastName,
+
+      is18OrOlder:
+        r.is18OrOlder === true
+          ? "Yes (18+)"
+          : r.is18OrOlder === false
+          ? "No (<18)"
+          : "",
 
       email:
         r.email,
@@ -2231,6 +2217,15 @@ function showDetail(record) {
         [
           "Last name",
           record.lastName
+        ],
+
+        [
+          "18 or older",
+          record.is18OrOlder === true
+            ? "Yes (18 or older)"
+            : record.is18OrOlder === false
+            ? "No (Under 18)"
+            : "Not specified"
         ],
 
         [

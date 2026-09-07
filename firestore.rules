@@ -27,26 +27,17 @@ service cloud.firestore {
       return enabledRole("admin");
     }
 
-    function isCheckin() {
-      return enabledRole("checkin");
-    }
-
-    function canCheckin() {
-      return isAdmin() || isCheckin();
-    }
-
 
     // ------------------------------------------------------------------------
     // Volunteer registrations
     // ------------------------------------------------------------------------
     //
     // Public users can create a registration.
-    // Only authorized administrators/check-in staff can read registrations.
-    // Only admins can modify or delete registrations.
+    // Only authorized administrators can read, update, or delete registrations.
     //
 
     match /registrations/{registrationId} {
-      allow read: if isAdmin() || isCheckin();
+      allow read: if isAdmin();
 
       allow create: if true;
 
@@ -59,23 +50,24 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     //
     // Each check-in document is associated with a volunteer registration.
+    // Restricted to authorized administrators.
     //
 
     match /checkins/{registrationId} {
-      allow read: if canCheckin();
-      allow create, update: if canCheckin();
-      allow delete: if isAdmin();
+      allow read, create, update, delete: if isAdmin();
     }
 
 
     // ------------------------------------------------------------------------
     // Check-in activity log
     // ------------------------------------------------------------------------
+    //
+    // Audit log of check-in and check-out events.
+    // Restricted to authorized administrators.
+    //
 
     match /checkinActivity/{activityId} {
-      allow read: if canCheckin();
-      allow create: if canCheckin();
-      allow update, delete: if isAdmin();
+      allow read, create, update, delete: if isAdmin();
     }
 
 

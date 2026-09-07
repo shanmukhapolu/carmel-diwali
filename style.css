@@ -989,6 +989,32 @@ input[aria-invalid="true"] {
   font-weight: 500;
 }
 
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #241927;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-purple);
+  margin: 0;
+  cursor: pointer;
+}
+
+
 
 /* ==========================================================================
    BANNERS

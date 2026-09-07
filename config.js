@@ -449,3 +449,30 @@ export function getAllShifts() {
     }))
   );
 }
+
+/**
+ * Normalizes a last name for reliable duplicate comparison.
+ * Trims whitespace, lowercases, removes accents/diacritics, and strips non-alphanumerics.
+ */
+export function normalizeLastName(name) {
+  if (typeof name !== "string") return "";
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Normalizes a phone number for reliable duplicate comparison.
+ * Extracts digits only and standardizes standard 10-digit / 11-digit (leading 1) numbers.
+ */
+export function normalizePhoneNumber(phone) {
+  if (typeof phone !== "string") return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return digits.slice(1);
+  }
+  return digits;
+}

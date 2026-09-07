@@ -324,6 +324,38 @@
           <p class="error" id="err-phone" aria-live="polite"></p>
         </div>
 
+        <div class="field">
+          <span class="field-label" id="label-is18OrOlder">
+            Are you 18 years of age or older? <span class="req" aria-hidden="true">*</span>
+          </span>
+
+          <div class="radio-row" role="radiogroup" aria-labelledby="label-is18OrOlder">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="is18OrOlder"
+                id="age-yes"
+                value="yes"
+                required
+              />
+              <span>Yes (18 or older)</span>
+            </label>
+
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="is18OrOlder"
+                id="age-no"
+                value="no"
+                required
+              />
+              <span>No (Under 18)</span>
+            </label>
+          </div>
+
+          <p class="error" id="err-is18OrOlder" aria-live="polite"></p>
+        </div>
+
       </fieldset>
 
       <!-- ============================= VOLUNTEER POSITION ============================= -->
@@ -484,6 +516,11 @@
         <div class="summary-row">
           <dt>Location</dt>
           <dd id="sum-location"></dd>
+        </div>
+
+        <div class="summary-row">
+          <dt>18 or Older</dt>
+          <dd id="sum-age"></dd>
         </div>
 
         <div class="summary-row">

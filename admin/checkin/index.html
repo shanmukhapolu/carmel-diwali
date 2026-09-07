@@ -112,6 +112,40 @@
 
       </section>
 
+      <!-- ============================= RECENT ACTIVITY ============================= -->
+      <section class="panel activity-panel">
+        <div class="summary-line">
+          <div>
+            <p class="eyebrow">Audit Stream</p>
+            <h2>Recent Activity</h2>
+            <p class="muted">
+              Live audit feed of volunteer check-in and check-out events.
+            </p>
+          </div>
+        </div>
+
+        <div class="toolbar simple-toolbar">
+          <div>
+            <label for="activity-type">Action</label>
+            <select id="activity-type">
+              <option value="">All activity</option>
+              <option value="checkin">Check-in</option>
+              <option value="checkout">Check-out</option>
+              <option value="late">Marked late</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="activity-staff">Staff member</label>
+            <select id="activity-staff">
+              <option value="">All staff</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="activity-list" class="list" style="margin-top: 14px;"></div>
+      </section>
+
     </section>
 
     <aside
@@ -125,6 +159,8 @@
     ></p>
 
   </main>
+
+  <div id="modal-root"></div>
 
   <script
     type="module"
