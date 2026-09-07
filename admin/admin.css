@@ -1194,14 +1194,17 @@ tbody tr:last-child td {
   padding: 24px clamp(16px, 2.4vw, 36px);
 
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns:
+    minmax(0, 7fr)
+    minmax(280px, 3fr);
 
-  gap: 18px;
+  align-items: start;
+  gap: clamp(18px, 2vw, 28px);
 }
 
 .checkin-layout .nav,
 .checkin-layout #error {
-  grid-column: 1;
+  grid-column: 1 / -1;
 }
 
 .checkin-main {
@@ -1573,7 +1576,7 @@ tbody tr:last-child td {
     width: 100%;
     max-width: 900px;
     padding: 20px;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 
