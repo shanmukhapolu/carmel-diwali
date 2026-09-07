@@ -1315,8 +1315,8 @@ tbody tr:last-child td {
    ========================================================================== */
 
 .checkin-layout {
-  width: 100%;
-  max-width: 1500px;
+  width: calc(100% - 32px);
+  max-width: none;
 
   margin: 0;
 
