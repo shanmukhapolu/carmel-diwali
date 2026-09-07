@@ -358,8 +358,9 @@ export const VOLUNTEER_POSITIONS = [
  * Convert a 24-hour HHMM value into minutes after midnight.
  */
 export function timeToMinutes(hhmm) {
-  const hour = Number(hhmm.slice(0, 2));
-  const minute = Number(hhmm.slice(2));
+  const text = String(hhmm ?? "");
+  const hour = Number(text.slice(0, 2));
+  const minute = Number(text.slice(2));
 
   return hour * 60 + minute;
 }
@@ -372,8 +373,9 @@ export function timeToMinutes(hhmm) {
  *   "1430" → "2:30 PM"
  */
 export function formatTime(hhmm) {
-  const hour24 = Number(hhmm.slice(0, 2));
-  const minute = Number(hhmm.slice(2));
+  const text = String(hhmm ?? "");
+  const hour24 = Number(text.slice(0, 2));
+  const minute = Number(text.slice(2));
 
   const period = hour24 >= 12 ? "PM" : "AM";
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
@@ -384,12 +386,29 @@ export function formatTime(hhmm) {
 /**
  * Format a shift as a readable range.
  *
- * Example:
- *   "1100" → "1300"
- *   becomes "11:00 AM – 1:00 PM"
+ * Accepts either two HHMM strings:
+ *   formatShiftTime("1100", "1300") → "11:00 AM – 1:00 PM"
+ *
+ * Or a shift object with startTime/endTime properties:
+ *   formatShiftTime({ startTime: "1100", endTime: "1300" }) → "11:00 AM – 1:00 PM"
  */
 export function formatShiftTime(startTime, endTime) {
-  return `${formatTime(startTime)} – ${formatTime(endTime)}`;
+  let start = startTime;
+  let end = endTime;
+
+  if (startTime && typeof startTime === "object") {
+    start = startTime.startTime;
+    end = startTime.endTime;
+  }
+
+  if (typeof start !== "string") {
+    start = String(start ?? "");
+  }
+  if (typeof end !== "string") {
+    end = String(end ?? "");
+  }
+
+  return `${formatTime(start)} – ${formatTime(end)}`;
 }
 
 /**

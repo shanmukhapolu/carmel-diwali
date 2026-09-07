@@ -3165,9 +3165,6 @@ async function initCheckinPage(
   const summary =
     $("checkin-summary");
 
-  const expected =
-    $("expected-soon");
-
   let regs = [];
 
   let checkins =
@@ -3244,13 +3241,6 @@ async function initCheckinPage(
         user
       );
 
-      renderExpectedSoon(
-        expected,
-        regs,
-        checkins,
-        user
-      );
-
       renderCheckinResults(
         search?.value || "",
         regs,
@@ -3293,118 +3283,12 @@ async function initCheckinPage(
         checkins,
         user
       );
-
-      renderExpectedSoon(
-        expected,
-        regs,
-        checkins,
-        user
-      );
     },
     30000
   );
 
   // Wire up the activity feed that lives in the same page layout.
   initActivityPage();
-}
-
-
-/* =========================================================
-   EXPECTED / CURRENT SHIFTS
-========================================================= */
-
-function renderExpectedSoon(
-  root,
-  regs,
-  checkins,
-  user
-) {
-  if (!root) return;
-
-  const currentShift =
-    currentShiftId(
-      new Date()
-    );
-
-  const nextShift =
-    nextShiftId(
-      new Date()
-    );
-
-  const relevant =
-    new Set(
-      [
-        currentShift,
-        nextShift
-      ].filter(Boolean)
-    );
-
-  const expected =
-    regs
-      .filter(
-        (r) =>
-          relevant.has(
-            r.shiftId
-          ) &&
-          ![
-            "checked_in",
-            "completed"
-          ].includes(
-            checkins.get(
-              r.id
-            )?.status
-          )
-      )
-      .sort(
-        (a, b) =>
-          String(
-            a.shiftId
-          ).localeCompare(
-            String(
-              b.shiftId
-            )
-          )
-      );
-
-  root.textContent = "";
-
-  if (!expected.length) {
-    const empty =
-      document.createElement(
-        "p"
-      );
-
-    empty.className =
-      "muted";
-
-    empty.textContent =
-      "No volunteers are expected for the current or next shift.";
-
-    root.appendChild(
-      empty
-    );
-
-    return;
-  }
-
-  expected.forEach(
-    (r) =>
-      root.appendChild(
-        checkinCard(
-          {
-            ...r,
-            checkin:
-              checkins.get(
-                r.id
-              ) || {
-                status:
-                  "registered"
-              }
-          },
-          user
-        )
-      )
-  );
 }
 
 
@@ -3421,71 +3305,6 @@ function allShifts() {
         })
       )
   );
-}
-
-
-function currentShiftId(now) {
-  const shifts =
-    allShifts();
-
-  const minutes =
-    timeParts(
-      now
-    ).hour *
-      60 +
-    timeParts(
-      now
-    ).minute;
-
-  const shift =
-    shifts.find(
-      (candidate) =>
-        shiftMinutes(
-          candidate.startTime
-        ) <= minutes &&
-        shiftMinutes(
-          candidate.endTime
-        ) > minutes
-    );
-
-  return shift?.id ||
-    null;
-}
-
-
-function nextShiftId(now) {
-  const shifts =
-    allShifts();
-
-  const minutes =
-    timeParts(
-      now
-    ).hour *
-      60 +
-    timeParts(
-      now
-    ).minute;
-
-  const next =
-    shifts
-      .filter(
-        (shift) =>
-          shiftMinutes(
-            shift.startTime
-          ) > minutes
-      )
-      .sort(
-        (a, b) =>
-          shiftMinutes(
-            a.startTime
-          ) -
-          shiftMinutes(
-            b.startTime
-          )
-      )[0];
-
-  return next?.id ||
-    null;
 }
 
 

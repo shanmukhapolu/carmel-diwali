@@ -370,24 +370,15 @@ button:disabled {
   place-items: center;
   padding: 24px;
 
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(242, 163, 70, 0.18),
-      transparent 28rem
-    ),
-    linear-gradient(
-      180deg,
-      #fff8ee 0%,
-      #f8eee2 55%,
-      #f1e3d2 100%
-    );
+  background: var(--admin-maroon-deep);
 }
 
 .auth-card {
   position: relative;
   overflow: hidden;
   box-shadow: var(--admin-shadow-lg);
+  background: #ffffff;
+  color: var(--admin-text);
 }
 
 .auth-card::before {
@@ -402,9 +393,9 @@ button:disabled {
     linear-gradient(
       90deg,
       var(--admin-maroon-deep),
-      var(--admin-saffron),
-      var(--admin-gold),
-      var(--admin-saffron),
+      var(--admin-maroon),
+      var(--admin-maroon-dark),
+      var(--admin-maroon),
       var(--admin-maroon-deep)
     );
 }
@@ -1221,6 +1212,11 @@ tbody tr:last-child td {
   gap: 18px;
 }
 
+.checkin-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
 .compact-hero h1 {
   font-size: clamp(1.35rem, 2vw, 1.85rem);
 }
@@ -1283,10 +1279,6 @@ tbody tr:last-child td {
 .big-action {
   min-height: 48px;
   border-radius: 13px;
-}
-
-.expected-panel {
-  grid-row: auto;
 }
 
 .checkin-summary {
