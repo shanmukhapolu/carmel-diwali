@@ -89,7 +89,9 @@ function formatDisplayDate(isoDate, { weekday = false } = {}) {
   if (!parts) return isoDate;
 
   const date = new Date(
-    Date.UTC(parts.year, parts.month - 1, parts.day)
+    parts.year,
+    parts.month - 1,
+    parts.day
   );
 
   return date.toLocaleDateString("en-US", {
@@ -97,7 +99,6 @@ function formatDisplayDate(isoDate, { weekday = false } = {}) {
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: eventConfig.timeZone || "America/New_York",
   });
 }
 
