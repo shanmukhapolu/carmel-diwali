@@ -205,49 +205,6 @@
         </div>
 
 
-        <!-- ============================================================
-             EMAIL DISAMBIGUATION
-             ============================================================ -->
-
-        <div
-          id="email-step"
-          class="identity-step hidden"
-        >
-
-          <h3>
-            One more detail
-          </h3>
-
-          <p>
-            More than one registration matches that name and phone number.
-            Enter the email address used for one of those registrations.
-          </p>
-
-          <div class="field">
-
-            <label for="lookup-email">
-              Email Address
-            </label>
-
-            <input
-              id="lookup-email"
-              type="email"
-              autocomplete="email"
-              maxlength="120"
-              placeholder="you@example.com"
-            />
-
-            <p
-              class="error"
-              id="err-lookup-email"
-              aria-live="polite"
-            ></p>
-
-          </div>
-
-        </div>
-
-
         <p
           id="lookup-error"
           class="lookup-error error"
@@ -286,6 +243,11 @@
           </p>
 
           <h2 id="results-name"></h2>
+
+          <p
+            id="results-contact"
+            class="results-contact"
+          ></p>
 
         </div>
 
@@ -336,27 +298,6 @@
 
 
         <div class="add-shift-fields">
-
-          <div class="field">
-
-            <label for="add-email">
-              Email Address
-            </label>
-
-            <p class="help">
-              This can be the same email used for your existing registration.
-            </p>
-
-            <input
-              id="add-email"
-              type="email"
-              autocomplete="email"
-              maxlength="120"
-              placeholder="you@example.com"
-            />
-
-          </div>
-
 
           <div class="field">
 
