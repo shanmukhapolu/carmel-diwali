@@ -800,13 +800,6 @@ export async function reserveShiftAndCreateRegistration(
     lookupId
   );
 
-  // Same email + same shift = duplicate.
-  const emailShiftGuardRef = doc(
-    db,
-    "registrationGuards",
-    `email_shift_${emailGuardKey}_${payload.shiftId}`
-  );
-
   // Same first name + last name + phone + same shift = duplicate.
   const personShiftGuardRef = doc(
     db,
@@ -838,40 +831,22 @@ export async function reserveShiftAndCreateRegistration(
     db,
     async (tx) => {
       const reads = [
-        tx.get(shiftRef),
-        tx.get(emailShiftGuardRef),
-        tx.get(lookupRef),
-        tx.get(personShiftGuardRef),
-      ];
+  tx.get(shiftRef),
+  tx.get(lookupRef),
+  tx.get(personShiftGuardRef),
+];
 
-      const results =
-        await Promise.all(reads);
+const results = await Promise.all(reads);
+const shiftSnap = results[0];
+const lookupSnap = results[1];
+const personShiftGuardSnap = results[2];
 
-      const shiftSnap =
-        results[0];
-
-      const emailShiftGuardSnap =
-        results[1];
-
-      const lookupSnap =
-        results[2];
-
-      const personShiftGuardSnap =
-        results[3];
-
-      // --------------------------------------------------------------
-      // Duplicate protection
-      // --------------------------------------------------------------
-
-      if (
-        emailShiftGuardSnap.exists() &&
-        emailShiftGuardSnap.data()?.status !==
-          "cancelled"
-      ) {
-        throw new Error(
-          "DUPLICATE_SHIFT"
-        );
-      }
+if (
+  personShiftGuardSnap.exists() &&
+  personShiftGuardSnap.data()?.status !== "cancelled"
+) {
+  throw new Error("DUPLICATE_SHIFT");
+}
 
       if (
         personShiftGuardSnap.exists() &&
@@ -975,28 +950,7 @@ export async function reserveShiftAndCreateRegistration(
           shift
         )
       );
-
-      // --------------------------------------------------------------
-      // Create email + shift duplicate guard
-      // --------------------------------------------------------------
-
-      tx.set(
-        emailShiftGuardRef,
-        {
-          registrationId:
-            registrationRef.id,
-
-          type:
-            "email_shift",
-
-          status:
-            "active",
-
-          createdAt:
-            serverTimestamp(),
-        }
-      );
-
+      
       // --------------------------------------------------------------
       // Create person + shift duplicate guard
       // --------------------------------------------------------------

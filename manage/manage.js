@@ -3,20 +3,24 @@
 //
 // Public Manage Registrations page.
 //
-// Architecture:
+// Identity:
 //   Last name + phone
 //        ↓
-//   hashed registrationLookups document
+//   First name when multiple volunteers match
 //        ↓
-//   identify volunteer
+//   View this volunteer's registrations
 //        ↓
-//   view active/cancelled shifts
+//   Cancel individual shift
 //        ↓
-//   cancel individual shift
-//        ↓
-//   add another non-overlapping shift
+//   Add another non-overlapping shift
 //
-// No Firebase Cloud Functions are used.
+// Important:
+//   - Email is NOT used to identify the volunteer.
+//   - Email is automatically reused from the existing registration.
+//   - A volunteer may register for multiple non-overlapping shifts.
+//   - A volunteer cannot register for the same shift twice.
+//   - Cancelling a shift permanently removes that registration.
+//   - No Firebase Cloud Functions are used.
 // ============================================================================
 
 import {
@@ -27,7 +31,6 @@ import {
   normalizeFirstName,
   normalizeLastName,
   normalizePhoneNumber,
-  sha256Hex,
   timeToMinutes,
 } from "../config.js";
 
@@ -57,14 +60,8 @@ const phoneInput =
 const firstNameInput =
   document.getElementById("lookup-first-name");
 
-const emailInput =
-  document.getElementById("lookup-email");
-
 const identityStep =
   document.getElementById("identity-step");
-
-const emailStep =
-  document.getElementById("email-step");
 
 const lookupError =
   document.getElementById("lookup-error");
@@ -78,6 +75,9 @@ const resultsSection =
 const resultsName =
   document.getElementById("results-name");
 
+const resultsContact =
+  document.getElementById("results-contact");
+
 const registrationList =
   document.getElementById("registration-list");
 
@@ -86,9 +86,6 @@ const newSearchButton =
 
 const addShiftGrid =
   document.getElementById("add-shift-grid");
-
-const addEmailInput =
-  document.getElementById("add-email");
 
 const addNotesInput =
   document.getElementById("add-notes");
@@ -141,14 +138,9 @@ function formatPhoneNumber(value) {
   )}-${digits.slice(6)}`;
 }
 
-function setError(
-  elementId,
-  message
-) {
+function setError(elementId, message) {
   const element =
-    document.getElementById(
-      elementId
-    );
+    document.getElementById(elementId);
 
   if (element) {
     element.textContent =
@@ -164,52 +156,27 @@ function clearErrors() {
     });
 }
 
-function activeEntries(entries) {
-  return entries.filter(
-    (entry) =>
-      entry &&
-      typeof entry.registrationId ===
-        "string"
-  );
-}
-
 function isActive(entry) {
   return (
-    entry?.status ===
-    "registered"
+    entry &&
+    typeof entry.registrationId === "string" &&
+    entry.status === "registered"
   );
 }
 
-function getActiveIdentityEntries() {
-  return activeEntries(
-    selectedIdentityEntries
-  ).filter(isActive);
+function getActiveEntries(entries) {
+  return Array.isArray(entries)
+    ? entries.filter(isActive)
+    : [];
 }
 
-function getDistinctFirstNames(
-  entries
-) {
+function getDistinctFirstNames(entries) {
   return [
     ...new Set(
-      activeEntries(entries)
+      getActiveEntries(entries)
         .map(
           (entry) =>
             entry.normalizedFirstName
-        )
-        .filter(Boolean)
-    ),
-  ];
-}
-
-function getDistinctEmailHashes(
-  entries
-) {
-  return [
-    ...new Set(
-      activeEntries(entries)
-        .map(
-          (entry) =>
-            entry.emailHash
         )
         .filter(Boolean)
     ),
@@ -240,10 +207,48 @@ function hasTimeOverlap(
   );
 }
 
-function isEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-    String(value || "")
-      .trim()
+/**
+ * Existing lookup entries store the normalized email indirectly in
+ * emailGuardKey. Decode it so Manage can reuse the volunteer's original
+ * email without asking for it again.
+ */
+function getStoredEmail(entry) {
+  if (
+    entry &&
+    typeof entry.email === "string" &&
+    entry.email.trim()
+  ) {
+    return entry.email.trim().toLowerCase();
+  }
+
+  if (
+    entry &&
+    typeof entry.emailGuardKey === "string"
+  ) {
+    try {
+      return decodeURIComponent(
+        entry.emailGuardKey
+      )
+        .trim()
+        .toLowerCase();
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function getStoredPhone(entry) {
+  if (
+    entry &&
+    typeof entry.phone === "string"
+  ) {
+    return entry.phone;
+  }
+
+  return formatPhoneNumber(
+    phoneInput.value
   );
 }
 
@@ -311,21 +316,16 @@ async function fetchLookup() {
 // LOOKUP FORM
 // ============================================================================
 
-async function submitLookup(
-  event
-) {
+async function submitLookup(event) {
   event.preventDefault();
 
-  if (
-    lookupSubmitting
-  ) {
+  if (lookupSubmitting) {
     return;
   }
 
   clearErrors();
 
-  lookupError.textContent =
-    "";
+  lookupError.textContent = "";
 
   const lastName =
     lastNameInput.value.trim();
@@ -335,12 +335,9 @@ async function submitLookup(
       phoneInput.value
     );
 
-  phoneInput.value =
-    phone;
+  phoneInput.value = phone;
 
-  if (
-    lastName.length < 2
-  ) {
+  if (lastName.length < 2) {
     setError(
       "err-lookup-last-name",
       "Enter your last name."
@@ -361,22 +358,16 @@ async function submitLookup(
     return;
   }
 
-  lookupSubmitting =
-    true;
+  lookupSubmitting = true;
 
-  lookupButton.disabled =
-    true;
+  lookupButton.disabled = true;
 
   try {
+    // ------------------------------------------------------------------------
+    // Initial lookup
+    // ------------------------------------------------------------------------
 
-    // --------------------------------------------------------------
-    // Initial last-name + phone lookup
-    // --------------------------------------------------------------
-
-    if (
-      lookupStage ===
-      "initial"
-    ) {
+    if (lookupStage === "initial") {
       lookupButton.textContent =
         "Searching…";
 
@@ -384,13 +375,11 @@ async function submitLookup(
         await fetchLookup();
 
       const active =
-        activeEntries(
+        getActiveEntries(
           lookupEntries
         );
 
-      if (
-        active.length === 0
-      ) {
+      if (active.length === 0) {
         lookupError.textContent =
           "We couldn't find an active registration using that last name and phone number.";
 
@@ -402,10 +391,8 @@ async function submitLookup(
           active
         );
 
-      if (
-        firstNames.length >
-        1
-      ) {
+      // Multiple volunteers share the same last name + phone.
+      if (firstNames.length > 1) {
         identityStep.classList.remove(
           "hidden"
         );
@@ -419,6 +406,7 @@ async function submitLookup(
         return;
       }
 
+      // Only one volunteer identity exists.
       selectedIdentityEntries =
         active.filter(
           (entry) =>
@@ -426,28 +414,22 @@ async function submitLookup(
             firstNames[0]
         );
 
-      prepareFinalIdentityStep();
+      showResults();
 
       return;
     }
 
-
-    // --------------------------------------------------------------
+    // ------------------------------------------------------------------------
     // First-name disambiguation
-    // --------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
-    if (
-      lookupStage ===
-      "first-name"
-    ) {
+    if (lookupStage === "first-name") {
       const normalizedFirst =
         normalizeFirstName(
           firstNameInput.value
         );
 
-      if (
-        !normalizedFirst
-      ) {
+      if (!normalizedFirst) {
         setError(
           "err-lookup-first-name",
           "Enter your first name."
@@ -457,7 +439,7 @@ async function submitLookup(
       }
 
       const matches =
-        activeEntries(
+        getActiveEntries(
           lookupEntries
         ).filter(
           (entry) =>
@@ -465,70 +447,10 @@ async function submitLookup(
             normalizedFirst
         );
 
-      if (
-        matches.length ===
-        0
-      ) {
+      if (matches.length === 0) {
         setError(
           "err-lookup-first-name",
           "We couldn't find a volunteer with that first name."
-        );
-
-        return;
-      }
-
-      selectedIdentityEntries =
-        matches;
-
-      prepareFinalIdentityStep();
-
-      return;
-    }
-
-
-    // --------------------------------------------------------------
-    // Email disambiguation
-    // --------------------------------------------------------------
-
-    if (
-      lookupStage ===
-      "email"
-    ) {
-      const email =
-        emailInput.value
-          .trim()
-          .toLowerCase();
-
-      if (
-        !isEmail(email)
-      ) {
-        setError(
-          "err-lookup-email",
-          "Enter a valid email address."
-        );
-
-        return;
-      }
-
-      const emailHash =
-        await sha256Hex(
-          email
-        );
-
-      const matches =
-        selectedIdentityEntries.filter(
-          (entry) =>
-            entry.emailHash ===
-            emailHash
-        );
-
-      if (
-        matches.length ===
-        0
-      ) {
-        setError(
-          "err-lookup-email",
-          "That email address does not match the registration information we found."
         );
 
         return;
@@ -541,54 +463,29 @@ async function submitLookup(
 
       return;
     }
-
   } catch (error) {
+    console.error(
+      "[diwali-manage] Lookup failed",
+      error
+    );
 
     lookupError.textContent =
       "We couldn't complete the lookup. Please try again.";
-
   } finally {
+    lookupSubmitting = false;
 
-    lookupSubmitting =
-      false;
+    lookupButton.disabled = false;
 
-    lookupButton.disabled =
-      false;
-
-    if (
-      lookupStage ===
-      "initial"
-    ) {
+    if (lookupStage === "initial") {
       lookupButton.textContent =
         "Find My Registrations";
     }
+
+    if (lookupStage === "first-name") {
+      lookupButton.textContent =
+        "Continue";
+    }
   }
-}
-
-function prepareFinalIdentityStep() {
-  const emailHashes =
-    getDistinctEmailHashes(
-      selectedIdentityEntries
-    );
-
-  if (
-    emailHashes.length >
-    1
-  ) {
-    emailStep.classList.remove(
-      "hidden"
-    );
-
-    lookupStage =
-      "email";
-
-    lookupButton.textContent =
-      "Continue";
-
-    return;
-  }
-
-  showResults();
 }
 
 // ============================================================================
@@ -596,14 +493,9 @@ function prepareFinalIdentityStep() {
 // ============================================================================
 
 function showResults() {
-  lookupStage =
-    "complete";
+  lookupStage = "complete";
 
   identityStep.classList.add(
-    "hidden"
-  );
-
-  emailStep.classList.add(
     "hidden"
   );
 
@@ -621,70 +513,91 @@ function showResults() {
   resultsName.textContent =
     `${firstEntry.firstName} ${firstEntry.lastName}`;
 
+  const email =
+    getStoredEmail(firstEntry);
+
+  const phone =
+    getStoredPhone(firstEntry);
+
+  if (resultsContact) {
+    const contactParts = [];
+
+    if (email) {
+      contactParts.push(email);
+    }
+
+    if (phone) {
+      contactParts.push(
+        formatPhoneNumber(phone)
+      );
+    }
+
+    resultsContact.textContent =
+      contactParts.join(" • ");
+  }
+
   renderRegistrations();
 
   renderAddShiftOptions();
 
   window.scrollTo({
     top:
-      resultsSection.offsetTop -
-      20,
+      resultsSection.offsetTop - 20,
     behavior: "smooth",
   });
 }
 
 function renderRegistrations() {
-  registrationList.textContent =
-    "";
+  registrationList.textContent = "";
 
   const entries =
-    [
-      ...selectedIdentityEntries,
-    ].sort(
-      (a, b) => {
-        if (
-          a.status ===
-          b.status
-        ) {
-          return String(
-            a.shiftStartTime
-          ).localeCompare(
-            String(
-              b.shiftStartTime
-            )
-          );
-        }
-
-        return a.status ===
-          "registered"
-          ? -1
-          : 1;
-      }
+    getActiveEntries(
+      selectedIdentityEntries
+    ).sort(
+      (a, b) =>
+        String(
+          a.shiftStartTime
+        ).localeCompare(
+          String(
+            b.shiftStartTime
+          )
+        )
     );
+
+  if (entries.length === 0) {
+    const empty =
+      document.createElement("p");
+
+    empty.className =
+      "registration-empty";
+
+    empty.textContent =
+      "You don't have any active registrations.";
+
+    registrationList.appendChild(
+      empty
+    );
+
+    return;
+  }
 
   for (
     const entry of entries
   ) {
     const item =
-      document.createElement(
-        "article"
-      );
+      document.createElement("article");
 
     item.className =
       "registration-item";
 
     const main =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
     main.className =
       "registration-item-main";
 
     const position =
-      document.createElement(
-        "p"
-      );
+      document.createElement("p");
 
     position.className =
       "registration-position";
@@ -693,9 +606,7 @@ function renderRegistrations() {
       entry.positionName;
 
     const shift =
-      document.createElement(
-        "p"
-      );
+      document.createElement("p");
 
     shift.className =
       "registration-shift";
@@ -707,81 +618,36 @@ function renderRegistrations() {
         entry.shiftEndTime
       );
 
-    const status =
-      document.createElement(
-        "span"
-      );
-
-    status.className =
-      "registration-status " +
-      (
-        isActive(entry)
-          ? "active"
-          : "cancelled"
-      );
-
-    status.textContent =
-      isActive(entry)
-        ? "Registered"
-        : "Cancelled";
-
-    main.appendChild(
-      position
-    );
-
-    main.appendChild(
-      shift
-    );
-
-    main.appendChild(
-      status
-    );
+    main.appendChild(position);
+    main.appendChild(shift);
 
     const actions =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
     actions.className =
       "registration-item-actions";
 
-    if (
-      isActive(entry)
-    ) {
-      const cancelButton =
-        document.createElement(
-          "button"
-        );
+    const cancelButton =
+      document.createElement("button");
 
-      cancelButton.type =
-        "button";
+    cancelButton.type = "button";
+    cancelButton.className =
+      "btn cancel-btn";
+    cancelButton.textContent =
+      "Cancel Shift";
 
-      cancelButton.className =
-        "btn cancel-btn";
-
-      cancelButton.textContent =
-        "Cancel Shift";
-
-      cancelButton.addEventListener(
-        "click",
-        () =>
-          cancelRegistration(
-            entry
-          )
-      );
-
-      actions.appendChild(
-        cancelButton
-      );
-    }
-
-    item.appendChild(
-      main
+    cancelButton.addEventListener(
+      "click",
+      () =>
+        cancelRegistration(entry)
     );
 
-    item.appendChild(
-      actions
+    actions.appendChild(
+      cancelButton
     );
+
+    item.appendChild(main);
+    item.appendChild(actions);
 
     registrationList.appendChild(
       item
@@ -809,9 +675,7 @@ async function loadAvailability() {
             const snap =
               await getDoc(ref);
 
-            if (
-              snap.exists()
-            ) {
+            if (snap.exists()) {
               const data =
                 snap.data();
 
@@ -835,37 +699,33 @@ async function loadAvailability() {
                 remaining:
                   Math.max(
                     0,
-                    capacity -
-                      count
+                    capacity - count
                   ),
               };
 
-            } else {
-              availabilityCache[
-                shift.id
-              ] = {
-                capacity:
-                  shift.capacity,
-                count: 0,
-                remaining:
-                  Math.max(
-                    0,
-                    shift.capacity
-                  ),
-              };
+              return;
             }
+
+            availabilityCache[
+              shift.id
+            ] = {
+              capacity:
+                shift.capacity,
+              count: 0,
+              remaining:
+                Math.max(
+                  0,
+                  shift.capacity
+                ),
+            };
           }
         )
     );
 
-  await Promise.allSettled(
-    jobs
-  );
+  await Promise.allSettled(jobs);
 }
 
-function getAvailability(
-  shift
-) {
+function getAvailability(shift) {
   return (
     availabilityCache[
       shift.id
@@ -889,28 +749,25 @@ function getAvailability(
 // ============================================================================
 
 async function renderAddShiftOptions() {
-  addShiftGrid.textContent =
-    "";
+  addShiftGrid.textContent = "";
 
-  selectedShift =
-    null;
+  selectedShift = null;
 
-  addShiftButton.disabled =
-    true;
+  addShiftButton.disabled = true;
 
-  addShiftError.textContent =
-    "";
+  addShiftError.textContent = "";
 
   await loadAvailability();
 
   const active =
-    getActiveIdentityEntries();
+    getActiveEntries(
+      selectedIdentityEntries
+    );
 
   for (
     const position of
       VOLUNTEER_POSITIONS
   ) {
-
     const positionCard =
       document.createElement(
         "section"
@@ -928,21 +785,15 @@ async function renderAddShiftOptions() {
       "manage-position-header";
 
     const title =
-      document.createElement(
-        "h3"
-      );
+      document.createElement("h3");
 
     title.textContent =
       position.name;
 
-    header.appendChild(
-      title
-    );
+    header.appendChild(title);
 
     const shifts =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
     shifts.className =
       "manage-shifts";
@@ -951,7 +802,6 @@ async function renderAddShiftOptions() {
       const shift of
         position.shifts
     ) {
-
       const availability =
         getAvailability(
           shift
@@ -976,21 +826,17 @@ async function renderAddShiftOptions() {
         );
 
       const isFull =
-        availability.remaining <=
-        0;
+        availability.remaining <= 0;
 
       const unavailable =
-        shift.capacity <=
-        0;
+        shift.capacity <= 0;
 
       const button =
         document.createElement(
           "button"
         );
 
-      button.type =
-        "button";
-
+      button.type = "button";
       button.className =
         "manage-shift";
 
@@ -1022,50 +868,34 @@ async function renderAddShiftOptions() {
       capacity.className =
         "manage-shift-capacity";
 
-      if (
-        alreadyRegistered
-      ) {
+      if (alreadyRegistered) {
         capacity.textContent =
           "Already registered";
-
-      } else if (
-        overlapsExisting
-      ) {
+      } else if (overlapsExisting) {
         capacity.textContent =
           "Overlaps another shift";
-
       } else if (
         unavailable ||
         isFull
       ) {
         capacity.textContent =
           "Full";
-
       } else {
         capacity.textContent =
           `${availability.remaining} spot${
-            availability.remaining ===
-            1
+            availability.remaining === 1
               ? ""
               : "s"
           } left`;
       }
 
-      button.appendChild(
-        time
-      );
+      button.appendChild(time);
+      button.appendChild(capacity);
 
-      button.appendChild(
-        capacity
-      );
-
-      if (
-        !button.disabled
-      ) {
+      if (!button.disabled) {
         button.addEventListener(
           "click",
           () => {
-
             document
               .querySelectorAll(
                 ".manage-shift.selected"
@@ -1092,18 +922,11 @@ async function renderAddShiftOptions() {
         );
       }
 
-      shifts.appendChild(
-        button
-      );
+      shifts.appendChild(button);
     }
 
-    positionCard.appendChild(
-      header
-    );
-
-    positionCard.appendChild(
-      shifts
-    );
+    positionCard.appendChild(header);
+    positionCard.appendChild(shifts);
 
     addShiftGrid.appendChild(
       positionCard
@@ -1116,20 +939,7 @@ async function addSelectedShift() {
     return;
   }
 
-  addShiftError.textContent =
-    "";
-
-  const email =
-    addEmailInput.value
-      .trim()
-      .toLowerCase();
-
-  if (!isEmail(email)) {
-    addShiftError.textContent =
-      "Enter a valid email address.";
-
-    return;
-  }
+  addShiftError.textContent = "";
 
   const identity =
     selectedIdentityEntries[0];
@@ -1141,24 +951,53 @@ async function addSelectedShift() {
     return;
   }
 
+  const email =
+    getStoredEmail(identity);
+
+  if (!email) {
+    addShiftError.textContent =
+      "We couldn't find the email address associated with this registration.";
+
+    return;
+  }
+
   const {
     position,
     shift,
-  } =
-    selectedShift;
+  } = selectedShift;
 
-  // Client-side overlap check.
+  const normalizedFirst =
+    identity.normalizedFirstName ||
+    normalizeFirstName(
+      identity.firstName
+    );
+
+  const normalizedLast =
+    normalizeLastName(
+      lastNameInput.value
+    );
+
+  const normalizedPhone =
+    normalizePhoneNumber(
+      phoneInput.value
+    );
+
+  // --------------------------------------------------------------------------
+  // Client-side overlap check
+  // --------------------------------------------------------------------------
+
   const overlaps =
-    getActiveIdentityEntries()
-      .some(
-        (entry) =>
-          hasTimeOverlap(
-            entry.shiftStartTime,
-            entry.shiftEndTime,
-            shift.startTime,
-            shift.endTime
-          )
-      );
+    getActiveEntries(
+      selectedIdentityEntries
+    ).some(
+      (entry) =>
+        hasTimeOverlap(
+          entry.shiftStartTime,
+          entry.shiftEndTime,
+          shift.startTime,
+          shift.endTime
+        )
+    );
 
   if (overlaps) {
     addShiftError.textContent =
@@ -1167,40 +1006,10 @@ async function addSelectedShift() {
     return;
   }
 
-  addShiftButton.disabled =
-    true;
-
-  addShiftButton.textContent =
-    "Adding…";
+  addShiftButton.disabled = true;
+  addShiftButton.textContent = "Adding…";
 
   try {
-
-    const normalizedFirst =
-      identity.normalizedFirstName ||
-      normalizeFirstName(
-        identity.firstName
-      );
-
-    const normalizedLast =
-      normalizeLastName(
-        lastNameInput.value
-      );
-
-    const normalizedPhone =
-      normalizePhoneNumber(
-        phoneInput.value
-      );
-
-    const emailGuardKey =
-      encodeURIComponent(
-        email
-      );
-
-    const emailHash =
-      await sha256Hex(
-        email
-      );
-
     const shiftRef =
       doc(
         db,
@@ -1230,41 +1039,20 @@ async function addSelectedShift() {
         `person_shift_${normalizedFirst}_${normalizedLast}_${normalizedPhone}_${shift.id}`
       );
 
-    const emailGuardRef =
-      doc(
-        db,
-        "registrationGuards",
-        `email_shift_${emailGuardKey}_${shift.id}`
-      );
-
     await runTransaction(
       db,
       async (tx) => {
-
         const [
           shiftSnap,
           personGuardSnap,
-          emailGuardSnap,
           lookupSnap,
-        ] =
-          await Promise.all([
-            tx.get(
-              shiftRef
-            ),
-            tx.get(
-              personGuardRef
-            ),
-            tx.get(
-              emailGuardRef
-            ),
-            tx.get(
-              lookupRef
-            ),
-          ]);
+        ] = await Promise.all([
+          tx.get(shiftRef),
+          tx.get(personGuardRef),
+          tx.get(lookupRef),
+        ]);
 
-        if (
-          !lookupSnap.exists()
-        ) {
+        if (!lookupSnap.exists()) {
           throw new Error(
             "IDENTITY_NOT_FOUND"
           );
@@ -1273,18 +1061,28 @@ async function addSelectedShift() {
         const lookupData =
           lookupSnap.data();
 
-        const lookupEntries =
+        const allEntries =
           Array.isArray(
             lookupData.entries
           )
             ? lookupData.entries
             : [];
 
+        // Only consider the selected volunteer's active registrations.
         const activeEntries =
-          lookupEntries.filter(
-            isActive
-          );
+          allEntries
+            .filter(isActive)
+            .filter(
+              (entry) =>
+                entry.normalizedFirstName ===
+                  normalizedFirst &&
+                entry.normalizedLastName ===
+                  normalizedLast &&
+                entry.normalizedPhone ===
+                  normalizedPhone
+            );
 
+        // Same volunteer + same shift.
         const alreadyRegistered =
           activeEntries.some(
             (entry) =>
@@ -1292,14 +1090,13 @@ async function addSelectedShift() {
               shift.id
           );
 
-        if (
-          alreadyRegistered
-        ) {
+        if (alreadyRegistered) {
           throw new Error(
             "DUPLICATE_SHIFT"
           );
         }
 
+        // Same volunteer + overlapping shift.
         const overlapping =
           activeEntries.some(
             (entry) =>
@@ -1311,14 +1108,13 @@ async function addSelectedShift() {
               )
           );
 
-        if (
-          overlapping
-        ) {
+        if (overlapping) {
           throw new Error(
             "SHIFT_OVERLAP"
           );
         }
 
+        // Strong duplicate guard.
         if (
           personGuardSnap.exists() &&
           personGuardSnap.data()?.status !==
@@ -1329,28 +1125,17 @@ async function addSelectedShift() {
           );
         }
 
-        if (
-          emailGuardSnap.exists() &&
-          emailGuardSnap.data()?.status !==
-            "cancelled"
-        ) {
-          throw new Error(
-            "DUPLICATE_SHIFT"
-          );
-        }
-
-        if (
-          shift.capacity <=
-          0
-        ) {
+        if (shift.capacity <= 0) {
           throw new Error(
             "SHIFT_FULL"
           );
         }
 
-        if (
-          shiftSnap.exists()
-        ) {
+        // --------------------------------------------------------------------
+        // Reserve capacity
+        // --------------------------------------------------------------------
+
+        if (shiftSnap.exists()) {
           const shiftData =
             shiftSnap.data();
 
@@ -1378,8 +1163,7 @@ async function addSelectedShift() {
             shiftRef,
             {
               count:
-                shiftData.count +
-                1,
+                shiftData.count + 1,
             }
           );
         } else {
@@ -1419,6 +1203,10 @@ async function addSelectedShift() {
           );
         }
 
+        // --------------------------------------------------------------------
+        // Create registration
+        // --------------------------------------------------------------------
+
         tx.set(
           registrationRef,
           {
@@ -1456,9 +1244,11 @@ async function addSelectedShift() {
             normalizedLastName:
               normalizedLast,
 
-            normalizedPhone,
+            normalizedPhone:
+              normalizedPhone,
 
-            emailGuardKey,
+            emailGuardKey:
+              encodeURIComponent(email),
 
             manageLookupId:
               lookupId,
@@ -1470,8 +1260,7 @@ async function addSelectedShift() {
                 : null,
 
             notes:
-              addNotesInput.value
-                .trim(),
+              addNotesInput.value.trim(),
 
             positionId:
               position.id,
@@ -1508,6 +1297,10 @@ async function addSelectedShift() {
           }
         );
 
+        // --------------------------------------------------------------------
+        // Person-specific duplicate guard
+        // --------------------------------------------------------------------
+
         tx.set(
           personGuardRef,
           {
@@ -1537,25 +1330,12 @@ async function addSelectedShift() {
           }
         );
 
-        tx.set(
-          emailGuardRef,
-          {
-            registrationId:
-              registrationRef.id,
-
-            type:
-              "email_shift",
-
-            status:
-              "active",
-
-            createdAt:
-              serverTimestamp(),
-          }
-        );
+        // --------------------------------------------------------------------
+        // Update public lookup
+        // --------------------------------------------------------------------
 
         const updatedEntries =
-          lookupEntries.filter(
+          allEntries.filter(
             (entry) =>
               entry &&
               entry.registrationId !==
@@ -1578,9 +1358,21 @@ async function addSelectedShift() {
           normalizedLastName:
             normalizedLast,
 
-          emailHash,
+          phone:
+            formatPhoneNumber(
+              phoneInput.value
+            ),
 
-          emailGuardKey,
+          normalizedPhone:
+            normalizedPhone,
+
+          email,
+
+          emailHash:
+            identity.emailHash || null,
+
+          emailGuardKey:
+            encodeURIComponent(email),
 
           is18OrOlder:
             identity.is18OrOlder,
@@ -1656,6 +1448,7 @@ async function addSelectedShift() {
       }
     );
 
+    // Update local state immediately.
     selectedIdentityEntries.push({
       registrationId:
         registrationRef.id,
@@ -1672,9 +1465,21 @@ async function addSelectedShift() {
       normalizedLastName:
         normalizedLast,
 
-      emailHash,
+      phone:
+        formatPhoneNumber(
+          phoneInput.value
+        ),
 
-      emailGuardKey,
+      normalizedPhone:
+        normalizedPhone,
+
+      email,
+
+      emailGuardKey:
+        encodeURIComponent(email),
+
+      emailHash:
+        identity.emailHash || null,
 
       is18OrOlder:
         identity.is18OrOlder,
@@ -1707,14 +1512,9 @@ async function addSelectedShift() {
         null,
     });
 
-    addEmailInput.value =
-      "";
+    addNotesInput.value = "";
 
-    addNotesInput.value =
-      "";
-
-    selectedShift =
-      null;
+    selectedShift = null;
 
     renderRegistrations();
 
@@ -1723,23 +1523,19 @@ async function addSelectedShift() {
     window.alert(
       "Your additional shift has been added."
     );
-
   } catch (error) {
-
     if (
       error?.message ===
       "DUPLICATE_SHIFT"
     ) {
       addShiftError.textContent =
         "You're already registered for that shift.";
-
     } else if (
       error?.message ===
       "SHIFT_OVERLAP"
     ) {
       addShiftError.textContent =
         "That shift overlaps one of your existing shifts.";
-
     } else if (
       error?.message ===
       "SHIFT_FULL"
@@ -1748,21 +1544,28 @@ async function addSelectedShift() {
         "That shift just filled up. Please choose another shift.";
 
       await renderAddShiftOptions();
-
     } else if (
       error?.message ===
       "SHIFT_UNAVAILABLE"
     ) {
       addShiftError.textContent =
         "That shift is currently unavailable.";
-
+    } else if (
+      error?.message ===
+      "IDENTITY_NOT_FOUND"
+    ) {
+      addShiftError.textContent =
+        "We couldn't verify your registration. Please start a new search.";
     } else {
+      console.error(
+        "[diwali-manage] Add shift failed",
+        error
+      );
+
       addShiftError.textContent =
         "We couldn't add that shift. Please try again.";
     }
-
   } finally {
-
     addShiftButton.textContent =
       "Add Selected Shift";
 
@@ -1775,9 +1578,7 @@ async function addSelectedShift() {
 // CANCELLATION
 // ============================================================================
 
-async function cancelRegistration(
-  entry
-) {
+async function cancelRegistration(entry) {
   const confirmed =
     window.confirm(
       `Cancel ${entry.positionName} — ${entry.shiftLabel}?`
@@ -1788,7 +1589,6 @@ async function cancelRegistration(
   }
 
   try {
-
     const lookupRef =
       doc(
         db,
@@ -1819,52 +1619,20 @@ async function cancelRegistration(
         )}_${entry.shiftId}`
       );
 
-    if (
-      typeof entry.emailGuardKey !==
-      "string"
-    ) {
-      throw new Error(
-        "MISSING_EMAIL_GUARD_KEY"
-      );
-    }
-
-    const emailGuardRef =
-      doc(
-        db,
-        "registrationGuards",
-        `email_shift_${entry.emailGuardKey}_${entry.shiftId}`
-      );
-
     await runTransaction(
       db,
       async (tx) => {
-
-        // We intentionally do NOT read the private registration document.
-        // The lookup record is the public management credential.
         const [
           lookupSnap,
           shiftSnap,
           personGuardSnap,
-          emailGuardSnap,
-        ] =
-          await Promise.all([
-            tx.get(
-              lookupRef
-            ),
-            tx.get(
-              shiftRef
-            ),
-            tx.get(
-              personGuardRef
-            ),
-            tx.get(
-              emailGuardRef
-            ),
-          ]);
+        ] = await Promise.all([
+          tx.get(lookupRef),
+          tx.get(shiftRef),
+          tx.get(personGuardRef),
+        ]);
 
-        if (
-          !lookupSnap.exists()
-        ) {
+        if (!lookupSnap.exists()) {
           throw new Error(
             "REGISTRATION_NOT_FOUND"
           );
@@ -1886,7 +1654,9 @@ async function cancelRegistration(
           Array.isArray(
             lookupData.registrationIds
           )
-            ? lookupData.registrationIds
+            ? [
+                ...lookupData.registrationIds,
+              ]
             : [];
 
         if (
@@ -1908,23 +1678,29 @@ async function cancelRegistration(
               ]
             : [];
 
-        const index =
+        const registrationIndex =
           entries.findIndex(
             (candidate) =>
+              candidate &&
               candidate.registrationId ===
-              entry.registrationId
+                entry.registrationId
           );
 
         if (
-          index === -1
+          registrationIndex === -1
         ) {
           throw new Error(
             "REGISTRATION_NOT_FOUND"
           );
         }
 
+        const storedEntry =
+          entries[
+            registrationIndex
+          ];
+
         if (
-          entries[index].status !==
+          storedEntry.status !==
           "registered"
         ) {
           throw new Error(
@@ -1932,9 +1708,7 @@ async function cancelRegistration(
           );
         }
 
-        if (
-          !shiftSnap.exists()
-        ) {
+        if (!shiftSnap.exists()) {
           throw new Error(
             "SHIFT_UNAVAILABLE"
           );
@@ -1952,79 +1726,80 @@ async function cancelRegistration(
           );
         }
 
-        // Update the public lookup representation.
-        entries[index] = {
-          ...entries[index],
+        // --------------------------------------------------------------------
+        // Permanently remove the public lookup entry.
+        // --------------------------------------------------------------------
 
-          status:
-            "cancelled",
+        const updatedEntries =
+          entries.filter(
+            (candidate) =>
+              candidate &&
+              candidate.registrationId !==
+                entry.registrationId
+          );
 
-          cancelledAt:
-            new Date().toISOString(),
-        };
+        const updatedRegistrationIds =
+          registrationIds.filter(
+            (registrationId) =>
+              registrationId !==
+              entry.registrationId
+          );
 
-        // Cancel actual private registration.
-        tx.update(
-          registrationRef,
-          {
-            status:
-              "cancelled",
+        // --------------------------------------------------------------------
+        // Permanently delete the private registration.
+        // --------------------------------------------------------------------
 
-            cancelledAt:
-              serverTimestamp(),
-          }
+        tx.delete(
+          registrationRef
         );
 
-        // Release one capacity slot.
+        // --------------------------------------------------------------------
+        // Release capacity.
+        // --------------------------------------------------------------------
+
         tx.update(
           shiftRef,
           {
             count:
               Math.max(
                 0,
-                shiftData.count -
-                  1
+                shiftData.count - 1
               ),
           }
         );
 
-        // Disable duplicate guards.
+        // --------------------------------------------------------------------
+        // Remove the person/shift duplicate guard.
+        // --------------------------------------------------------------------
+
         if (
           personGuardSnap.exists()
         ) {
-          tx.update(
-            personGuardRef,
-            {
-              status:
-                "cancelled",
-
-              cancelledAt:
-                serverTimestamp(),
-            }
+          tx.delete(
+            personGuardRef
           );
         }
 
-        if (
-          emailGuardSnap.exists()
-        ) {
-          tx.update(
-            emailGuardRef,
-            {
-              status:
-                "cancelled",
-
-              cancelledAt:
-                serverTimestamp(),
-            }
-          );
-        }
+        // --------------------------------------------------------------------
+        // Update lookup.
+        // --------------------------------------------------------------------
 
         tx.set(
           lookupRef,
           {
-            entries,
+            eventId:
+              CONFIG.eventId,
 
-            registrationIds,
+            normalizedLastName:
+              normalizeLastName(
+                lastNameInput.value
+              ),
+
+            entries:
+              updatedEntries,
+
+            registrationIds:
+              updatedRegistrationIds,
 
             updatedAt:
               serverTimestamp(),
@@ -2036,26 +1811,27 @@ async function cancelRegistration(
       }
     );
 
-    const localEntry =
-      selectedIdentityEntries.find(
+    // Remove from local UI immediately.
+    selectedIdentityEntries =
+      selectedIdentityEntries.filter(
         (candidate) =>
-          candidate.registrationId ===
+          candidate.registrationId !==
           entry.registrationId
       );
 
-    if (localEntry) {
-      localEntry.status =
-        "cancelled";
-
-      localEntry.cancelledAt =
-        new Date().toISOString();
-    }
-
+    // Refresh the displayed registrations.
     renderRegistrations();
 
     await renderAddShiftOptions();
 
+    window.alert(
+      "That shift has been cancelled."
+    );
   } catch (error) {
+    console.error(
+      "[diwali-manage] Cancellation failed",
+      error
+    );
 
     if (
       error?.message ===
@@ -2079,6 +1855,17 @@ async function cancelRegistration(
       return;
     }
 
+    if (
+      error?.message ===
+      "SHIFT_UNAVAILABLE"
+    ) {
+      window.alert(
+        "The shift information could not be updated. Please try again."
+      );
+
+      return;
+    }
+
     window.alert(
       "We couldn't cancel that shift. Please try again."
     );
@@ -2090,20 +1877,15 @@ async function cancelRegistration(
 // ============================================================================
 
 function resetManagePage() {
-  lookupId =
-    null;
+  lookupId = null;
 
-  lookupEntries =
-    [];
+  lookupEntries = [];
 
-  selectedIdentityEntries =
-    [];
+  selectedIdentityEntries = [];
 
-  selectedShift =
-    null;
+  selectedShift = null;
 
-  lookupStage =
-    "initial";
+  lookupStage = "initial";
 
   lookupForm.reset();
 
@@ -2111,24 +1893,21 @@ function resetManagePage() {
     "hidden"
   );
 
-  emailStep.classList.add(
-    "hidden"
-  );
-
   resultsSection.classList.add(
     "hidden"
   );
 
-  addShiftGrid.textContent =
-    "";
+  addShiftGrid.textContent = "";
 
-  addShiftError.textContent =
-    "";
+  addShiftError.textContent = "";
+
+  if (resultsContact) {
+    resultsContact.textContent = "";
+  }
 
   clearErrors();
 
-  lookupError.textContent =
-    "";
+  lookupError.textContent = "";
 
   lookupButton.textContent =
     "Find My Registrations";
@@ -2143,27 +1922,35 @@ function resetManagePage() {
 // WIRING
 // ============================================================================
 
-phoneInput.addEventListener(
-  "input",
-  () => {
-    phoneInput.value =
-      formatPhoneNumber(
-        phoneInput.value
-      );
-  }
-);
+if (phoneInput) {
+  phoneInput.addEventListener(
+    "input",
+    () => {
+      phoneInput.value =
+        formatPhoneNumber(
+          phoneInput.value
+        );
+    }
+  );
+}
 
-lookupForm.addEventListener(
-  "submit",
-  submitLookup
-);
+if (lookupForm) {
+  lookupForm.addEventListener(
+    "submit",
+    submitLookup
+  );
+}
 
-addShiftButton.addEventListener(
-  "click",
-  addSelectedShift
-);
+if (addShiftButton) {
+  addShiftButton.addEventListener(
+    "click",
+    addSelectedShift
+  );
+}
 
-newSearchButton.addEventListener(
-  "click",
-  resetManagePage
-);
+if (newSearchButton) {
+  newSearchButton.addEventListener(
+    "click",
+    resetManagePage
+  );
+}
