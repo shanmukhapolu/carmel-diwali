@@ -41,9 +41,18 @@ service cloud.firestore {
       allow create: if request.auth == null;
 
       // Administrators can modify registrations normally.
+      allow update: if isAdmin();
+
+      // Public Manage cancellation physically deletes the registration.
       //
-      // Public users may ONLY cancel an existing active registration.
-      allow update: if isAdmin()
+      // The registration must:
+      // - belong to this event
+      // - still be active
+      // - contain a valid management lookup ID
+      // - still be referenced by that lookup document
+      //
+      // This is intentionally narrower than admin deletion.
+      allow delete: if isAdmin()
         || (
           request.auth == null
 
@@ -53,27 +62,18 @@ service cloud.firestore {
           && resource.data.status ==
              "registered"
 
-          && request.resource.data.status ==
-             "cancelled"
+          && resource.data.manageLookupId is string
 
-          && request.resource.data.manageLookupId is string
+          && get(
+               /databases/$(database)/documents/registrationLookups/$(resource.data.manageLookupId)
+             ).data.eventId ==
+             "carmel-diwali-2026"
 
-          && request.resource.data.manageLookupId ==
-             resource.data.manageLookupId
-
-          && request.resource.data.diff(
-               resource.data
-             ).affectedKeys()
-             .hasOnly([
-               "status",
-               "cancelledAt"
-             ])
-
-          && request.resource.data.cancelledAt
-             is timestamp
+          && get(
+               /databases/$(database)/documents/registrationLookups/$(resource.data.manageLookupId)
+             ).data.registrationIds
+             .hasAny([registrationId])
         );
-
-      allow delete: if isAdmin();
     }
 
 
@@ -87,7 +87,7 @@ service cloud.firestore {
     // lookupId:
     //   SHA-256(eventId + "|" + normalizedLastName + "|" + normalizedPhone)
     //
-    // These records contain only management information.
+    // These records contain the information needed by the public Manage flow.
     //
     // IMPORTANT:
     // Last name + phone is the management credential requested for this app.
@@ -156,33 +156,44 @@ service cloud.firestore {
       allow create: if request.auth == null
         || isAdmin();
 
-      // Public users can only change an active guard to cancelled.
-      allow update: if isAdmin()
+      // Public Manage cancellation physically deletes the guard.
+      //
+      // The guard must:
+      // - belong to this event
+      // - still be active
+      // - reference the registration being managed
+      //
+      // The registration itself is additionally verified through its lookup.
+      allow delete: if isAdmin()
         || (
           request.auth == null
+
+          && resource.data.eventId ==
+             "carmel-diwali-2026"
 
           && resource.data.status ==
              "active"
 
-          && request.resource.data.status ==
-             "cancelled"
+          && resource.data.registrationId is string
 
-          && request.resource.data.registrationId ==
-             resource.data.registrationId
+          && get(
+               /databases/$(database)/documents/registrations/$(resource.data.registrationId)
+             ).data.eventId ==
+             "carmel-diwali-2026"
 
-          && request.resource.data.diff(
-               resource.data
-             ).affectedKeys()
-             .hasOnly([
-               "status",
-               "cancelledAt"
-             ])
+          && get(
+               /databases/$(database)/documents/registrations/$(resource.data.registrationId)
+             ).data.status ==
+             "registered"
 
-          && request.resource.data.cancelledAt
-             is timestamp
+          && get(
+               /databases/$(database)/documents/registrations/$(resource.data.registrationId)
+             ).data.manageLookupId is string
         );
 
-      allow delete: if isAdmin();
+      // Retained for compatibility with any older admin/legacy flow.
+      // The current Manage page uses physical deletion instead.
+      allow update: if isAdmin();
     }
 
 
