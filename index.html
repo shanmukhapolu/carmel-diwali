@@ -24,6 +24,17 @@
 
 <body class="bg-page">
 
+  <a
+  class="manage-registration-link"
+  href="/manage/"
+  aria-label="Already registered? Manage your registrations"
+>
+  <span class="manage-registration-question">Already registered?</span>
+  <span class="manage-registration-action">
+    Manage registrations <span aria-hidden="true">→</span>
+  </span>
+</a>
+
   <div id="status-live" class="sr-only" role="status" aria-live="polite"></div>
 
   <main class="page-shell">
@@ -112,13 +123,13 @@
 
       <p class="about-text">
         The Carmel Diwali Festival of Lights brings the community together
-        through Indian culture, music, dance, food, art, and celebration.
+        through Indian culture, music, dance, food, art, and celebrations.
         Volunteers help make the event possible by welcoming guests,
         supporting activities, assisting vendors, distributing items, and
         helping with setup and cleanup.
       </p>
 
-      <h3 class="perks-title">What volunteers can help with</h3>
+      <h3 class="perks-title">Why Volunteer at Carmel Diwali?</h3>
 
       <ul class="perks">
         <li class="perk">
@@ -324,6 +335,38 @@
           <p class="error" id="err-phone" aria-live="polite"></p>
         </div>
 
+        <div class="field">
+          <span class="field-label" id="label-is18OrOlder">
+            Are you 18 years of age or older? <span class="req" aria-hidden="true">*</span>
+          </span>
+
+          <div class="radio-row" role="radiogroup" aria-labelledby="label-is18OrOlder">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="is18OrOlder"
+                id="age-yes"
+                value="yes"
+                required
+              />
+              <span>Yes (18 or older)</span>
+            </label>
+
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="is18OrOlder"
+                id="age-no"
+                value="no"
+                required
+              />
+              <span>No (Under 18)</span>
+            </label>
+          </div>
+
+          <p class="error" id="err-is18OrOlder" aria-live="polite"></p>
+        </div>
+
       </fieldset>
 
       <!-- ============================= VOLUNTEER POSITION ============================= -->
@@ -484,6 +527,11 @@
         <div class="summary-row">
           <dt>Location</dt>
           <dd id="sum-location"></dd>
+        </div>
+
+        <div class="summary-row">
+          <dt>18 or Older</dt>
+          <dd id="sum-age"></dd>
         </div>
 
         <div class="summary-row">

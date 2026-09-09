@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
+  <title>Manage Registrations | Carmel Diwali Festival</title>
+
+  <meta
+    name="description"
+    content="Manage your volunteer registrations for the Carmel Diwali Festival of Lights."
+  />
+
+  <meta
+    name="robots"
+    content="noindex, nofollow"
+  />
+
+  <link rel="icon" href="data:," />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link
+    rel="stylesheet"
+    href="../style.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="manage.css"
+  />
+</head>
+
+<body class="bg-page">
+
+  <main class="manage-shell">
+
+    <!-- ================================================================
+         HERO
+         ================================================================ -->
+
+    <header class="manage-hero">
+
+      <a
+        class="back-link"
+        href="/"
+      >
+        ← Volunteer Registration
+      </a>
+
+      <p class="eyebrow">
+        Carmel Diwali Festival of Lights
+      </p>
+
+      <h1>
+        Manage Registrations
+      </h1>
+
+      <p class="manage-subtitle">
+        View your volunteer shifts, cancel an existing shift, or add
+        another available shift.
+      </p>
+
+    </header>
+
+
+    <!-- ================================================================
+         LOOKUP CARD
+         ================================================================ -->
+
+    <section
+      id="lookup-card"
+      class="manage-card"
+    >
+
+      <div class="section-heading">
+
+        <p class="section-eyebrow">
+          Find your registration
+        </p>
+
+        <h2>
+          Enter your information
+        </h2>
+
+        <p>
+          Use the last name and phone number you entered when registering.
+        </p>
+
+      </div>
+
+
+      <form
+        id="lookup-form"
+        novalidate
+      >
+
+        <div class="field-grid">
+
+          <div class="field">
+
+            <label for="lookup-last-name">
+              Last Name
+            </label>
+
+            <input
+              id="lookup-last-name"
+              type="text"
+              autocomplete="family-name"
+              maxlength="40"
+              placeholder="Last name"
+              required
+            />
+
+            <p
+              class="error"
+              id="err-lookup-last-name"
+              aria-live="polite"
+            ></p>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="lookup-phone">
+              Phone Number
+            </label>
+
+            <input
+              id="lookup-phone"
+              type="tel"
+              autocomplete="tel"
+              inputmode="tel"
+              maxlength="20"
+              placeholder="(317) 555-0100"
+              required
+            />
+
+            <p
+              class="error"
+              id="err-lookup-phone"
+              aria-live="polite"
+            ></p>
+
+          </div>
+
+        </div>
+
+
+        <!-- ============================================================
+             FIRST NAME DISAMBIGUATION
+             ============================================================ -->
+
+        <div
+          id="identity-step"
+          class="identity-step hidden"
+        >
+
+          <h3>
+            We found multiple volunteers
+          </h3>
+
+          <p>
+            More than one volunteer uses that last name and phone number.
+            Enter the first name used when registering.
+          </p>
+
+          <div class="field">
+
+            <label for="lookup-first-name">
+              First Name
+            </label>
+
+            <input
+              id="lookup-first-name"
+              type="text"
+              autocomplete="given-name"
+              maxlength="40"
+              placeholder="First name"
+            />
+
+            <p
+              class="error"
+              id="err-lookup-first-name"
+              aria-live="polite"
+            ></p>
+
+          </div>
+
+        </div>
+
+
+        <p
+          id="lookup-error"
+          class="lookup-error error"
+          aria-live="polite"
+        ></p>
+
+
+        <button
+          id="lookup-button"
+          class="btn btn-primary"
+          type="submit"
+        >
+          Find My Registrations
+        </button>
+
+      </form>
+
+    </section>
+
+
+    <!-- ================================================================
+         RESULTS
+         ================================================================ -->
+
+    <section
+      id="results-section"
+      class="manage-card hidden"
+    >
+
+      <div class="results-header">
+
+        <div>
+
+          <p class="section-eyebrow">
+            Your Volunteer Shifts
+          </p>
+
+          <h2 id="results-name"></h2>
+
+          <p
+            id="results-contact"
+            class="results-contact"
+          ></p>
+
+        </div>
+
+        <button
+          id="new-search"
+          type="button"
+          class="btn btn-secondary"
+        >
+          New Search
+        </button>
+
+      </div>
+
+
+      <div
+        id="registration-list"
+        class="registration-list"
+      ></div>
+
+
+      <!-- ============================================================
+           ADD ANOTHER SHIFT
+           ============================================================ -->
+
+      <section class="add-shift-section">
+
+        <div class="section-heading">
+
+          <p class="section-eyebrow">
+            Need another shift?
+          </p>
+
+          <h2>
+            Add Another Shift
+          </h2>
+
+          <p>
+            Choose another available position and shift.
+          </p>
+
+        </div>
+
+
+        <div
+          id="add-shift-grid"
+          class="slot-grid manage-slot-grid"
+        ></div>
+
+
+        <div class="add-shift-fields">
+
+          <div class="field">
+
+            <label for="add-notes">
+              Additional Information
+            </label>
+
+            <textarea
+              id="add-notes"
+              rows="4"
+              maxlength="500"
+              placeholder="Optional"
+            ></textarea>
+
+          </div>
+
+        </div>
+
+
+        <p
+          id="add-shift-error"
+          class="error"
+          aria-live="polite"
+        ></p>
+
+
+        <button
+          id="add-shift-button"
+          type="button"
+          class="btn btn-primary"
+          disabled
+        >
+          Add Selected Shift
+        </button>
+
+      </section>
+
+    </section>
+
+
+    <!-- ================================================================
+         FOOTER
+         ================================================================ -->
+
+    <footer class="manage-footer">
+
+      <a href="/">
+        Back to Volunteer Registration
+      </a>
+
+    </footer>
+
+  </main>
+
+
+  <script
+    type="module"
+    src="manage.js"
+  ></script>
+
+</body>
+</html>

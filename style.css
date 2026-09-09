@@ -268,6 +268,86 @@ body {
   color: #f2a346;
 }
 
+/* ============================================================
+   TOP-RIGHT MANAGE REGISTRATIONS BUTTON
+   ============================================================ */
+
+.manage-registration-link {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 9999;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 15px;
+
+  border: 1px solid rgba(83, 37, 100, 0.18);
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.97);
+  color: #532564;
+
+  text-decoration: none;
+
+  box-shadow:
+    0 6px 18px rgba(35, 15, 45, 0.14),
+    0 2px 5px rgba(35, 15, 45, 0.08);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.manage-registration-question {
+  color: #5f5662;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.manage-registration-action {
+  color: #532564;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.manage-registration-link:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 9px 24px rgba(35, 15, 45, 0.18),
+    0 3px 7px rgba(35, 15, 45, 0.10);
+}
+
+.manage-registration-link:focus-visible {
+  outline: 3px solid rgba(242, 163, 70, 0.55);
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .manage-registration-link {
+    top: 10px;
+    right: 12px;
+    padding: 9px 12px;
+  }
+
+  .manage-registration-question {
+    display: none;
+  }
+
+  .manage-registration-action {
+    font-size: 0.76rem;
+  }
+}
 
 /* ==========================================================================
    HERO FACTS
@@ -988,6 +1068,32 @@ input[aria-invalid="true"] {
   font-size: 13px;
   font-weight: 500;
 }
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #241927;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-purple);
+  margin: 0;
+  cursor: pointer;
+}
+
 
 
 /* ==========================================================================

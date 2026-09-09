@@ -5,7 +5,9 @@ import {
   formatShiftTime,
   getPositionById,
   getShiftById,
-  findShift
+  findShift,
+  normalizeLastName,
+  normalizePhoneNumber
 } from "../config.js";
 
 import { db } from "../firebase-init.js";
@@ -23,7 +25,8 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  setDoc
+  setDoc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const REGISTRATIONS_COLLECTION = "registrations";
@@ -61,31 +64,10 @@ let tableState = {
 ========================================================= */
 
 requireAdmin({
-  allowCheckin:
-    location.pathname.includes("checkin") ||
-    location.pathname.includes("checkin-activity"),
-
-  adminOnly:
-    !(
-      location.pathname.includes("checkin") ||
-      location.pathname.includes("checkin-activity")
-    ),
-
   onReady: (user, profile) => {
     initShell(user, profile);
 
-    if (
-      location.pathname.includes("checkin/activity") ||
-      location.pathname.includes("checkin-activity")
-    ) {
-      initActivityPage(user, profile);
-      return;
-    }
-
-    if (
-      location.pathname.includes("checkin") ||
-      location.pathname.includes("checkin-activity")
-    ) {
+    if (location.pathname.includes("checkin")) {
       initCheckinPage(user, profile);
       return;
     }
@@ -99,134 +81,10 @@ requireAdmin({
       initStatisticsPage();
       return;
     }
-
-    if (location.pathname.includes("settings")) {
-      initSettingsPage();
-    }
   },
 
   onDenied: (message) => showError(message),
 });
-
-
-/* =========================================================
-   SETTINGS
-========================================================= */
-
-async function initSettingsPage() {
-  await loadShiftCapacities();
-
-  const ref = doc(
-    db,
-    "eventSettings",
-    CONFIG.eventId
-  );
-
-  try {
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
-
-    setInputValue(
-      "setting-event-name",
-      data.eventName || CONFIG.eventName
-    );
-
-    setInputValue(
-      "setting-date",
-      data.eventDate || CONFIG.eventDate
-    );
-
-    setInputValue(
-      "setting-location",
-      data.location || CONFIG.location
-    );
-
-    setInputValue(
-      "setting-timezone",
-      data.timeZoneLabel || EVENT_TIME_ZONE_LABEL
-    );
-
-  } catch {
-    setInputValue(
-      "setting-event-name",
-      CONFIG.eventName
-    );
-
-    setInputValue(
-      "setting-date",
-      CONFIG.eventDate
-    );
-
-    setInputValue(
-      "setting-location",
-      CONFIG.location
-    );
-
-    setInputValue(
-      "setting-timezone",
-      EVENT_TIME_ZONE_LABEL
-    );
-  }
-
-  renderShiftCapacityEditor();
-
-  $("save-event-settings")?.addEventListener(
-    "click",
-    async () => {
-      try {
-        await setDoc(
-          ref,
-          {
-            eventId: CONFIG.eventId,
-
-            eventName:
-              $("setting-event-name")?.value ||
-              CONFIG.eventName,
-
-            eventDate:
-              $("setting-date")?.value ||
-              CONFIG.eventDate,
-
-            location:
-              $("setting-location")?.value ||
-              CONFIG.location,
-
-            timeZone: EVENT_TIME_ZONE,
-
-            timeZoneLabel:
-              $("setting-timezone")?.value ||
-              EVENT_TIME_ZONE_LABEL,
-
-            updatedAt: serverTimestamp()
-          },
-          { merge: true }
-        );
-
-        setText(
-          "settings-message",
-          "Event settings saved."
-        );
-      } catch (error) {
-        console.error(
-          "[Admin Dashboard] settings save failed:",
-          error
-        );
-
-        setText(
-          "settings-message",
-          "Could not save event settings."
-        );
-      }
-    }
-  );
-}
-
-function setInputValue(id, value) {
-  const element = $(id);
-  if (element) {
-    element.value = value || "";
-  }
-}
 
 
 /* =========================================================
@@ -238,9 +96,7 @@ function initShell(user, profile) {
 
   setText(
     "admin-email",
-    profile.email ||
-      user.email ||
-      "Admin"
+    adminDisplayName(profile, user)
   );
 
   setText(
@@ -270,44 +126,30 @@ function renderNavigation(profile) {
     const adminLinks = [
       ["Dashboard", "/admin/"],
       ["Volunteers", "/admin/registrations.html"],
-      ["Check-In", "/admin/checkin/"],
-      ["Statistics", "/admin/statistics.html"],
-      ["Settings", "/admin/settings.html"]
+      ["Check-In", "/admin/checkin.html"],
+      ["Statistics", "/admin/statistics.html"]
     ];
-
-    const checkinLinks = [
-      ["Check-In", "/admin/checkin/"],
-      ["Recent Activity", "/admin/checkin/activity/"]
-    ];
-
-    const links = isEnabledAdmin(profile)
-      ? adminLinks
-      : checkinLinks;
 
     let current =
       location.pathname.split("/").pop() ||
       "index.html";
 
     if (
-      location.pathname.includes(
-        "checkin/activity"
-      )
-    ) {
-      current = "checkin-activity.html";
-    }
-
-    if (
-      location.pathname.endsWith(
-        "/admin/checkin/"
-      ) ||
-      location.pathname.endsWith(
-        "/admin/checkin"
-      )
+      location.pathname.endsWith("/admin/checkin/") ||
+      location.pathname.endsWith("/admin/checkin") ||
+      location.pathname.includes("checkin")
     ) {
       current = "checkin.html";
     }
 
-    links.forEach(([label, href]) => {
+    if (
+      location.pathname.endsWith("/admin/") ||
+      location.pathname.endsWith("/admin")
+    ) {
+      current = "index.html";
+    }
+
+    adminLinks.forEach(([label, href]) => {
       const a = document.createElement("a");
 
       a.href = href;
@@ -315,19 +157,8 @@ function renderNavigation(profile) {
 
       if (
         href.endsWith(current) ||
-        (
-          href === "/admin/" &&
-          current === "index.html"
-        ) ||
-        (
-          href ===
-            "/admin/checkin/activity/" &&
-          current === "checkin-activity.html"
-        ) ||
-        (
-          href === "/admin/checkin/" &&
-          current === "checkin.html"
-        )
+        (href === "/admin/" && current === "index.html") ||
+        (href === "/admin/checkin.html" && current === "checkin.html")
       ) {
         a.className = "active";
       }
@@ -1228,7 +1059,7 @@ function renderTable(records) {
         "td"
       );
 
-    cell.colSpan = 12;
+    cell.colSpan = 13;
 
     cell.textContent =
       "No volunteers to display.";
@@ -1257,6 +1088,12 @@ function renderTable(records) {
         record.firstName,
 
         record.lastName,
+
+        record.is18OrOlder === true
+          ? "Yes (18+)"
+          : record.is18OrOlder === false
+          ? "No (<18)"
+          : "—",
 
         record.email,
 
@@ -1312,6 +1149,14 @@ function renderTable(records) {
         "table-actions";
 
       actions.append(
+        smallButton(
+          "Edit",
+          () =>
+            showEditModal(
+              record
+            )
+        ),
+
         smallButton(
           "Export",
           () =>
@@ -1489,6 +1334,13 @@ function exportRows(records) {
 
       lastName:
         r.lastName,
+
+      is18OrOlder:
+        r.is18OrOlder === true
+          ? "Yes (18+)"
+          : r.is18OrOlder === false
+          ? "No (<18)"
+          : "",
 
       email:
         r.email,
@@ -1821,6 +1673,201 @@ function openPrintableExport(
 
 
 /* =========================================================
+   EDIT
+========================================================= */
+
+function showEditModal(record) {
+  const root = $("modal-root");
+  if (!root) return;
+
+  root.textContent = "";
+
+  const modal = modalShell(
+    `Edit registration for ${
+      record.firstName || "this"
+    } ${record.lastName || "volunteer"}`
+  );
+
+  const form = document.createElement("form");
+  form.className = "settings-grid";
+  form.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+
+  function fieldWrap(labelHtml, input) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = labelHtml;
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  const firstNameInput = document.createElement("input");
+  firstNameInput.type = "text";
+  firstNameInput.value = record.firstName || "";
+  firstNameInput.placeholder = "First name";
+  firstNameInput.required = true;
+
+  const lastNameInput = document.createElement("input");
+  lastNameInput.type = "text";
+  lastNameInput.value = record.lastName || "";
+  lastNameInput.placeholder = "Last name";
+  lastNameInput.required = true;
+
+  const emailInput = document.createElement("input");
+  emailInput.type = "email";
+  emailInput.value = record.email || "";
+  emailInput.placeholder = "volunteer@example.com";
+  emailInput.required = true;
+
+  const phoneInput = document.createElement("input");
+  phoneInput.type = "tel";
+  phoneInput.value = record.phone || "";
+  phoneInput.placeholder = "(317) 555-0100";
+  phoneInput.required = true;
+
+  const is18Row = document.createElement("div");
+  is18Row.style.display = "flex";
+  is18Row.style.gap = "16px";
+  is18Row.style.marginTop = "8px";
+  is18Row.style.alignItems = "center";
+
+  const yesRadio = document.createElement("input");
+  yesRadio.type = "radio";
+  yesRadio.name = "edit-is18OrOlder";
+  yesRadio.value = "yes";
+  yesRadio.required = true;
+  if (record.is18OrOlder === true) yesRadio.checked = true;
+  const yesLabel = document.createElement("label");
+  yesLabel.style.display = "inline-flex";
+  yesLabel.style.alignItems = "center";
+  yesLabel.style.gap = "6px";
+  yesLabel.style.cursor = "pointer";
+  yesLabel.style.fontWeight = "500";
+  yesLabel.appendChild(yesRadio);
+  const yesSpan = document.createElement("span");
+  yesSpan.textContent = "Yes (18+)";
+  yesLabel.appendChild(yesSpan);
+
+  const noRadio = document.createElement("input");
+  noRadio.type = "radio";
+  noRadio.name = "edit-is18OrOlder";
+  noRadio.value = "no";
+  noRadio.required = true;
+  if (record.is18OrOlder === false) noRadio.checked = true;
+  const noLabel = document.createElement("label");
+  noLabel.style.display = "inline-flex";
+  noLabel.style.alignItems = "center";
+  noLabel.style.gap = "6px";
+  noLabel.style.cursor = "pointer";
+  noLabel.style.fontWeight = "500";
+  noLabel.appendChild(noRadio);
+  const noSpan = document.createElement("span");
+  noSpan.textContent = "No (<18)";
+  noLabel.appendChild(noSpan);
+
+  is18Row.append(yesLabel, noLabel);
+
+  const notesInput = document.createElement("input");
+  notesInput.type = "text";
+  notesInput.value = record.notes || "";
+  notesInput.placeholder = "Special skills, requests, or organizer notes";
+
+  const error = document.createElement("p");
+  error.className = "error";
+
+  const confirmBtn = smallButton(
+    "Save Changes",
+    async () => {
+      const newFirstName = firstNameInput.value.trim();
+      const newLastName = lastNameInput.value.trim();
+      const newEmail = emailInput.value.trim();
+      const newPhone = phoneInput.value.trim();
+      const newNotes = notesInput.value.trim();
+      const is18Raw = form.querySelector('input[name="edit-is18OrOlder"]:checked')?.value;
+      const newIs18OrOlder = is18Raw === "yes" ? true : is18Raw === "no" ? false : null;
+
+      if (!newFirstName || !newLastName || !newEmail || !newPhone || newIs18OrOlder === null) {
+        error.textContent = "All fields are required. Please complete the form.";
+        return;
+      }
+
+      try {
+        await runTransaction(db, async (tx) => {
+          const regRef = doc(db, REGISTRATIONS_COLLECTION, record.id);
+          tx.update(regRef, {
+            firstName: newFirstName,
+            lastName: newLastName,
+            email: newEmail,
+            phone: newPhone,
+            is18OrOlder: newIs18OrOlder,
+            notes: newNotes,
+          });
+
+          if (record.email && newEmail.toLowerCase().trim() !== record.email.toLowerCase().trim()) {
+            const oldKey = `email_${encodeURIComponent(String(record.email).toLowerCase().trim())}`;
+            const newKey = `email_${encodeURIComponent(String(newEmail).toLowerCase().trim())}`;
+            tx.delete(doc(db, "registrationGuards", oldKey));
+            tx.set(doc(db, "registrationGuards", newKey), {
+              registrationId: record.id,
+              createdAt: serverTimestamp(),
+            });
+          }
+        });
+
+        const idx = registrations.findIndex((r) => r.id === record.id);
+        if (idx >= 0) {
+          registrations[idx] = {
+            ...registrations[idx],
+            firstName: newFirstName,
+            lastName: newLastName,
+            email: newEmail,
+            phone: newPhone,
+            is18OrOlder: newIs18OrOlder,
+            notes: newNotes,
+          };
+        }
+
+        root.textContent = "";
+        renderRegistrations();
+      } catch (editError) {
+        console.error("[Admin] Edit failed:", editError);
+        error.textContent = "Update failed. Please try again or check the console.";
+      }
+    },
+    "primary"
+  );
+
+  form.append(
+    fieldWrap("<label>First Name <span class='req'>*</span></label>", firstNameInput),
+    fieldWrap("<label>Last Name <span class='req'>*</span></label>", lastNameInput),
+    fieldWrap("<label>Email Address <span class='req'>*</span></label>", emailInput),
+    fieldWrap("<label>Phone Number <span class='req'>*</span></label>", phoneInput),
+    fieldWrap("<label>18 or Older? <span class='req'>*</span></label>", is18Row),
+    (() => {
+      const wrap = document.createElement("div");
+      wrap.style.gridColumn = "1 / -1";
+      const label = document.createElement("label");
+      label.htmlFor = "edit-notes";
+      label.textContent = "Notes (Optional)";
+      wrap.appendChild(label);
+      wrap.appendChild(notesInput);
+      return wrap;
+    })(),
+    (() => {
+      const wrap = document.createElement("div");
+      wrap.style.gridColumn = "1 / -1";
+      wrap.style.marginTop = "8px";
+      wrap.appendChild(error);
+      wrap.appendChild(confirmBtn);
+      return wrap;
+    })()
+  );
+
+  modal.card.appendChild(form);
+
+  root.appendChild(modal.overlay);
+}
+
+
+/* =========================================================
    DELETE
 ========================================================= */
 
@@ -1920,56 +1967,124 @@ function showDeleteModal(record) {
           return;
         }
 
-        await setDoc(
-          doc(
-            collection(
-              db,
-              "registrationDeletionLogs"
-            )
-          ),
-          {
-            registrationId:
-              record.id,
+        try {
+          // --- 1. Write the deletion audit log (outside transaction so it
+          //        always persists even if the transaction retries or fails).
+          await setDoc(
+            doc(
+              collection(
+                db,
+                "registrationDeletionLogs"
+              )
+            ),
+            {
+              registrationId:
+                record.id,
 
-            reason:
-              reason.value,
+              shiftId:
+                record.shiftId,
 
-            otherReason:
-              other.value.trim(),
+              reason:
+                reason.value,
 
-            deletedAt:
-              serverTimestamp()
-          }
-        );
+              otherReason:
+                other.value.trim(),
 
-        await deleteDoc(
-          doc(
-            db,
-            REGISTRATIONS_COLLECTION,
-            record.id
-          )
-        );
-
-        await deleteDoc(
-          doc(
-            db,
-            CHECKINS_COLLECTION,
-            record.id
-          )
-        ).catch(
-          () => {}
-        );
-
-        registrations =
-          registrations.filter(
-            (r) =>
-              r.id !==
-              record.id
+              deletedAt:
+                serverTimestamp()
+            }
           );
 
-        root.textContent = "";
+          // --- 2. Delete the registration. The released server-side
+          //        `releaseShiftOnRegistrationDelete` function restores the
+          //        shift capacity exactly once, so the client does not
+          //        decrement shiftCounts here (that would double-count).
+          await runTransaction(
+            db,
+            async (tx) => {
+              const regRef = doc(
+                db,
+                REGISTRATIONS_COLLECTION,
+                record.id
+              );
 
-        renderRegistrations();
+              const regSnap =
+                await tx.get(regRef);
+
+              if (!regSnap.exists()) {
+                // Already deleted — nothing to do.
+                return;
+              }
+
+              // Delete the registration.
+              tx.delete(regRef);
+            }
+          );
+
+          // --- 3. Best-effort cleanup of ancillary docs (outside
+          //        transaction — these are not capacity-critical).
+          await deleteDoc(
+            doc(
+              db,
+              CHECKINS_COLLECTION,
+              record.id
+            )
+          ).catch(() => {});
+
+          // Remove email and name+phone guards so the volunteer can
+          // re-register if this was an error.
+          if (record.email) {
+            const emailKey =
+              `email_${encodeURIComponent(
+                String(record.email).toLowerCase().trim()
+              )}`;
+
+            await deleteDoc(
+              doc(db, "registrationGuards", emailKey)
+            ).catch(() => {});
+          }
+
+          const normLast =
+            record.normalizedLastName ||
+            normalizeLastName(record.lastName);
+
+          const normPhone =
+            record.normalizedPhone ||
+            normalizePhoneNumber(record.phone);
+
+          if (normLast && normPhone) {
+            const namePhoneKey =
+              `name_phone_${normLast}_${normPhone}`;
+
+            await deleteDoc(
+              doc(db, "registrationGuards", namePhoneKey)
+            ).catch(() => {});
+          }
+
+          // --- 4. Update local state and re-render.
+          registrations =
+            registrations.filter(
+              (r) =>
+                r.id !==
+                record.id
+            );
+
+          // Refresh shift capacities so the UI reflects the restored slot.
+          await loadShiftCapacities();
+
+          root.textContent = "";
+
+          renderRegistrations();
+
+        } catch (deleteError) {
+          console.error(
+            "[Admin] Registration deletion failed:",
+            deleteError
+          );
+
+          error.textContent =
+            "Deletion failed. Please try again or check the console.";
+        }
       },
       "danger"
     );
@@ -2234,6 +2349,15 @@ function showDetail(record) {
         ],
 
         [
+          "18 or older",
+          record.is18OrOlder === true
+            ? "Yes (18 or older)"
+            : record.is18OrOlder === false
+            ? "No (Under 18)"
+            : "Not specified"
+        ],
+
+        [
           "Email",
           record.email
         ],
@@ -2478,9 +2602,6 @@ async function initCheckinPage(
   const summary =
     $("checkin-summary");
 
-  const expected =
-    $("expected-soon");
-
   let regs = [];
 
   let checkins =
@@ -2514,10 +2635,30 @@ async function initCheckinPage(
 
     setText(
       "checkin-status",
-      "Start typing to find a volunteer."
+      regs.length
+        ? `${regs.length} volunteer registration${
+            regs.length === 1 ? "" : "s"
+          } loaded.`
+        : "No volunteer registrations found."
     );
 
-  } catch {
+    // Immediately render all volunteers as cards so the admin does not
+    // have to type into the search box before seeing anyone.
+    renderCheckinResults(
+      "",
+      regs,
+      checkins,
+      results,
+      user,
+      actorName
+    );
+
+  } catch (error) {
+    console.error(
+      "[Admin Check-In] Could not load volunteers:",
+      error
+    );
+
     showError(
       "Could not load volunteers for check-in."
     );
@@ -2557,19 +2698,13 @@ async function initCheckinPage(
         user
       );
 
-      renderExpectedSoon(
-        expected,
-        regs,
-        checkins,
-        user
-      );
-
       renderCheckinResults(
         search?.value || "",
         regs,
         checkins,
         results,
-        user
+        user,
+        actorName
       );
     },
 
@@ -2587,7 +2722,8 @@ async function initCheckinPage(
         regs,
         checkins,
         results,
-        user
+        user,
+        actorName
       )
   );
 
@@ -2606,115 +2742,12 @@ async function initCheckinPage(
         checkins,
         user
       );
-
-      renderExpectedSoon(
-        expected,
-        regs,
-        checkins,
-        user
-      );
     },
     30000
   );
-}
 
-
-/* =========================================================
-   EXPECTED / CURRENT SHIFTS
-========================================================= */
-
-function renderExpectedSoon(
-  root,
-  regs,
-  checkins,
-  user
-) {
-  if (!root) return;
-
-  const currentShift =
-    currentShiftId(
-      new Date()
-    );
-
-  const nextShift =
-    nextShiftId(
-      new Date()
-    );
-
-  const relevant =
-    new Set(
-      [
-        currentShift,
-        nextShift
-      ].filter(Boolean)
-    );
-
-  const expected =
-    regs
-      .filter(
-        (r) =>
-          relevant.has(
-            r.shiftId
-          ) &&
-          ![
-            "checked_in",
-            "completed"
-          ].includes(
-            checkins.get(
-              r.id
-            )?.status
-          )
-      )
-      .sort(
-        (a, b) =>
-          String(
-            a.shiftId
-          ).localeCompare(
-            String(
-              b.shiftId
-            )
-          )
-      );
-
-  root.textContent = "";
-
-  if (!expected.length) {
-    const empty =
-      document.createElement(
-        "p"
-      );
-
-    empty.className =
-      "muted";
-
-    empty.textContent =
-      "No volunteers are expected for the current or next shift.";
-
-    root.appendChild(
-      empty
-    );
-
-    return;
-  }
-
-  expected.forEach(
-    (r) =>
-      root.appendChild(
-        checkinCard(
-          {
-            ...r,
-            checkin:
-              checkins.get(
-                r.id
-              ) || {
-                status:
-                  "registered"
-              }
-          },
-          user
-        )
-      )
-  );
+  // Wire up the activity feed that lives in the same page layout.
+  initActivityPage();
 }
 
 
@@ -2731,71 +2764,6 @@ function allShifts() {
         })
       )
   );
-}
-
-
-function currentShiftId(now) {
-  const shifts =
-    allShifts();
-
-  const minutes =
-    timeParts(
-      now
-    ).hour *
-      60 +
-    timeParts(
-      now
-    ).minute;
-
-  const shift =
-    shifts.find(
-      (candidate) =>
-        shiftMinutes(
-          candidate.startTime
-        ) <= minutes &&
-        shiftMinutes(
-          candidate.endTime
-        ) > minutes
-    );
-
-  return shift?.id ||
-    null;
-}
-
-
-function nextShiftId(now) {
-  const shifts =
-    allShifts();
-
-  const minutes =
-    timeParts(
-      now
-    ).hour *
-      60 +
-    timeParts(
-      now
-    ).minute;
-
-  const next =
-    shifts
-      .filter(
-        (shift) =>
-          shiftMinutes(
-            shift.startTime
-          ) > minutes
-      )
-      .sort(
-        (a, b) =>
-          shiftMinutes(
-            a.startTime
-          ) -
-          shiftMinutes(
-            b.startTime
-          )
-      )[0];
-
-  return next?.id ||
-    null;
 }
 
 
@@ -3085,7 +3053,8 @@ function renderCheckinResults(
   regs,
   checkins,
   root,
-  user
+  user,
+  actorName
 ) {
   if (!root) return;
 
@@ -3096,41 +3065,45 @@ function renderCheckinResults(
 
   root.textContent = "";
 
-  if (
-    q.length < 2
-  ) {
-    return;
-  }
+  let matches = regs;
 
-  const matches =
-    regs
-      .filter(
-        (r) =>
-          normalizeSearch(
-            [
-              r.firstName,
-              r.lastName,
-              `${r.firstName || ""} ${
-                r.lastName || ""
-              }`,
-              r.email,
-              r.phone,
-              r.id,
-              r.positionName ||
-                r.position,
-              r.shiftLabel
-            ].join(" ")
-          ).includes(q)
-      )
-      .slice(0, 25);
+  if (q.length >= 2) {
+    matches =
+      regs
+        .filter(
+          (r) =>
+            normalizeSearch(
+              [
+                r.firstName,
+                r.lastName,
+                `${r.firstName || ""} ${
+                  r.lastName || ""
+                }`,
+                r.email,
+                r.phone,
+                r.id,
+                r.positionName ||
+                  r.position,
+                r.shiftLabel
+              ].join(" ")
+            ).includes(q)
+        )
+        .slice(0, 25);
+  } else {
+    // Empty search: show every loaded registration so staff never have
+    // to type before seeing volunteers.
+    matches = regs;
+  }
 
   setText(
     "checkin-status",
-    `${matches.length} matching result${
-      matches.length === 1
-        ? ""
-        : "s"
-    }`
+    matches.length
+      ? `${matches.length} volunteer registration${
+          matches.length === 1 ? "" : "s"
+        } shown`
+      : q.length >= 2
+      ? "No volunteers match your search."
+      : "No volunteer registrations found."
   );
 
   matches.forEach(
@@ -3147,7 +3120,8 @@ function renderCheckinResults(
                   "registered"
               }
           },
-          user
+          user,
+          actorName
         )
       )
   );
@@ -3156,7 +3130,8 @@ function renderCheckinResults(
 
 function checkinCard(
   record,
-  user
+  user,
+  actorName
 ) {
   const card =
     document.createElement(
@@ -3244,10 +3219,11 @@ function checkinCard(
             record.id,
             "checkin",
             user.uid,
-            adminDisplayName(
-              null,
-              user
-            )
+            actorName ||
+              adminDisplayName(
+                null,
+                user
+              )
           )
       )
     );
@@ -3265,10 +3241,11 @@ function checkinCard(
             record.id,
             "checkout",
             user.uid,
-            adminDisplayName(
-              null,
-              user
-            )
+            actorName ||
+              adminDisplayName(
+                null,
+                user
+              )
           )
       )
     );
@@ -5257,11 +5234,13 @@ function adminName(
   uid,
   fallback = ""
 ) {
+  // Prefer the stored admin display name from the admins directory so
+  // the UI never falls back to an email when a display name exists.
   return (
-    fallback ||
     adminDirectory.get(
       uid
     ) ||
+    fallback ||
     uid ||
     ""
   );

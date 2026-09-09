@@ -33,6 +33,7 @@ form.addEventListener("submit", async (event) => {
   setBusy(true);
 
   try {
+    const displayName = form.displayName?.value.trim() || "";
     const email = form.email.value.trim().toLowerCase();
 
     const credential = await createUserWithEmailAndPassword(
@@ -44,6 +45,8 @@ form.addEventListener("submit", async (event) => {
     await setDoc(
       doc(db, "admins", credential.user.uid),
       {
+        displayName,
+        name: displayName,
         email,
         role: "none",
         status: "disabled",

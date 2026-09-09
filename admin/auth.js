@@ -54,9 +54,7 @@ function normalizeAdminProfile(id, data) {
     id,
     ...data,
     email: normalizeEmail(data?.email),
-    role: ["admin", "checkin", "none"].includes(role)
-      ? role
-      : "none",
+    role: role === "admin" ? "admin" : "none",
     status: status === "enabled" ? "enabled" : "disabled",
   };
 }
@@ -68,25 +66,8 @@ export function isEnabledAdmin(profile) {
   );
 }
 
-export function isEnabledCheckin(profile) {
-  return (
-    profile?.role === "checkin" &&
-    profile.status === "enabled"
-  );
-}
-
-export function canUseCheckin(profile) {
-  return (
-    isEnabledAdmin(profile) ||
-    isEnabledCheckin(profile)
-  );
-}
-
 function isEnabledRole(profile) {
-  return (
-    isEnabledAdmin(profile) ||
-    isEnabledCheckin(profile)
-  );
+  return isEnabledAdmin(profile);
 }
 
 function normalizeEmail(email) {
@@ -101,8 +82,6 @@ function finishAuthCheck() {
 export function requireAdmin({
   onReady,
   onDenied,
-  allowCheckin = false,
-  adminOnly = false,
 } = {}) {
   return onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -115,27 +94,7 @@ export function requireAdmin({
 
       finishAuthCheck();
 
-      if (!profile) {
-        onDenied?.(UNAUTHORIZED);
-        return;
-      }
-
-      // Pages that require full administrator privileges.
-      if (adminOnly && !isEnabledAdmin(profile)) {
-        window.location.replace("/admin/checkin.html");
-        return;
-      }
-
-      // Pages that do not explicitly allow check-in staff
-      // are restricted to full administrators.
-      if (!allowCheckin && !isEnabledAdmin(profile)) {
-        window.location.replace("/admin/checkin.html");
-        return;
-      }
-
-      // Check-in pages can be accessed by either administrators
-      // or staff with the dedicated check-in role.
-      if (allowCheckin && !canUseCheckin(profile)) {
+      if (!profile || !isEnabledAdmin(profile)) {
         onDenied?.(UNAUTHORIZED);
         return;
       }

@@ -1,6 +1,7 @@
 :root {
   --admin-bg: #f8f1e7;
   --admin-bg-soft: #fff8ef;
+
   --admin-surface: rgba(255, 255, 255, 0.96);
   --admin-surface-solid: #ffffff;
   --admin-surface-soft: #fffaf3;
@@ -12,15 +13,15 @@
   --admin-muted: #75656b;
   --admin-muted-light: #9b8b91;
 
-  --admin-maroon: #681c3d;
-  --admin-maroon-dark: #4b102b;
-  --admin-maroon-deep: #31091e;
+  --admin-maroon: #532564;
+  --admin-maroon-dark: #3d1a47;
+  --admin-maroon-deep: #2a0f33;
 
-  --admin-saffron: #d86f19;
-  --admin-saffron-dark: #b9530d;
+  --admin-saffron: #f2a346;
+  --admin-saffron-dark: #c78a2e;
 
-  --admin-gold: #c99527;
-  --admin-gold-soft: #f8edcf;
+  --admin-gold: #f2a346;
+  --admin-gold-soft: #fdf3e3;
 
   --admin-success: #28734d;
   --admin-success-bg: #eaf6ef;
@@ -37,14 +38,14 @@
   --admin-radius-xl: 24px;
 
   --admin-shadow:
-    0 1px 2px rgba(49, 9, 30, 0.04),
-    0 12px 32px -24px rgba(49, 9, 30, 0.22);
+    0 1px 2px rgba(42, 15, 51, 0.04),
+    0 12px 32px -24px rgba(42, 15, 51, 0.22);
 
   --admin-shadow-lg:
-    0 20px 50px -34px rgba(49, 9, 30, 0.28);
+    0 20px 50px -34px rgba(42, 15, 51, 0.28);
 
   --admin-focus:
-    0 0 0 3px rgba(216, 111, 25, 0.16);
+    0 0 0 3px rgba(83, 37, 100, 0.18);
 
   --admin-font:
     "Inter",
@@ -64,7 +65,7 @@
 
 
 /* ==========================================================================
-   Base
+   BASE
    ========================================================================== */
 
 * {
@@ -86,12 +87,12 @@ body {
   background:
     radial-gradient(
       circle at 8% 0%,
-      rgba(201, 149, 39, 0.11),
+      rgba(242, 163, 70, 0.11),
       transparent 26rem
     ),
     radial-gradient(
       circle at 94% 12%,
-      rgba(216, 111, 25, 0.07),
+      rgba(199, 138, 46, 0.07),
       transparent 24rem
     ),
     linear-gradient(
@@ -100,10 +101,12 @@ body {
       #f8f1e7 55%,
       #f5eadc 100%
     );
+
+  overflow-x: hidden;
 }
 
 ::selection {
-  background: rgba(216, 111, 25, 0.18);
+  background: rgba(83, 37, 100, 0.18);
 }
 
 h1,
@@ -152,7 +155,7 @@ label {
 
 
 /* ==========================================================================
-   Form controls
+   FORM CONTROLS
    ========================================================================== */
 
 input,
@@ -166,10 +169,14 @@ input,
 select,
 textarea {
   width: 100%;
+  min-width: 0;
+
   border: 1px solid var(--admin-border);
   border-radius: 12px;
+
   background: rgba(255, 253, 249, 0.96);
   color: var(--admin-text);
+
   outline: none;
 
   transition:
@@ -206,14 +213,16 @@ textarea:focus {
 
 
 /* ==========================================================================
-   Buttons
+   BUTTONS
    ========================================================================== */
 
 button,
 .btn {
   min-height: 42px;
+
   border: 1px solid transparent;
   border-radius: 11px;
+
   padding: 9px 15px;
 
   display: inline-flex;
@@ -222,6 +231,7 @@ button,
   gap: 7px;
 
   font-weight: 750;
+
   cursor: pointer;
   text-decoration: none;
 
@@ -247,14 +257,16 @@ a:focus-visible {
 
 .primary {
   color: #ffffff;
+
   background:
     linear-gradient(
       135deg,
       var(--admin-saffron),
       var(--admin-saffron-dark)
     );
+
   box-shadow:
-    0 10px 24px -18px rgba(185, 83, 13, 0.85);
+    0 10px 24px -18px rgba(199, 138, 46, 0.85);
 }
 
 .primary:hover {
@@ -294,7 +306,7 @@ button:disabled {
 
 
 /* ==========================================================================
-   Cards / Panels
+   CARDS / PANELS
    ========================================================================== */
 
 .auth-card,
@@ -305,8 +317,11 @@ button:disabled {
 .checkin-card,
 .activity-card {
   background: var(--admin-surface);
+
   border: 1px solid rgba(234, 223, 206, 0.95);
+
   border-radius: var(--admin-radius-lg);
+
   box-shadow: var(--admin-shadow);
 }
 
@@ -333,9 +348,12 @@ button:disabled {
 
 .eyebrow {
   margin-bottom: 8px;
+
   color: var(--admin-saffron);
+
   font-size: 0.72rem;
   font-weight: 800;
+
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -361,50 +379,48 @@ button:disabled {
 
 
 /* ==========================================================================
-   Authentication
+   AUTHENTICATION
    ========================================================================== */
 
 .auth-body {
   min-height: 100vh;
+
   display: grid;
   place-items: center;
+
   padding: 24px;
 
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(201, 149, 39, 0.18),
-      transparent 28rem
-    ),
-    linear-gradient(
-      180deg,
-      #fff8ee 0%,
-      #f8eee2 55%,
-      #f1e3d2 100%
-    );
+  background: var(--admin-maroon-deep);
 }
 
 .auth-card {
   position: relative;
   overflow: hidden;
+
   box-shadow: var(--admin-shadow-lg);
+
+  background: #ffffff;
+  color: var(--admin-text);
 }
 
 .auth-card::before {
   content: "";
+
   position: absolute;
+
   top: 0;
   left: 0;
   right: 0;
+
   height: 4px;
 
   background:
     linear-gradient(
       90deg,
       var(--admin-maroon-deep),
-      var(--admin-saffron),
-      var(--admin-gold),
-      var(--admin-saffron),
+      var(--admin-maroon),
+      var(--admin-maroon-dark),
+      var(--admin-maroon),
       var(--admin-maroon-deep)
     );
 }
@@ -431,7 +447,7 @@ button:disabled {
 
 
 /* ==========================================================================
-   Authentication loading
+   AUTHENTICATION LOADING
    ========================================================================== */
 
 body.admin-auth-checking::before {
@@ -447,12 +463,13 @@ body.admin-auth-checking::before {
   background:
     radial-gradient(
       circle at 50% 20%,
-      rgba(201, 149, 39, 0.15),
+      rgba(242, 163, 70, 0.15),
       transparent 24rem
     ),
     var(--admin-bg);
 
   color: var(--admin-maroon-deep);
+
   font-family: var(--admin-display);
   font-size: 1rem;
   font-weight: 800;
@@ -466,11 +483,12 @@ body.admin-auth-checking .shell {
 
 
 /* ==========================================================================
-   Topbar
+   TOPBAR
    ========================================================================== */
 
 .topbar {
   position: sticky;
+
   top: 0;
   z-index: 20;
 
@@ -479,39 +497,47 @@ body.admin-auth-checking .shell {
   background:
     linear-gradient(
       90deg,
-      rgba(49, 9, 30, 0.98),
-      rgba(104, 28, 61, 0.97) 52%,
-      rgba(75, 16, 43, 0.98)
+      rgba(42, 15, 51, 0.98),
+      rgba(83, 37, 100, 0.97) 52%,
+      rgba(61, 26, 71, 0.98)
     );
 
   box-shadow:
-    0 8px 30px -24px rgba(49, 9, 30, 0.8);
+    0 8px 30px -24px rgba(42, 15, 51, 0.8);
 
   backdrop-filter: blur(16px);
 }
 
 .topbar-inner {
   width: 100%;
+
   margin: 0 auto;
+
   padding: 15px clamp(18px, 2.8vw, 40px);
 
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 18px;
 }
 
 .brand-title {
   color: #fff9ee;
+
   font-family: var(--admin-display);
+
   font-size: 1.03rem;
   font-weight: 800;
+
   letter-spacing: -0.01em;
 }
 
 .brand-sub {
   margin-top: 2px;
+
   color: rgba(255, 248, 238, 0.68);
+
   font-size: 0.82rem;
 }
 
@@ -522,12 +548,15 @@ body.admin-auth-checking .shell {
   gap: 10px;
 
   color: rgba(255, 248, 238, 0.76);
+
   font-size: 0.86rem;
 }
 
 .topbar .secondary {
   color: #fff9ee;
+
   background: rgba(255, 255, 255, 0.07);
+
   border-color: rgba(255, 255, 255, 0.16);
 }
 
@@ -538,7 +567,7 @@ body.admin-auth-checking .shell {
 
 
 /* ==========================================================================
-   Main layout / navigation
+   MAIN LAYOUT / NAVIGATION
    ========================================================================== */
 
 .shell {
@@ -547,7 +576,9 @@ body.admin-auth-checking .shell {
 
 .layout {
   width: 100%;
+
   margin: 0 auto;
+
   padding: 24px clamp(16px, 2.4vw, 36px);
 }
 
@@ -555,22 +586,27 @@ body.admin-auth-checking .shell {
   display: inline-flex;
   gap: 4px;
 
+  max-width: 100%;
+
   padding: 4px;
   margin-bottom: 18px;
 
   border: 1px solid var(--admin-border);
   border-radius: 14px;
+
   background: rgba(255, 255, 255, 0.9);
 
   box-shadow:
-    0 1px 2px rgba(49, 9, 30, 0.04);
+    0 1px 2px rgba(42, 15, 51, 0.04);
 }
 
 .nav a {
   padding: 8px 14px;
+
   border-radius: 10px;
 
   color: var(--admin-muted);
+
   text-decoration: none;
 
   font-size: 0.86rem;
@@ -597,22 +633,25 @@ body.admin-auth-checking .shell {
     );
 
   box-shadow:
-    0 8px 18px -16px rgba(49, 9, 30, 0.9);
+    0 8px 18px -16px rgba(42, 15, 51, 0.9);
 }
 
 
 /* ==========================================================================
-   Toolbars / filters
+   TOOLBARS / FILTERS
    ========================================================================== */
 
 .toolbar {
   display: grid;
+
   grid-template-columns:
     minmax(260px, 1.6fr)
     repeat(3, minmax(145px, 1fr));
 
   gap: 12px;
+
   align-items: end;
+
   margin-top: 18px;
 }
 
@@ -622,15 +661,15 @@ body.admin-auth-checking .shell {
 
 .filter-actions {
   display: flex;
+
   justify-content: flex-end;
+
   margin-top: 12px;
 }
 
 .simple-toolbar {
   grid-template-columns:
-    minmax(260px, 1.5fr)
-    minmax(180px, 1fr)
-    minmax(180px, 1fr);
+    repeat(2, minmax(0, 1fr));
 }
 
 .registrations-toolbar {
@@ -663,13 +702,17 @@ body.admin-auth-checking .shell {
 
 
 /* ==========================================================================
-   Tables
+   TABLES
    ========================================================================== */
 
 .table-wrap {
-  overflow: auto;
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: hidden;
 
   border: 1px solid var(--admin-border);
+
   border-radius: 16px;
 
   background: #ffffff;
@@ -686,10 +729,13 @@ table {
 th,
 td {
   padding: 12px 14px;
+
   border-bottom: 1px solid var(--admin-border);
 
   text-align: left;
+
   white-space: nowrap;
+
   font-size: 0.86rem;
 }
 
@@ -699,13 +745,16 @@ th {
   z-index: 1;
 
   background: #fffaf3;
+
   color: #66545b;
 
   cursor: pointer;
 
   font-size: 0.7rem;
   font-weight: 800;
+
   letter-spacing: 0.06em;
+
   text-transform: uppercase;
 }
 
@@ -715,6 +764,7 @@ th[data-sort] {
 
 tbody tr {
   cursor: pointer;
+
   transition: background 0.12s ease;
 }
 
@@ -728,7 +778,7 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Status badges
+   STATUS BADGES
    ========================================================================== */
 
 .badge {
@@ -736,6 +786,7 @@ tbody tr:last-child td {
   align-items: center;
 
   border-radius: 999px;
+
   padding: 4px 9px;
 
   background: var(--admin-gold-soft);
@@ -762,15 +813,18 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Pagination / summaries
+   PAGINATION / SUMMARIES
    ========================================================================== */
 
 .pager,
 .summary-line {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   gap: 12px;
+
   flex-wrap: wrap;
 }
 
@@ -784,13 +838,16 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Statistics
+   STATISTICS
    ========================================================================== */
 
 .grid {
   display: grid;
+
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
   gap: 13px;
+
   margin-bottom: 18px;
 }
 
@@ -802,29 +859,26 @@ tbody tr:last-child td {
   content: "";
 
   position: absolute;
+
   top: 0;
   left: 0;
 
   width: 100%;
   height: 3px;
 
-  background:
-    linear-gradient(
-      90deg,
-      var(--admin-maroon),
-      var(--admin-saffron),
-      var(--admin-gold)
-    );
+  background: var(--admin-maroon);
 }
 
 .stat-value {
   margin-top: 8px;
 
   color: var(--admin-maroon-deep);
+
   font-family: var(--admin-display);
 
   font-size: 2rem;
   font-weight: 800;
+
   letter-spacing: -0.035em;
 }
 
@@ -832,6 +886,7 @@ tbody tr:last-child td {
   margin-top: 4px;
 
   color: var(--admin-muted);
+
   font-size: 0.76rem;
   font-weight: 650;
 }
@@ -847,37 +902,38 @@ tbody tr:last-child td {
 
 .stats-tabs .active {
   color: #ffffff;
+
   background: var(--admin-maroon);
+
   border-color: var(--admin-maroon);
 }
 
 
 /* ==========================================================================
-   Charts
+   CHARTS
    ========================================================================== */
 
 .chart {
   display: flex;
-  align-items: end;
-  gap: 9px;
+  align-items: flex-end;
+  gap: 12px;
 
-  min-height: 260px;
-  height: 260px;
+  min-height: 300px;
+  height: 300px;
 
   overflow-x: auto;
+  overflow-y: visible;
 
-  margin: 16px 0;
-  padding: 12px 12px 42px;
+  margin: 22px 0 34px;
+  padding: 34px 18px 70px;
 
   border: 1px solid var(--admin-border);
   border-radius: 16px;
 
-  background:
-    linear-gradient(
-      180deg,
-      #ffffff,
-      #fffaf3
-    );
+  /* Solid background — no gradient */
+  background: #ffffff;
+
+  box-shadow: var(--admin-shadow);
 }
 
 .bar {
@@ -888,79 +944,99 @@ tbody tr:last-child td {
 
   min-width: 46px;
 
-  border-radius: 9px 9px 4px 4px;
+  border-radius: 8px 8px 4px 4px;
 
-  background:
-    linear-gradient(
-      180deg,
-      var(--admin-saffron),
-      var(--admin-maroon)
-    );
+  /* Solid graph bars */
+  background: var(--admin-maroon);
 
   box-shadow:
-    0 10px 20px -18px rgba(104, 28, 61, 0.9);
+    0 8px 16px -14px rgba(83, 37, 100, 0.65);
 }
 
 .bar strong {
   position: absolute;
-  top: -24px;
+
+  top: -27px;
 
   color: var(--admin-maroon);
+
   font-size: 0.76rem;
+  font-weight: 800;
+
+  white-space: nowrap;
 }
 
 .bar span {
   position: absolute;
-  right: -8px;
-  bottom: -30px;
-  left: -8px;
+
+  bottom: -42px;
+
+  left: 50%;
+
+  width: max-content;
 
   color: var(--admin-muted);
+
   font-size: 0.7rem;
+  font-weight: 600;
+
   text-align: center;
+
+  transform: translateX(-50%);
+
+  white-space: nowrap;
 }
 
 .diagonal-labels .bar {
-  min-width: 58px;
+  min-width: 52px;
 }
 
 .diagonal-labels .bar span {
-  right: auto;
-  bottom: -64px;
+  bottom: -60px;
+
   left: 50%;
 
-  width: 96px;
+  width: 100px;
 
   text-align: left;
 
-  transform: translateX(-12px) rotate(-38deg);
+  transform:
+    translateX(-8px)
+    rotate(-35deg);
+
   transform-origin: top left;
 
   white-space: nowrap;
 }
 
-
 /* ==========================================================================
-   Lists
+   LISTS
    ========================================================================== */
 
 .list {
   display: grid;
   gap: 8px;
+
+  min-width: 0;
 }
 
 .list-row {
+  min-width: 0;
+
   padding: 11px 12px;
 
   border: 1px solid var(--admin-border);
+
   border-radius: 12px;
 
   background: #ffffff;
+
   color: #4d3c43;
 }
 
 .analytics-list {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .leaderboard-list {
@@ -970,47 +1046,55 @@ tbody tr:last-child td {
 
 .leaderboard-list .leaderboard-row {
   border-left: 4px solid var(--admin-saffron);
+
   color: var(--admin-maroon);
+
   font-weight: 750;
 }
 
 .appointment-list {
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  grid-template-columns:
+    repeat(2, minmax(260px, 1fr));
 }
 
 .appointment-list .featured-row {
-  border-color: rgba(201, 149, 39, 0.35);
+  border-color: rgba(242, 163, 70, 0.35);
 
   background:
     linear-gradient(
       135deg,
       #ffffff,
-      #fff8e9
+      #fdf3e3
     );
 
   color: var(--admin-maroon);
+
   font-family: var(--admin-display);
+
   font-size: 1.02rem;
   font-weight: 800;
 
   box-shadow:
-    0 12px 24px -22px rgba(104, 28, 61, 0.7);
+    0 12px 24px -22px rgba(83, 37, 100, 0.7);
 }
 
 .appointment-list .subtle-row {
   padding: 9px 11px;
+
   color: var(--admin-muted);
+
   font-size: 0.86rem;
 }
 
 
 /* ==========================================================================
-   Modal / detail view
+   MODAL / DETAIL VIEW
    ========================================================================== */
 
 .modal {
   position: fixed;
   inset: 0;
+
   z-index: 30;
 
   display: grid;
@@ -1018,12 +1102,14 @@ tbody tr:last-child td {
 
   padding: 18px;
 
-  background: rgba(49, 9, 30, 0.48);
+  background: rgba(42, 15, 51, 0.48);
+
   backdrop-filter: blur(6px);
 }
 
 .modal-card {
   width: min(920px, 100%);
+
   max-height: 88vh;
 
   overflow: auto;
@@ -1035,14 +1121,20 @@ tbody tr:last-child td {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
   gap: 10px;
 }
 
 .detail-item {
+  min-width: 0;
+
   padding: 11px 12px;
 
   border: 1px solid var(--admin-border);
+
   border-radius: 12px;
 
   background: var(--admin-surface-soft);
@@ -1050,14 +1142,18 @@ tbody tr:last-child td {
 
 .detail-label {
   color: var(--admin-muted);
+
   font-size: 0.7rem;
   font-weight: 800;
+
   letter-spacing: 0.06em;
+
   text-transform: uppercase;
 }
 
 .detail-value {
   margin-top: 4px;
+
   overflow-wrap: anywhere;
 }
 
@@ -1075,9 +1171,11 @@ tbody tr:last-child td {
   overflow: auto;
 
   margin: 0;
+
   padding: 16px;
 
   border: 1px solid var(--admin-border);
+
   border-radius: var(--admin-radius-md);
 
   background: #2a1220;
@@ -1091,17 +1189,19 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Pie / donut charts
+   PIE / DONUT CHARTS
    ========================================================================== */
 
 .pie-panel {
   display: grid;
+
   grid-template-columns:
     minmax(220px, 1fr)
     220px
     minmax(240px, 1fr);
 
   align-items: center;
+
   gap: 24px;
 }
 
@@ -1110,6 +1210,7 @@ tbody tr:last-child td {
   height: 220px;
 
   border: 10px solid #ffffff;
+
   border-radius: 50%;
 
   box-shadow: var(--admin-shadow);
@@ -1133,44 +1234,55 @@ tbody tr:last-child td {
   inset: 34px;
 
   border-radius: 50%;
+
   background: #ffffff;
 }
 
 
 /* ==========================================================================
-   Settings
+   SETTINGS
    ========================================================================== */
 
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
 
   gap: 13px;
+
   margin: 18px 0;
 }
 
 .settings-layout .settings-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns:
+    repeat(auto-fit, minmax(230px, 1fr));
 }
 
 .slot-capacity-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(210px, 1fr));
 
   gap: 10px;
+
   margin-top: 16px;
 }
 
 .slot-capacity-item {
   display: grid;
+
   grid-template-columns: 1fr auto;
 
   gap: 8px;
+
   align-items: end;
 
   padding: 12px;
 
   border: 1px solid var(--admin-border);
+
   border-radius: 14px;
 
   background: #ffffff;
@@ -1186,6 +1298,7 @@ tbody tr:last-child td {
   margin-bottom: 10px;
 
   color: var(--admin-maroon);
+
   font-family: var(--admin-display);
 
   font-size: 1.45rem;
@@ -1194,21 +1307,28 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Check-in / event-day operations
+   CHECK-IN / EVENT-DAY OPERATIONS
    ========================================================================== */
 
 .checkin-layout {
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: none;
 
+  margin: 0;
+
+  padding: 24px;
+
   display: grid;
+
   grid-template-columns:
     minmax(0, 7fr)
-    minmax(280px, 3fr);
+    minmax(0, 3fr);
 
   align-items: start;
 
   gap: clamp(18px, 2vw, 28px);
+
+  min-width: 0;
 }
 
 .checkin-layout .nav,
@@ -1217,9 +1337,31 @@ tbody tr:last-child td {
 }
 
 .checkin-main {
+  width: 100%;
+  min-width: 0;
+
   display: grid;
   gap: 18px;
 }
+
+.checkin-sidebar {
+  width: 100%;
+  min-width: 0;
+
+  display: grid;
+  gap: 18px;
+}
+
+.checkin-summary,
+.activity-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+
+/* --------------------------------------------------------------------------
+   Check-in hero
+   -------------------------------------------------------------------------- */
 
 .compact-hero h1 {
   font-size: clamp(1.35rem, 2vw, 1.85rem);
@@ -1227,15 +1369,20 @@ tbody tr:last-child td {
 
 .checkin-hero h1 {
   font-size: clamp(2.1rem, 4vw, 3.8rem);
+
   line-height: 1;
 }
 
 .checkin-search {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   min-height: 66px;
 
-  border-radius: 18px;
-
   padding: 15px 19px;
+
+  border-radius: 18px;
 
   font-size: clamp(1.05rem, 1.7vw, 1.3rem);
 
@@ -1243,27 +1390,39 @@ tbody tr:last-child td {
 
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 16px 36px -32px rgba(104, 28, 61, 0.55);
+    0 16px 36px -32px rgba(83, 37, 100, 0.55);
 }
+
+
+/* --------------------------------------------------------------------------
+   Check-in results
+   -------------------------------------------------------------------------- */
 
 .checkin-results {
   display: grid;
   gap: 10px;
+
+  width: 100%;
+  min-width: 0;
 }
 
 .checkin-card {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
 
   gap: 16px;
+
+  width: 100%;
+  min-width: 0;
 
   padding: 17px 19px;
 
   border-radius: 18px;
 
   box-shadow:
-    0 10px 32px -30px rgba(49, 9, 30, 0.35);
+    0 10px 32px -30px rgba(42, 15, 51, 0.35);
 }
 
 .checkin-card h2 {
@@ -1276,35 +1435,42 @@ tbody tr:last-child td {
 
 .checkin-actions {
   display: flex;
+
   align-items: center;
+
   gap: 8px;
+
+  flex-shrink: 0;
 }
 
 .big-action {
   min-height: 48px;
+
   border-radius: 13px;
 }
 
-.expected-panel {
-  grid-row: auto;
-}
+
+/* --------------------------------------------------------------------------
+   Check-in summary
+   -------------------------------------------------------------------------- */
 
 .checkin-summary {
-  position: sticky;
-  top: 90px;
   display: block;
 }
 
 .checkin-summary .stats-grid {
   display: grid;
+
   grid-template-columns: 1fr;
 
   gap: 8px;
+
   margin: 0;
 }
 
 .checkin-summary .stat-card {
   padding: 13px 15px;
+
   border-radius: 14px;
 }
 
@@ -1316,7 +1482,9 @@ tbody tr:last-child td {
   margin: 0 0 11px;
 
   color: var(--admin-maroon);
+
   font-family: var(--admin-display);
+
   font-size: 1.3rem;
 }
 
@@ -1327,6 +1495,7 @@ tbody tr:last-child td {
 
 .checkin-summary .checkin-stat-row {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
 
@@ -1335,6 +1504,7 @@ tbody tr:last-child td {
   padding: 11px 0;
 
   border: 0;
+
   border-bottom: 1px solid var(--admin-border);
 
   border-radius: 0;
@@ -1351,7 +1521,9 @@ tbody tr:last-child td {
 
   font-size: 0.84rem;
   font-weight: 750;
+
   letter-spacing: 0.02em;
+
   text-transform: uppercase;
 }
 
@@ -1359,13 +1531,23 @@ tbody tr:last-child td {
   color: var(--admin-maroon);
 
   font-family: var(--admin-display);
+
   font-size: 1.45rem;
 }
 
+
+/* --------------------------------------------------------------------------
+   Activity
+   -------------------------------------------------------------------------- */
+
 .activity-row {
+  width: 100%;
+  min-width: 0;
+
   padding: 13px;
 
   border: 1px solid var(--admin-border);
+
   border-radius: 13px;
 
   background: #ffffff;
@@ -1373,10 +1555,14 @@ tbody tr:last-child td {
 
 .activity-card {
   display: flex;
+
   justify-content: space-between;
   align-items: flex-start;
 
   gap: 18px;
+
+  width: 100%;
+  min-width: 0;
 }
 
 .activity-card p {
@@ -1385,18 +1571,23 @@ tbody tr:last-child td {
 
 .activity-card time {
   color: var(--admin-muted);
+
   font-size: 0.82rem;
+
   white-space: nowrap;
 }
 
 
 /* ==========================================================================
-   Operations dashboard
+   OPERATIONS DASHBOARD
    ========================================================================== */
 
 .ops-dashboard {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
   gap: 13px;
 }
 
@@ -1420,37 +1611,62 @@ tbody tr:last-child td {
 .compact-table th,
 .compact-table td {
   padding: 8px;
+
   border-bottom: 1px solid var(--admin-border);
+
   text-align: left;
 }
 
 
 /* ==========================================================================
-   Responsive
+   RESPONSIVE
    ========================================================================== */
 
-@media (max-width: 1250px) {
-  .registrations-toolbar,
-  .stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+/* Large screens: keep 70 / 30 check-in layout */
+@media (min-width: 1025px) {
+  .checkin-layout {
+    grid-template-columns:
+      minmax(0, 7fr)
+      minmax(0, 3fr);
   }
 }
 
-@media (max-width: 1100px) {
-  .toolbar,
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
-@media (max-width: 980px) {
-  .checkin-layout,
-  .pie-panel {
+/* Medium screens: stack the check-in sidebar underneath */
+@media (max-width: 1024px) {
+  .checkin-layout {
+    width: 100%;
+    max-width: 960px;
+
+    margin: 0;
+
+    padding: 20px;
+
     grid-template-columns: 1fr;
   }
 
-  .checkin-summary {
-    position: static;
+  .checkin-layout .nav,
+  .checkin-layout #error {
+    grid-column: 1;
+  }
+
+  .checkin-sidebar {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .checkin-summary,
+  .activity-panel {
+    min-width: 0;
+  }
+
+  .simple-toolbar {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .pie-panel {
+    grid-template-columns: 1fr;
   }
 
   .appointment-list {
@@ -1471,7 +1687,27 @@ tbody tr:last-child td {
   }
 }
 
+
+/* Tablet */
+@media (max-width: 900px) {
+  .toolbar,
+  .grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .checkin-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Small tablet */
 @media (max-width: 760px) {
+  .layout {
+    padding: 18px;
+  }
+
   .simple-toolbar {
     grid-template-columns: 1fr;
   }
@@ -1479,20 +1715,19 @@ tbody tr:last-child td {
   .auth-card,
   .panel {
     padding: 20px;
+
     border-radius: 18px;
   }
 
   .topbar-inner {
     align-items: flex-start;
-    flex-direction: column;
-  }
 
-  .layout {
-    padding: 18px;
+    flex-direction: column;
   }
 
   .nav {
     width: 100%;
+
     overflow-x: auto;
   }
 
@@ -1502,28 +1737,81 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .checkin-layout {
+    width: 100%;
+    max-width: 100%;
+
+    margin: 0;
+
+    padding: 16px;
+
+    grid-template-columns: 1fr;
+  }
+
   .checkin-card {
     align-items: stretch;
+
     flex-direction: column;
   }
 
   .checkin-actions {
+    width: 100%;
+
     align-items: stretch;
   }
 
   .checkin-actions button {
     flex: 1;
   }
+
+  .checkin-hero h1 {
+    font-size: 2rem;
+  }
 }
 
-@media (max-width: 720px) {
+
+/* Phone */
+@media (max-width: 480px) {
   .auth-body {
     padding: 16px;
   }
 
   .admin-meta {
     width: 100%;
+
     justify-content: space-between;
+  }
+
+  .checkin-layout {
+    padding: 12px;
+  }
+
+  .checkin-card {
+    padding: 15px;
+  }
+
+  .checkin-actions {
+    flex-direction: column;
+  }
+
+  .checkin-actions button {
+    width: 100%;
+  }
+
+  .checkin-search {
+    min-height: 56px;
+
+    padding: 13px 15px;
+  }
+
+  .activity-card {
+    flex-direction: column;
+
+    gap: 8px;
+  }
+
+  .activity-card time {
+    white-space: normal;
   }
 
   .checkin-summary .stats-grid {
@@ -1533,7 +1821,7 @@ tbody tr:last-child td {
 
 
 /* ==========================================================================
-   Print
+   PRINT
    ========================================================================== */
 
 @media print {
@@ -1559,11 +1847,13 @@ tbody tr:last-child td {
   .modal-card,
   .ops-card {
     box-shadow: none;
+
     border-color: #cccccc;
   }
 
   .table-wrap {
     overflow: visible;
+
     border-color: #cccccc;
   }
 
