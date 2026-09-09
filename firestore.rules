@@ -3,9 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Authentication / authorization helpers
-    // ------------------------------------------------------------------------
+    // ========================================================================
+    // AUTHENTICATION / ADMIN
+    // ========================================================================
 
     function signedIn() {
       return request.auth != null;
@@ -28,128 +28,303 @@ service cloud.firestore {
     }
 
 
-    // ------------------------------------------------------------------------
-    // Volunteer registrations
-    // ------------------------------------------------------------------------
-    //
-    // Public users can create a registration.
-    // Only authorized administrators can read, update, or delete registrations.
-    //
+    // ========================================================================
+    // VOLUNTEER REGISTRATIONS
+    // ========================================================================
 
     match /registrations/{registrationId} {
+
+      // Volunteers' actual registration records remain private.
       allow read: if isAdmin();
 
-      allow create: if true;
+      // Public registration creation.
+      allow create: if request.auth == null;
 
-      allow update, delete: if isAdmin();
+      // Administrators can modify registrations normally.
+      //
+      // Public users may ONLY cancel an existing active registration.
+      allow update: if isAdmin()
+        || (
+          request.auth == null
+
+          && resource.data.eventId ==
+             "carmel-diwali-2026"
+
+          && resource.data.status ==
+             "registered"
+
+          && request.resource.data.status ==
+             "cancelled"
+
+          && request.resource.data.manageLookupId is string
+
+          && request.resource.data.manageLookupId ==
+             resource.data.manageLookupId
+
+          && request.resource.data.diff(
+               resource.data
+             ).affectedKeys()
+             .hasOnly([
+               "status",
+               "cancelledAt"
+             ])
+
+          && request.resource.data.cancelledAt
+             is timestamp
+        );
+
+      allow delete: if isAdmin();
     }
 
 
-    // ------------------------------------------------------------------------
-    // Event-day check-in / check-out
-    // ------------------------------------------------------------------------
+    // ========================================================================
+    // PUBLIC MANAGE REGISTRATION LOOKUPS
+    // ========================================================================
     //
-    // Each check-in document is associated with a volunteer registration.
-    // Restricted to authorized administrators.
+    // The public Manage page reads these documents instead of the private
+    // registrations collection.
     //
-
-    match /checkins/{registrationId} {
-      allow read, create, update, delete: if isAdmin();
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Check-in activity log
-    // ------------------------------------------------------------------------
+    // lookupId:
+    //   SHA-256(eventId + "|" + normalizedLastName + "|" + normalizedPhone)
     //
-    // Audit log of check-in and check-out events.
-    // Restricted to authorized administrators.
-    //
-
-    match /checkinActivity/{activityId} {
-      allow read, create, update, delete: if isAdmin();
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Registration guards
-    // ------------------------------------------------------------------------
-    //
-    // Used to prevent duplicate registrations or other public-side race
-    // conditions. Public creation/read behavior can be tightened further
-    // depending on the exact guard implementation in app.js.
-    //
-
-    match /registrationGuards/{guardId} {
-      allow read, create: if true;
-      allow update, delete: if isAdmin();
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Shift capacity counters
-    // ------------------------------------------------------------------------
-    //
-    // Public users need to read shift availability.
-    //
-    // The frontend may create/update counters during registration.
-    // Admins retain full control.
+    // These records contain only management information.
     //
     // IMPORTANT:
-    // The exact write validation should be tightened once the final
-    // registration/shift transaction logic is confirmed.
+    // Last name + phone is the management credential requested for this app.
+    // It is not equivalent to authenticated user accounts.
     //
 
-    match /shiftCounts/{shiftDocId} {
-      allow read: if true;
-      allow write: if isAdmin() || request.auth == null;
+    match /registrationLookups/{lookupId} {
+
+      allow read: if request.auth == null
+        || isAdmin();
+
+      // First registration creates the lookup document.
+      allow create: if request.auth == null
+        && request.resource.data.eventId ==
+           "carmel-diwali-2026"
+
+        && request.resource.data.normalizedLastName
+           is string
+
+        && request.resource.data.entries
+           is list
+
+        && request.resource.data.registrationIds
+           is list;
+
+      // Public Manage/sign-up flows may update only the management
+      // information contained inside an existing event lookup.
+      allow update: if request.auth == null
+        && resource.data.eventId ==
+           "carmel-diwali-2026"
+
+        && request.resource.data.eventId ==
+           resource.data.eventId
+
+        && request.resource.data.normalizedLastName ==
+           resource.data.normalizedLastName
+
+        && request.resource.data.entries
+           is list
+
+        && request.resource.data.registrationIds
+           is list
+
+        && request.resource.data.diff(
+             resource.data
+           ).affectedKeys()
+           .hasOnly([
+             "entries",
+             "registrationIds",
+             "updatedAt"
+           ]);
+
+      allow delete: if isAdmin();
     }
 
 
-    // ------------------------------------------------------------------------
-    // Event settings
-    // ------------------------------------------------------------------------
-    //
-    // Public users can read settings needed to display the event.
-    // Only administrators can modify them.
-    //
+    // ========================================================================
+    // REGISTRATION DUPLICATE GUARDS
+    // ========================================================================
+
+    match /registrationGuards/{guardId} {
+
+      allow read: if request.auth == null
+        || isAdmin();
+
+      allow create: if request.auth == null
+        || isAdmin();
+
+      // Public users can only change an active guard to cancelled.
+      allow update: if isAdmin()
+        || (
+          request.auth == null
+
+          && resource.data.status ==
+             "active"
+
+          && request.resource.data.status ==
+             "cancelled"
+
+          && request.resource.data.registrationId ==
+             resource.data.registrationId
+
+          && request.resource.data.diff(
+               resource.data
+             ).affectedKeys()
+             .hasOnly([
+               "status",
+               "cancelledAt"
+             ])
+
+          && request.resource.data.cancelledAt
+             is timestamp
+        );
+
+      allow delete: if isAdmin();
+    }
+
+
+    // ========================================================================
+    // SHIFT COUNTERS
+    // ========================================================================
+
+    match /shiftCounts/{shiftDocId} {
+
+      allow read: if request.auth == null
+        || isAdmin();
+
+      // First registration for a shift.
+      allow create: if isAdmin()
+        || (
+          request.auth == null
+
+          && request.resource.data.eventId ==
+             "carmel-diwali-2026"
+
+          && request.resource.data.count ==
+             1
+
+          && request.resource.data.count
+             is number
+
+          && request.resource.data.capacity
+             is number
+
+          && request.resource.data.count >= 0
+
+          && request.resource.data.count <=
+             request.resource.data.capacity
+        );
+
+      // Public users may change a counter by exactly one:
+      //
+      // +1 = registration/add-shift
+      // -1 = cancellation
+      //
+      // Counter can never become negative or exceed capacity.
+      allow update: if isAdmin()
+        || (
+          request.auth == null
+
+          && resource.data.eventId ==
+             "carmel-diwali-2026"
+
+          && request.resource.data.eventId ==
+             resource.data.eventId
+
+          && request.resource.data.capacity ==
+             resource.data.capacity
+
+          && resource.data.count
+             is number
+
+          && request.resource.data.count
+             is number
+
+          && (
+            request.resource.data.count ==
+              resource.data.count + 1
+
+            || request.resource.data.count ==
+              resource.data.count - 1
+          )
+
+          && request.resource.data.count >= 0
+
+          && request.resource.data.count <=
+             request.resource.data.capacity
+        );
+
+      allow delete: if isAdmin();
+    }
+
+
+    // ========================================================================
+    // EVENT SETTINGS
+    // ========================================================================
 
     match /eventSettings/{eventId} {
-      allow read: if true;
+
+      allow read: if request.auth == null
+        || isAdmin();
+
       allow write: if isAdmin();
     }
 
 
-    // ------------------------------------------------------------------------
-    // Volunteer/admin accounts
-    // ------------------------------------------------------------------------
-    //
-    // A user may create their own disabled "none" profile.
-    // Only administrators can enable roles or modify/delete profiles.
-    //
+    // ========================================================================
+    // CHECK-IN
+    // ========================================================================
 
-    match /admins/{adminId} {
-      allow read: if signedIn()
-        && (adminId == request.auth.uid || isAdmin());
-
-      allow create: if signedIn()
-        && adminId == request.auth.uid
-        && request.resource.data.role == "none"
-        && request.resource.data.status == "disabled";
-
-      allow update, delete: if isAdmin();
+    match /checkins/{registrationId} {
+      allow read,
+            create,
+            update,
+            delete: if isAdmin();
     }
 
 
-    // ------------------------------------------------------------------------
-    // Catch-all
-    // ------------------------------------------------------------------------
-    //
-    // Administrators can access documents not covered above.
-    //
+    match /checkinActivity/{activityId} {
+      allow read,
+            create,
+            update,
+            delete: if isAdmin();
+    }
+
+
+    // ========================================================================
+    // ADMIN ACCOUNTS
+    // ========================================================================
+
+    match /admins/{adminId} {
+
+      allow read: if signedIn()
+        && (
+          adminId == request.auth.uid
+          || isAdmin()
+        );
+
+      allow create: if signedIn()
+        && adminId == request.auth.uid
+        && request.resource.data.role ==
+           "none"
+        && request.resource.data.status ==
+           "disabled";
+
+      allow update,
+            delete: if isAdmin();
+    }
+
+
+    // ========================================================================
+    // CATCH-ALL
+    // ========================================================================
 
     match /{document=**} {
-      allow read, write: if isAdmin();
+      allow read,
+            write: if isAdmin();
     }
   }
 }

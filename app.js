@@ -22,8 +22,11 @@ import {
   getPositionById,
   getShiftById,
   findShift,
+  normalizeFirstName,
   normalizeLastName,
   normalizePhoneNumber,
+  getRegistrationLookupId,
+  sha256Hex,
 } from "./config.js";
 
 import { db, logSafeEvent } from "./firebase-init.js";
@@ -732,7 +735,7 @@ export function validateForm(
  *
  * shiftCounts/{eventId_shiftId}
  * registrations/{registrationId}
- * registrationGuards/{email-based guard}
+ * registrationGuards/{shift-specific duplicate guards}
  *
  * The capacity check and registration creation happen in one transaction,
  * preventing two simultaneous registrations from exceeding capacity.
@@ -750,143 +753,424 @@ export async function reserveShiftAndCreateRegistration(
     collection(db, "registrations")
   );
 
-  const emailGuardRef = doc(
+  // Normalize the volunteer identity.
+  const normFirst =
+    normalizeFirstName(
+      payload.firstName
+    );
+
+  const normLast =
+    normalizeLastName(
+      payload.lastName
+    );
+
+  const normPhone =
+    normalizePhoneNumber(
+      payload.phone
+    );
+
+  const normEmail =
+    String(payload.email || "")
+      .trim()
+      .toLowerCase();
+
+  // Stable, non-PII key used by the email/shift duplicate guard.
+  const emailGuardKey =
+    encodeURIComponent(
+      normEmail
+    );
+
+  // Hash of the email used inside the public lookup record.
+  const emailHash =
+    await sha256Hex(
+      normEmail
+    );
+
+  // Public lookup document for this last-name + phone combination.
+  const lookupId =
+    await getRegistrationLookupId(
+      payload.lastName,
+      payload.phone,
+      eventConfig.eventId
+    );
+
+  const lookupRef = doc(
     db,
-    "registrationGuards",
-    `email_${encodeURIComponent(
-      payload.email.toLowerCase().trim()
-    )}`
+    "registrationLookups",
+    lookupId
   );
 
-  const normLast = normalizeLastName(payload.lastName);
-  const normPhone = normalizePhoneNumber(payload.phone);
-  const phoneNameGuardRef = normLast && normPhone
-    ? doc(db, "registrationGuards", `name_phone_${normLast}_${normPhone}`)
-    : null;
+  // Same email + same shift = duplicate.
+  const emailShiftGuardRef = doc(
+    db,
+    "registrationGuards",
+    `email_shift_${emailGuardKey}_${payload.shiftId}`
+  );
 
-  const shiftResult = findShift(payload.shiftId);
+  // Same first name + last name + phone + same shift = duplicate.
+  const personShiftGuardRef = doc(
+    db,
+    "registrationGuards",
+    `person_shift_${normFirst}_${normLast}_${normPhone}_${payload.shiftId}`
+  );
+
+  const shiftResult =
+    findShift(
+      payload.shiftId
+    );
 
   if (
     !shiftResult ||
-    shiftResult.position.id !== payload.positionId
+    shiftResult.position.id !==
+      payload.positionId
   ) {
-    throw new Error("SHIFT_UNAVAILABLE");
+    throw new Error(
+      "SHIFT_UNAVAILABLE"
+    );
   }
 
-  const { position, shift } = shiftResult;
+  const {
+    position,
+    shift,
+  } = shiftResult;
 
-  await runTransaction(db, async (tx) => {
-    const reads = [
-      tx.get(shiftRef),
-      tx.get(emailGuardRef),
-    ];
-    if (phoneNameGuardRef) {
-      reads.push(tx.get(phoneNameGuardRef));
-    }
+  await runTransaction(
+    db,
+    async (tx) => {
+      const reads = [
+        tx.get(shiftRef),
+        tx.get(emailShiftGuardRef),
+        tx.get(lookupRef),
+        tx.get(personShiftGuardRef),
+      ];
 
-    const results = await Promise.all(reads);
-    const shiftSnap = results[0];
-    const emailGuardSnap = results[1];
-    const phoneNameGuardSnap = phoneNameGuardRef ? results[2] : null;
+      const results =
+        await Promise.all(reads);
 
-    if (emailGuardSnap.exists()) {
-      throw new Error(
-        "DUPLICATE_REGISTRATION"
-      );
-    }
+      const shiftSnap =
+        results[0];
 
-    if (phoneNameGuardSnap && phoneNameGuardSnap.exists()) {
-      throw new Error(
-        "DUPLICATE_NAME_PHONE"
-      );
-    }
+      const emailShiftGuardSnap =
+        results[1];
 
-    if (!shiftSnap.exists()) {
-      tx.set(shiftRef, {
-        eventId: eventConfig.eventId,
-        shiftId: shift.id,
-        positionId: position.id,
-        positionName: position.name,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        label: formatShiftTime(
-          shift.startTime,
-          shift.endTime
-        ),
-        capacity: shift.capacity,
-        count: 1,
-      });
+      const lookupSnap =
+        results[2];
+
+      const personShiftGuardSnap =
+        results[3];
+
+      // --------------------------------------------------------------
+      // Duplicate protection
+      // --------------------------------------------------------------
+
+      if (
+        emailShiftGuardSnap.exists() &&
+        emailShiftGuardSnap.data()?.status !==
+          "cancelled"
+      ) {
+        throw new Error(
+          "DUPLICATE_SHIFT"
+        );
+      }
+
+      if (
+        personShiftGuardSnap.exists() &&
+        personShiftGuardSnap.data()?.status !==
+          "cancelled"
+      ) {
+        throw new Error(
+          "DUPLICATE_SHIFT"
+        );
+      }
+
+      // --------------------------------------------------------------
+      // Existing shift counter / capacity
+      // --------------------------------------------------------------
+
+      if (!shiftSnap.exists()) {
+        tx.set(
+          shiftRef,
+          {
+            eventId:
+              eventConfig.eventId,
+
+            shiftId:
+              shift.id,
+
+            positionId:
+              position.id,
+
+            positionName:
+              position.name,
+
+            startTime:
+              shift.startTime,
+
+            endTime:
+              shift.endTime,
+
+            label:
+              formatShiftTime(
+                shift.startTime,
+                shift.endTime
+              ),
+
+            capacity:
+              shift.capacity,
+
+            count: 1,
+          }
+        );
+      } else {
+        const shiftData =
+          shiftSnap.data();
+
+        if (
+          typeof shiftData.capacity !==
+            "number" ||
+          typeof shiftData.count !==
+            "number"
+        ) {
+          throw new Error(
+            "SHIFT_UNAVAILABLE"
+          );
+        }
+
+        if (
+          shiftData.count >=
+          shiftData.capacity
+        ) {
+          throw new Error(
+            "SHIFT_FULL"
+          );
+        }
+
+        tx.update(
+          shiftRef,
+          {
+            count:
+              shiftData.count + 1,
+          }
+        );
+      }
+
+      // --------------------------------------------------------------
+      // Create registration
+      // --------------------------------------------------------------
+
+      const registrationPayload = {
+        ...payload,
+
+        emailGuardKey,
+
+        manageLookupId:
+          lookupId,
+      };
 
       tx.set(
         registrationRef,
         buildRegistrationRecord(
-          payload,
+          registrationPayload,
           position,
           shift
         )
       );
 
-      tx.set(emailGuardRef, {
-        registrationId: registrationRef.id,
-        createdAt: serverTimestamp(),
-      });
+      // --------------------------------------------------------------
+      // Create email + shift duplicate guard
+      // --------------------------------------------------------------
 
-      if (phoneNameGuardRef) {
-        tx.set(phoneNameGuardRef, {
-          registrationId: registrationRef.id,
-          lastName: normLast,
-          phone: normPhone,
-          createdAt: serverTimestamp(),
-        });
+      tx.set(
+        emailShiftGuardRef,
+        {
+          registrationId:
+            registrationRef.id,
+
+          type:
+            "email_shift",
+
+          status:
+            "active",
+
+          createdAt:
+            serverTimestamp(),
+        }
+      );
+
+      // --------------------------------------------------------------
+      // Create person + shift duplicate guard
+      // --------------------------------------------------------------
+
+      tx.set(
+        personShiftGuardRef,
+        {
+          registrationId:
+            registrationRef.id,
+
+          type:
+            "person_shift",
+
+          status:
+            "active",
+
+          firstName:
+            normFirst,
+
+          lastName:
+            normLast,
+
+          phone:
+            normPhone,
+
+          shiftId:
+            payload.shiftId,
+
+          createdAt:
+            serverTimestamp(),
+        }
+      );
+
+      // --------------------------------------------------------------
+      // Update public Manage Registrations lookup
+      // --------------------------------------------------------------
+
+      let lookupEntries = [];
+
+      if (
+        lookupSnap.exists()
+      ) {
+        const lookupData =
+          lookupSnap.data();
+
+        if (
+          lookupData.eventId !==
+          eventConfig.eventId
+        ) {
+          throw new Error(
+            "SHIFT_UNAVAILABLE"
+          );
+        }
+
+        if (
+          Array.isArray(
+            lookupData.entries
+          )
+        ) {
+          lookupEntries =
+            [
+              ...lookupData.entries,
+            ];
+        }
       }
 
-      return;
-    }
+      // Remove an accidental duplicate entry for the same registration
+      // before adding the current one.
+      lookupEntries =
+        lookupEntries.filter(
+          (entry) =>
+            entry &&
+            entry.registrationId !==
+              registrationRef.id
+        );
 
-    const shiftData = shiftSnap.data();
+      lookupEntries.push({
+        registrationId:
+          registrationRef.id,
 
-    if (
-      typeof shiftData.capacity !== "number" ||
-      typeof shiftData.count !== "number"
-    ) {
-      throw new Error(
-        "SHIFT_UNAVAILABLE"
-      );
-    }
+        firstName:
+          payload.firstName,
 
-    if (
-      shiftData.count >= shiftData.capacity
-    ) {
-      throw new Error("SHIFT_FULL");
-    }
+        normalizedFirstName:
+          normFirst,
 
-    tx.update(shiftRef, {
-      count: shiftData.count + 1,
-    });
+        lastName:
+          payload.lastName,
 
-    tx.set(
-      registrationRef,
-      buildRegistrationRecord(
-        payload,
-        position,
-        shift
-      )
-    );
+        normalizedLastName:
+          normLast,
 
-    tx.set(emailGuardRef, {
-      registrationId: registrationRef.id,
-      createdAt: serverTimestamp(),
-    });
+        emailHash,
 
-    if (phoneNameGuardRef) {
-      tx.set(phoneNameGuardRef, {
-        registrationId: registrationRef.id,
-        lastName: normLast,
-        phone: normPhone,
-        createdAt: serverTimestamp(),
+        emailGuardKey,
+
+        is18OrOlder:
+          payload.is18OrOlder,
+
+        positionId:
+          position.id,
+
+        positionName:
+          position.name,
+
+        shiftId:
+          shift.id,
+
+        shiftStartTime:
+          shift.startTime,
+
+        shiftEndTime:
+          shift.endTime,
+
+        shiftLabel:
+          formatShiftTime(
+            shift.startTime,
+            shift.endTime
+          ),
+
+        status:
+          "registered",
+
+        cancelledAt:
+          null,
       });
+
+      const existingLookupData =
+  lookupSnap.exists()
+    ? lookupSnap.data()
+    : {};
+
+const registrationIds =
+  Array.isArray(
+    existingLookupData.registrationIds
+  )
+    ? [
+        ...existingLookupData.registrationIds,
+      ]
+    : [];
+
+if (
+  !registrationIds.includes(
+    registrationRef.id
+  )
+) {
+  registrationIds.push(
+    registrationRef.id
+  );
+}
+
+tx.set(
+  lookupRef,
+  {
+    eventId:
+      eventConfig.eventId,
+
+    normalizedLastName:
+      normLast,
+
+    entries:
+      lookupEntries,
+
+    registrationIds,
+
+    updatedAt:
+      serverTimestamp(),
+  },
+  {
+    merge: true,
+  }
+);
     }
-  });
+  );
 
   return registrationRef.id;
 }
@@ -924,11 +1208,26 @@ export function buildRegistrationRecord(
     phone:
       payload.phone,
 
-    normalizedLastName:
-      normalizeLastName(payload.lastName),
+    normalizedFirstName:
+  normalizeFirstName(
+    payload.firstName
+  ),
 
-    normalizedPhone:
-      normalizePhoneNumber(payload.phone),
+normalizedLastName:
+  normalizeLastName(
+    payload.lastName
+  ),
+
+normalizedPhone:
+  normalizePhoneNumber(
+    payload.phone
+  ),
+
+emailGuardKey:
+  payload.emailGuardKey,
+
+manageLookupId:
+  payload.manageLookupId,
 
     is18OrOlder:
       typeof payload.is18OrOlder === "boolean"
@@ -1086,34 +1385,18 @@ function handleSubmissionError(error) {
     return;
   }
 
-  if (
-    code ===
-    "DUPLICATE_REGISTRATION"
-  ) {
-    setError(
-      "submit",
-      "It looks like this email has already been used to register for the festival."
-    );
+  if (code === "DUPLICATE_SHIFT") {
+  setError(
+    "submit",
+    "Looks like you're already registered for this shift. Please choose a different shift."
+  );
 
-    announce(
-      "It looks like this email has already been used to register for the festival."
-    );
+  announce(
+    "Looks like you're already registered for this shift. Please choose a different shift."
+  );
 
-    return;
-  }
-
-  if (code === "DUPLICATE_NAME_PHONE") {
-    setError(
-      "submit",
-      "A volunteer registration with this last name and phone number already exists."
-    );
-
-    announce(
-      "A volunteer registration with this last name and phone number already exists."
-    );
-
-    return;
-  }
+  return;
+}
 
   if (
     code === "SHIFT_FULL" ||

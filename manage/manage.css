@@ -1,0 +1,611 @@
+/* ==========================================================================
+   MANAGE REGISTRATIONS
+   ========================================================================== */
+
+.manage-shell {
+  width: min(900px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 38px 0 70px;
+}
+
+
+/* ==========================================================================
+   HERO
+   ========================================================================== */
+
+.manage-hero {
+  margin-bottom: 20px;
+  padding: 34px;
+
+  color: #ffffff;
+
+  border: 1px solid rgba(242, 163, 70, 0.28);
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      rgba(20, 8, 18, 0.72),
+      rgba(20, 8, 18, 0.72)
+    ),
+    url("https://img.freepik.com/premium-photo/glittering-traditions-modern-diwali-diya-styles_943281-7025.jpg")
+      center center / cover no-repeat;
+
+  box-shadow: var(--shadow-hero);
+}
+
+.manage-hero h1 {
+  margin: 4px 0 10px;
+
+  color: #ffffff;
+
+  font-family: var(--font-display);
+  font-size: clamp(32px, 6vw, 48px);
+  font-weight: 800;
+
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.manage-subtitle {
+  max-width: 680px;
+
+  margin: 0;
+
+  color: rgba(255, 248, 232, 0.84);
+
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.back-link {
+  display: inline-block;
+
+  margin-bottom: 20px;
+
+  color: var(--color-gold);
+
+  font-size: 13px;
+  font-weight: 750;
+
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+
+/* ==========================================================================
+   CARDS
+   ========================================================================== */
+
+.manage-card {
+  padding: 34px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  background: #ffffff;
+
+  box-shadow: var(--shadow-card);
+}
+
+.manage-card + .manage-card {
+  margin-top: 20px;
+}
+
+
+/* ==========================================================================
+   HEADINGS
+   ========================================================================== */
+
+.section-heading {
+  margin-bottom: 24px;
+}
+
+.section-eyebrow {
+  margin: 0 0 5px;
+
+  color: var(--color-gold);
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.section-heading h2,
+.results-header h2,
+.add-shift-section h2 {
+  margin: 0 0 6px;
+
+  color: var(--color-purple);
+
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+
+  letter-spacing: -0.015em;
+}
+
+.section-heading > p:last-child,
+.add-shift-section .section-heading > p:last-child {
+  margin: 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================================================
+   FORM
+   ========================================================================== */
+
+.field-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 18px;
+}
+
+.field {
+  min-width: 0;
+  margin-bottom: 18px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #241927;
+
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+}
+
+
+/* ==========================================================================
+   IDENTITY DISAMBIGUATION
+   ========================================================================== */
+
+.identity-step {
+  margin: 14px 0 20px;
+  padding: 18px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+
+  background: #faf7fb;
+}
+
+.identity-step h3 {
+  margin: 0 0 6px;
+
+  color: var(--color-purple);
+
+  font-family: var(--font-display);
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.identity-step > p {
+  margin: 0 0 15px;
+
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.identity-step .field {
+  margin-bottom: 0;
+}
+
+
+/* ==========================================================================
+   ERRORS
+   ========================================================================== */
+
+.lookup-error {
+  margin: 4px 0 14px;
+}
+
+
+/* ==========================================================================
+   RESULTS HEADER
+   ========================================================================== */
+
+.results-header {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  margin-bottom: 22px;
+}
+
+.results-header .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+
+/* ==========================================================================
+   REGISTRATION CARDS
+   ========================================================================== */
+
+.registration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.registration-item {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 18px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+
+  background: #ffffff;
+}
+
+.registration-item-main {
+  min-width: 0;
+}
+
+.registration-position {
+  margin: 0 0 4px;
+
+  color: var(--color-purple);
+
+  font-family: var(--font-display);
+
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.registration-shift {
+  margin: 0;
+
+  color: var(--color-text);
+
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.registration-status {
+  display: inline-flex;
+  align-items: center;
+
+  margin-top: 9px;
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.registration-status.active {
+  color: #236844;
+  background: var(--color-success-tint);
+}
+
+.registration-status.cancelled {
+  color: #746d76;
+  background: #f1eff2;
+}
+
+.registration-item-actions {
+  flex: 0 0 auto;
+}
+
+.registration-item-actions button {
+  width: auto;
+}
+
+.cancel-btn {
+  color: #a21f37;
+
+  background: #ffffff;
+
+  border-color: #e2bec7;
+}
+
+.cancel-btn:hover {
+  color: #8e1730;
+
+  background: #fff7f8;
+
+  border-color: var(--color-danger);
+}
+
+
+/* ==========================================================================
+   ADD SHIFT
+   ========================================================================== */
+
+.add-shift-section {
+  margin-top: 32px;
+  padding-top: 28px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+.add-shift-section .section-heading {
+  margin-bottom: 18px;
+}
+
+.add-shift-fields {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 18px;
+
+  margin-top: 20px;
+}
+
+.add-shift-fields .field {
+  margin-bottom: 0;
+}
+
+
+/* ==========================================================================
+   SHIFT PICKER
+   ========================================================================== */
+
+.manage-slot-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.manage-position {
+  overflow: hidden;
+
+  border: 1px solid rgba(83, 37, 100, 0.16);
+  border-radius: 18px;
+
+  background: #ffffff;
+}
+
+.manage-position-header {
+  padding: 15px 17px;
+
+  border-bottom: 1px solid rgba(83, 37, 100, 0.10);
+
+  background: #f4eef8;
+}
+
+.manage-position-header h3 {
+  margin: 0;
+
+  color: var(--color-purple);
+
+  font-family: var(--font-display);
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.manage-shifts {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(180px, 1fr)
+    );
+
+  gap: 10px;
+
+  padding: 13px;
+}
+
+.manage-shift {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+
+  min-height: 70px;
+
+  padding: 12px 13px;
+
+  border: 1.5px solid #e3dbe6;
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  color: #291c2d;
+
+  font: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.10s ease;
+}
+
+.manage-shift:hover:not(:disabled) {
+  border-color: var(--color-purple);
+  background: #f9f4fb;
+
+  box-shadow:
+    0 5px 16px rgba(83, 37, 100, 0.10);
+
+  transform: translateY(-1px);
+}
+
+.manage-shift:focus-visible {
+  outline: none;
+
+  border-color: var(--color-purple);
+
+  box-shadow:
+    0 0 0 3px rgba(83, 37, 100, 0.18);
+}
+
+.manage-shift.selected {
+  border-color: var(--color-purple);
+  background: var(--color-purple);
+  color: #ffffff;
+
+  box-shadow:
+    0 8px 22px rgba(83, 37, 100, 0.20);
+}
+
+.manage-shift.selected:hover:not(:disabled) {
+  border-color: var(--color-purple-hover);
+  background: var(--color-purple-hover);
+  color: #ffffff;
+}
+
+.manage-shift:disabled {
+  background: #f2f0f2;
+  border-color: #e2dfe3;
+  color: #9f989f;
+
+  cursor: not-allowed;
+}
+
+.manage-shift-time {
+  display: block;
+
+  color: inherit;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.manage-shift-capacity {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #776b7b;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.manage-shift.selected .manage-shift-capacity {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+.manage-footer {
+  padding-top: 22px;
+
+  text-align: center;
+}
+
+.manage-footer a {
+  color: var(--color-gold);
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-decoration: none;
+}
+
+.manage-footer a:hover {
+  text-decoration: underline;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 700px) {
+
+  .manage-shell {
+    width: min(100% - 24px, 900px);
+
+    padding-top: 20px;
+  }
+
+  .manage-hero,
+  .manage-card {
+    padding: 23px;
+  }
+
+  .field-grid,
+  .add-shift-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .results-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-header .btn {
+    width: 100%;
+  }
+
+  .registration-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .registration-item-actions button {
+    width: 100%;
+  }
+
+  .manage-shifts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .manage-shell {
+    width: calc(100% - 20px);
+  }
+
+  .manage-hero,
+  .manage-card {
+    border-radius: 18px;
+  }
+}
