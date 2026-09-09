@@ -17,7 +17,6 @@
 import {
   CONFIG,
   VOLUNTEER_POSITIONS,
-  formatTime,
   formatShiftTime,
   getPositionById,
   getShiftById,
@@ -29,7 +28,10 @@ import {
   sha256Hex,
 } from "./config.js";
 
-import { db, logSafeEvent } from "./firebase-init.js";
+import {
+  db,
+  logSafeEvent,
+} from "./firebase-init.js";
 
 import {
   doc,
@@ -43,14 +45,35 @@ import {
 // DOM references
 // ----------------------------------------------------------------------------
 
-const form = document.getElementById("registration-form");
-const confirmationView = document.getElementById("confirmation-view");
-const statusLive = document.getElementById("status-live");
+const form =
+  document.getElementById(
+    "registration-form"
+  );
 
-const positionShiftList = document.getElementById("slot-grid");
+const confirmationView =
+  document.getElementById(
+    "confirmation-view"
+  );
 
-const submitBtn = document.getElementById("submit-btn");
-const errSubmit = document.getElementById("err-submit");
+const statusLive =
+  document.getElementById(
+    "status-live"
+  );
+
+const positionShiftList =
+  document.getElementById(
+    "slot-grid"
+  );
+
+const submitBtn =
+  document.getElementById(
+    "submit-btn"
+  );
+
+const errSubmit =
+  document.getElementById(
+    "err-submit"
+  );
 
 // ----------------------------------------------------------------------------
 // Module state
@@ -62,47 +85,87 @@ let selectedShiftId = null;
 let shiftAvailability = {};
 let submissionInFlight = false;
 
-let eventConfig = { ...CONFIG };
+let eventConfig = {
+  ...CONFIG,
+};
 
 // ============================================================================
 // Pure helper functions
 // ============================================================================
 
 function parseIsoDate(value) {
-  if (typeof value !== "string") return null;
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
+  if (typeof value !== "string") {
     return null;
   }
 
-  return { year, month, day };
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})$/.exec(
+      value.trim()
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  const year =
+    Number(match[1]);
+
+  const month =
+    Number(match[2]);
+
+  const day =
+    Number(match[3]);
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+
+  return {
+    year,
+    month,
+    day,
+  };
 }
 
-function formatDisplayDate(isoDate, { weekday = false } = {}) {
-  const parts = parseIsoDate(isoDate);
+function formatDisplayDate(
+  isoDate,
+  { weekday = false } = {}
+) {
+  const parts =
+    parseIsoDate(
+      isoDate
+    );
 
-  if (!parts) return isoDate;
+  if (!parts) {
+    return isoDate;
+  }
 
-  const date = new Date(
-    parts.year,
-    parts.month - 1,
-    parts.day
+  const date =
+    new Date(
+      parts.year,
+      parts.month - 1,
+      parts.day
+    );
+
+  return date.toLocaleDateString(
+    "en-US",
+    {
+      ...(weekday
+        ? {
+            weekday:
+              "long",
+          }
+        : {}),
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }
   );
-
-  return date.toLocaleDateString("en-US", {
-    ...(weekday ? { weekday: "long" } : {}),
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 function isLikelyValidEmail(value) {
@@ -112,42 +175,127 @@ function isLikelyValidEmail(value) {
 }
 
 function formatPhoneNumber(value) {
-  const digits = String(value || "")
-    .replace(/\D/g, "")
-    .slice(0, 10);
+  const digits =
+    String(value || "")
+      .replace(/\D/g, "")
+      .slice(0, 10);
 
   if (digits.length <= 3) {
     return digits;
   }
 
   if (digits.length <= 6) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(
+      0,
+      3
+    )}) ${digits.slice(
+      3
+    )}`;
   }
 
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(
+    0,
+    3
+  )}) ${digits.slice(
+    3,
+    6
+  )}-${digits.slice(
+    6
+  )}`;
 }
 
 function normalizePhoneInput(event) {
-  event.target.value = formatPhoneNumber(event.target.value);
+  event.target.value =
+    formatPhoneNumber(
+      event.target.value
+    );
 }
 
-function formatShiftDuration(startTime, endTime) {
-  const start = Number(startTime.slice(0, 2)) * 60 +
-    Number(startTime.slice(2));
+function timeToMinutes(hhmm) {
+  const text =
+    String(hhmm || "");
 
-  const end = Number(endTime.slice(0, 2)) * 60 +
-    Number(endTime.slice(2));
+  const hour =
+    Number(
+      text.slice(0, 2)
+    );
 
-  const minutes = end - start;
+  const minute =
+    Number(
+      text.slice(2)
+    );
+
+  return (
+    hour * 60 +
+    minute
+  );
+}
+
+function hasTimeOverlap(
+  startA,
+  endA,
+  startB,
+  endB
+) {
+  const aStart =
+    timeToMinutes(
+      startA
+    );
+
+  const aEnd =
+    timeToMinutes(
+      endA
+    );
+
+  const bStart =
+    timeToMinutes(
+      startB
+    );
+
+  const bEnd =
+    timeToMinutes(
+      endB
+    );
+
+  return (
+    aStart < bEnd &&
+    bStart < aEnd
+  );
+}
+
+function formatShiftDuration(
+  startTime,
+  endTime
+) {
+  const start =
+    timeToMinutes(
+      startTime
+    );
+
+  const end =
+    timeToMinutes(
+      endTime
+    );
+
+  const minutes =
+    end - start;
 
   if (minutes <= 0) {
     return "";
   }
 
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
 
-  if (hours > 0 && remainingMinutes > 0) {
+  const remainingMinutes =
+    minutes % 60;
+
+  if (
+    hours > 0 &&
+    remainingMinutes > 0
+  ) {
     return `${hours} hr ${remainingMinutes} min`;
   }
 
@@ -164,30 +312,53 @@ function formatShiftDuration(startTime, endTime) {
 
 async function loadEventSettings() {
   try {
-    const snap = await getDoc(
-      doc(db, "eventSettings", CONFIG.eventId)
-    );
+    const snap =
+      await getDoc(
+        doc(
+          db,
+          "eventSettings",
+          CONFIG.eventId
+        )
+      );
 
     if (!snap.exists()) {
       return;
     }
 
-    const data = snap.data();
+    const data =
+      snap.data();
 
     eventConfig = {
       ...CONFIG,
-      eventName: data.eventName || CONFIG.eventName,
-      eventDate: data.eventDate || CONFIG.eventDate,
-      location: data.location || CONFIG.location,
-      timeZone: data.timeZone || CONFIG.timeZone,
+
+      eventName:
+        data.eventName ||
+        CONFIG.eventName,
+
+      eventDate:
+        data.eventDate ||
+        CONFIG.eventDate,
+
+      location:
+        data.location ||
+        CONFIG.location,
+
+      timeZone:
+        data.timeZone ||
+        CONFIG.timeZone,
+
       timeZoneLabel:
-        data.timeZoneLabel || CONFIG.timeZoneLabel,
+        data.timeZoneLabel ||
+        CONFIG.timeZoneLabel,
     };
   } catch (error) {
     logRegistrationStep(
       "Event settings load failed; using bundled defaults",
       {
-        code: error?.code || error?.message || "unknown",
+        code:
+          error?.code ||
+          error?.message ||
+          "unknown",
       }
     );
   }
@@ -198,11 +369,13 @@ function eventRegistrationTitle() {
 }
 
 function renderConfigurableCopy() {
-  document.title = eventRegistrationTitle();
+  document.title =
+    eventRegistrationTitle();
 
-  const metaDescription = document.querySelector(
-    'meta[name="description"]'
-  );
+  const metaDescription =
+    document.querySelector(
+      'meta[name="description"]'
+    );
 
   if (metaDescription) {
     metaDescription.setAttribute(
@@ -211,37 +384,52 @@ function renderConfigurableCopy() {
     );
   }
 
-  const title = document.querySelector(".title");
+  const title =
+    document.querySelector(
+      ".title"
+    );
 
   if (title) {
-    title.textContent = eventRegistrationTitle();
+    title.textContent =
+      eventRegistrationTitle();
   }
 
   const submitLabel =
     `Register for ${eventConfig.eventName}`;
 
   if (submitBtn) {
-    submitBtn.textContent = submitLabel;
+    submitBtn.textContent =
+      submitLabel;
   }
 
-  const dateElements = document.querySelectorAll(
-    "[data-event-date]"
-  );
-
-  dateElements.forEach((element) => {
-    element.textContent = formatDisplayDate(
-      eventConfig.eventDate,
-      { weekday: true }
+  const dateElements =
+    document.querySelectorAll(
+      "[data-event-date]"
     );
-  });
 
-  const locationElements = document.querySelectorAll(
-    "[data-event-location]"
+  dateElements.forEach(
+    (element) => {
+      element.textContent =
+        formatDisplayDate(
+          eventConfig.eventDate,
+          {
+            weekday: true,
+          }
+        );
+    }
   );
 
-  locationElements.forEach((element) => {
-    element.textContent = eventConfig.location;
-  });
+  const locationElements =
+    document.querySelectorAll(
+      "[data-event-location]"
+    );
+
+  locationElements.forEach(
+    (element) => {
+      element.textContent =
+        eventConfig.location;
+    }
+  );
 }
 
 // ============================================================================
@@ -249,23 +437,39 @@ function renderConfigurableCopy() {
 // ============================================================================
 
 function renderHeader() {
-  const factDate = document.getElementById("fact-date");
-  const factTime = document.getElementById("fact-time");
-  const factLocation = document.getElementById("fact-location");
+  const factDate =
+    document.getElementById(
+      "fact-date"
+    );
+
+  const factTime =
+    document.getElementById(
+      "fact-time"
+    );
+
+  const factLocation =
+    document.getElementById(
+      "fact-location"
+    );
 
   if (factDate) {
-    factDate.textContent = formatDisplayDate(
-      eventConfig.eventDate,
-      { weekday: true }
-    );
+    factDate.textContent =
+      formatDisplayDate(
+        eventConfig.eventDate,
+        {
+          weekday: true,
+        }
+      );
   }
 
   if (factTime) {
-    factTime.textContent = "Volunteer shifts throughout the day";
+    factTime.textContent =
+      "Volunteer shifts throughout the day";
   }
 
   if (factLocation) {
-    factLocation.textContent = eventConfig.location;
+    factLocation.textContent =
+      eventConfig.location;
   }
 }
 
@@ -278,30 +482,44 @@ function renderPositionShiftList() {
     return;
   }
 
-  positionShiftList.textContent = "";
+  positionShiftList.textContent =
+    "";
 
-  for (const position of VOLUNTEER_POSITIONS) {
+  for (
+    const position of
+      VOLUNTEER_POSITIONS
+  ) {
     const positionCard =
-      document.createElement("section");
+      document.createElement(
+        "section"
+      );
 
-    positionCard.className = "position-card";
+    positionCard.className =
+      "position-card";
+
     positionCard.dataset.positionId =
       position.id;
 
     const positionHeader =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     positionHeader.className =
       "position-header";
 
     const headerText =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     headerText.className =
       "position-header-text";
 
     const title =
-      document.createElement("h3");
+      document.createElement(
+        "h3"
+      );
 
     title.className =
       "position-title";
@@ -310,21 +528,33 @@ function renderPositionShiftList() {
       position.name;
 
     const description =
-      document.createElement("p");
+      document.createElement(
+        "p"
+      );
 
     description.className =
       "position-description";
 
     description.textContent =
-      position.description || "";
+      position.description ||
+      "";
 
-    headerText.appendChild(title);
-    headerText.appendChild(description);
+    headerText.appendChild(
+      title
+    );
 
-    positionHeader.appendChild(headerText);
+    headerText.appendChild(
+      description
+    );
+
+    positionHeader.appendChild(
+      headerText
+    );
 
     const shiftList =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     shiftList.className =
       "shift-list";
@@ -339,18 +569,28 @@ function renderPositionShiftList() {
       `${position.name} shifts`
     );
 
-    for (const shift of position.shifts) {
+    for (
+      const shift of
+        position.shifts
+    ) {
       const availability =
-        shiftAvailability[shift.id] || {
-          capacity: shift.capacity,
+        shiftAvailability[
+          shift.id
+        ] || {
+          capacity:
+            shift.capacity,
           count: 0,
         };
 
       const capacity =
-        Number(availability.capacity);
+        Number(
+          availability.capacity
+        );
 
       const count =
-        Number(availability.count);
+        Number(
+          availability.count
+        );
 
       const remaining =
         Math.max(
@@ -362,24 +602,40 @@ function renderPositionShiftList() {
         remaining <= 0;
 
       const isSelected =
-        selectedPositionId === position.id &&
-        selectedShiftId === shift.id;
+        selectedPositionId ===
+          position.id &&
+        selectedShiftId ===
+          shift.id;
 
       const button =
-        document.createElement("button");
+        document.createElement(
+          "button"
+        );
 
-      button.type = "button";
+      button.type =
+        "button";
 
       button.className =
         "shift-btn" +
-        (isSelected ? " selected" : "") +
-        (isFull ? " full" : "");
+        (
+          isSelected
+            ? " selected"
+            : ""
+        ) +
+        (
+          isFull
+            ? " full"
+            : ""
+        );
 
-      button.disabled = isFull;
+      button.disabled =
+        isFull;
 
       button.setAttribute(
         "aria-pressed",
-        String(isSelected)
+        String(
+          isSelected
+        )
       );
 
       button.dataset.positionId =
@@ -389,7 +645,9 @@ function renderPositionShiftList() {
         shift.id;
 
       const timeElement =
-        document.createElement("span");
+        document.createElement(
+          "span"
+        );
 
       timeElement.className =
         "shift-time";
@@ -407,7 +665,9 @@ function renderPositionShiftList() {
         );
 
       const capacityElement =
-        document.createElement("span");
+        document.createElement(
+          "span"
+        );
 
       capacityElement.className =
         "shift-capacity";
@@ -421,16 +681,25 @@ function renderPositionShiftList() {
       } else {
         capacityElement.textContent =
           `${remaining} spot${
-            remaining === 1 ? "" : "s"
+            remaining === 1
+              ? ""
+              : "s"
           } left`;
       }
 
-      button.appendChild(timeElement);
-      button.appendChild(capacityElement);
+      button.appendChild(
+        timeElement
+      );
+
+      button.appendChild(
+        capacityElement
+      );
 
       if (duration) {
         const durationElement =
-          document.createElement("span");
+          document.createElement(
+            "span"
+          );
 
         durationElement.className =
           "shift-duration";
@@ -455,7 +724,10 @@ function renderPositionShiftList() {
 
             renderPositionShiftList();
 
-            setError("slot", "");
+            setError(
+              "slot",
+              ""
+            );
 
             announce(
               `${position.name}, ${formatShiftTime(
@@ -467,7 +739,9 @@ function renderPositionShiftList() {
         );
       }
 
-      shiftList.appendChild(button);
+      shiftList.appendChild(
+        button
+      );
     }
 
     positionCard.appendChild(
@@ -493,63 +767,88 @@ function shiftDocId(shiftId) {
 }
 
 /**
- * Best-effort read of current shift availability.
+ * Best-effort availability read for display only.
  *
- * This is only for display. The authoritative capacity check happens
- * inside the Firestore transaction in reserveShiftAndCreateRegistration().
+ * The authoritative capacity check happens inside the Firestore transaction.
  */
 async function loadShiftAvailability() {
-  const results = await Promise.allSettled(
-    VOLUNTEER_POSITIONS.flatMap((position) =>
-      position.shifts.map(async (shift) => {
-        const ref = doc(
-          db,
-          "shiftCounts",
-          shiftDocId(shift.id)
-        );
+  const results =
+    await Promise.allSettled(
+      VOLUNTEER_POSITIONS.flatMap(
+        (position) =>
+          position.shifts.map(
+            async (shift) => {
+              const ref =
+                doc(
+                  db,
+                  "shiftCounts",
+                  shiftDocId(
+                    shift.id
+                  )
+                );
 
-        const snap = await getDoc(ref);
+              const snap =
+                await getDoc(
+                  ref
+                );
 
-        if (snap.exists()) {
-          const data = snap.data();
+              if (snap.exists()) {
+                const data =
+                  snap.data();
 
-          return [
-            shift.id,
-            {
-              capacity:
-                typeof data.capacity === "number"
-                  ? data.capacity
-                  : shift.capacity,
+                return [
+                  shift.id,
+                  {
+                    capacity:
+                      typeof data.capacity ===
+                      "number"
+                        ? data.capacity
+                        : shift.capacity,
 
-              count:
-                typeof data.count === "number"
-                  ? data.count
-                  : 0,
-            },
-          ];
-        }
+                    count:
+                      typeof data.count ===
+                      "number"
+                        ? data.count
+                        : 0,
+                  },
+                ];
+              }
 
-        return [
-          shift.id,
-          {
-            capacity: shift.capacity,
-            count: 0,
-          },
-        ];
-      })
-    )
-  );
+              return [
+                shift.id,
+                {
+                  capacity:
+                    shift.capacity,
+
+                  count: 0,
+                },
+              ];
+            }
+          )
+      )
+    );
 
   const next = {};
 
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      const [shiftId, availability] = result.value;
-      next[shiftId] = availability;
+  for (
+    const result of results
+  ) {
+    if (
+      result.status ===
+      "fulfilled"
+    ) {
+      const [
+        shiftId,
+        availability,
+      ] = result.value;
+
+      next[shiftId] =
+        availability;
     }
   }
 
-  shiftAvailability = next;
+  shiftAvailability =
+    next;
 
   renderPositionShiftList();
 }
@@ -558,36 +857,62 @@ async function loadShiftAvailability() {
 // Validation
 // ============================================================================
 
-function setError(fieldId, message) {
-  const errorElement = document.getElementById(
-    `err-${fieldId}`
-  );
+function setError(
+  fieldId,
+  message
+) {
+  const errorElement =
+    document.getElementById(
+      `err-${fieldId}`
+    );
 
   if (errorElement) {
-    errorElement.textContent = message || "";
+    errorElement.textContent =
+      message || "";
   }
 
-  const input = document.getElementById(fieldId);
+  const input =
+    document.getElementById(
+      fieldId
+    );
 
   if (input) {
     if (message) {
-      input.setAttribute("aria-invalid", "true");
+      input.setAttribute(
+        "aria-invalid",
+        "true"
+      );
     } else {
-      input.removeAttribute("aria-invalid");
+      input.removeAttribute(
+        "aria-invalid"
+      );
     }
   }
 }
 
 function clearAllErrors() {
-  document.querySelectorAll(".error").forEach((element) => {
-    element.textContent = "";
-  });
+  document
+    .querySelectorAll(
+      ".error"
+    )
+    .forEach(
+      (element) => {
+        element.textContent =
+          "";
+      }
+    );
 
   document
-    .querySelectorAll("[aria-invalid]")
-    .forEach((element) => {
-      element.removeAttribute("aria-invalid");
-    });
+    .querySelectorAll(
+      "[aria-invalid]"
+    )
+    .forEach(
+      (element) => {
+        element.removeAttribute(
+          "aria-invalid"
+        );
+      }
+    );
 }
 
 /**
@@ -599,81 +924,142 @@ export function validateForm(
   currentSelectedShiftId
 ) {
   const firstName =
-    document.getElementById("firstName")?.value.trim() || "";
+    document.getElementById(
+      "firstName"
+    )?.value.trim() ||
+    "";
 
   const lastName =
-    document.getElementById("lastName")?.value.trim() || "";
+    document.getElementById(
+      "lastName"
+    )?.value.trim() ||
+    "";
 
   const email =
-    document.getElementById("studentEmail")?.value.trim() || "";
+    document.getElementById(
+      "studentEmail"
+    )?.value.trim() ||
+    "";
 
   const phoneInput =
-    document.getElementById("phone");
+    document.getElementById(
+      "phone"
+    );
 
   const phone =
-    formatPhoneNumber(phoneInput?.value || "");
+    formatPhoneNumber(
+      phoneInput?.value ||
+        ""
+    );
 
   const notes =
-    document.getElementById("notes")?.value.trim() || "";
+    document.getElementById(
+      "notes"
+    )?.value.trim() ||
+    "";
 
   const eligAge =
-    document.getElementById("eligAge");
+    document.getElementById(
+      "eligAge"
+    );
 
   let valid = true;
-  let firstInvalidFieldId = null;
 
-  const fail = (fieldId, message) => {
-    setError(fieldId, message);
+  let firstInvalidFieldId =
+    null;
 
-    if (!firstInvalidFieldId) {
-      firstInvalidFieldId = fieldId;
+  const fail = (
+    fieldId,
+    message
+  ) => {
+    setError(
+      fieldId,
+      message
+    );
+
+    if (
+      !firstInvalidFieldId
+    ) {
+      firstInvalidFieldId =
+        fieldId;
     }
 
     valid = false;
   };
 
-  if (!firstName || firstName.length < 2) {
+  if (
+    !firstName ||
+    firstName.length < 2
+  ) {
     fail(
       "firstName",
       "Enter your first name."
     );
   }
 
-  if (!lastName || lastName.length < 2) {
+  if (
+    !lastName ||
+    lastName.length < 2
+  ) {
     fail(
       "lastName",
       "Enter your last name."
     );
   }
 
-  if (!email || !isLikelyValidEmail(email)) {
+  if (
+    !email ||
+    !isLikelyValidEmail(
+      email
+    )
+  ) {
     fail(
       "studentEmail",
       "Enter a valid email address."
     );
   }
 
-  if (!phone || phone.replace(/\D/g, "").length !== 10) {
+  if (
+    !phone ||
+    phone.replace(
+      /\D/g,
+      ""
+    ).length !== 10
+  ) {
     fail(
       "phone",
       "Enter a valid 10-digit phone number."
     );
-  } else if (phoneInput) {
-    phoneInput.value = phone;
+  } else if (
+    phoneInput
+  ) {
+    phoneInput.value =
+      phone;
   }
 
-  const ageInput = formEl?.querySelector('input[name="is18OrOlder"]:checked');
+  const ageInput =
+    formEl?.querySelector(
+      'input[name="is18OrOlder"]:checked'
+    );
+
   if (!ageInput) {
     fail(
       "is18OrOlder",
       "Please indicate whether you are 18 years of age or older."
     );
   }
-  const is18OrOlder = ageInput ? ageInput.value === "yes" : null;
+
+  const is18OrOlder =
+    ageInput
+      ? ageInput.value ===
+        "yes"
+      : null;
 
   const position =
     currentSelectedPositionId
-      ? getPositionById(currentSelectedPositionId)
+      ? getPositionById(
+          currentSelectedPositionId
+        )
       : null;
 
   const shift =
@@ -711,17 +1097,75 @@ export function validateForm(
     firstInvalidFieldId,
     position,
     shift,
+
     payload: {
       firstName,
       lastName,
       email,
       phone,
       is18OrOlder,
-      positionId: currentSelectedPositionId,
-      shiftId: currentSelectedShiftId,
+      positionId:
+        currentSelectedPositionId,
+      shiftId:
+        currentSelectedShiftId,
       notes,
     },
   };
+}
+
+// ============================================================================
+// Volunteer identity matching
+// ============================================================================
+
+/**
+ * Determines whether an existing registration belongs to the same volunteer.
+ *
+ * Primary identity:
+ *   First name + last name + phone
+ *
+ * Additional identity signal:
+ *   First name + last name + email
+ *
+ * Email alone is intentionally NOT sufficient, because multiple volunteers
+ * may legitimately use the same email address.
+ */
+function isSameVolunteer(
+  entry,
+  {
+    normFirst,
+    normLast,
+    normPhone,
+    emailHash,
+  }
+) {
+  if (!entry) {
+    return false;
+  }
+
+  const sameName =
+    entry.normalizedFirstName ===
+      normFirst &&
+    entry.normalizedLastName ===
+      normLast;
+
+  if (!sameName) {
+    return false;
+  }
+
+  const samePhone =
+    entry.normalizedPhone ===
+    normPhone;
+
+  const sameEmail =
+    typeof emailHash ===
+      "string" &&
+    entry.emailHash ===
+      emailHash;
+
+  return (
+    samePhone ||
+    sameEmail
+  );
 }
 
 // ============================================================================
@@ -729,31 +1173,44 @@ export function validateForm(
 // ============================================================================
 
 /**
- * Atomically reserves capacity and creates the volunteer registration.
+ * Atomically reserves capacity and creates a volunteer registration.
  *
- * Firestore structure:
+ * Rules:
  *
- * shiftCounts/{eventId_shiftId}
- * registrations/{registrationId}
- * registrationGuards/{shift-specific duplicate guards}
+ *   Same volunteer + same shift
+ *       → BLOCK
  *
- * The capacity check and registration creation happen in one transaction,
- * preventing two simultaneous registrations from exceeding capacity.
+ *   Same volunteer + overlapping shift
+ *       → BLOCK
+ *
+ *   Same volunteer + non-overlapping shift
+ *       → ALLOW
+ *
+ *   Different first name + same email/phone
+ *       → ALLOW
+ *
+ * Email is never used by itself as a volunteer identity.
  */
 export async function reserveShiftAndCreateRegistration(
   payload
 ) {
-  const shiftRef = doc(
-    db,
-    "shiftCounts",
-    shiftDocId(payload.shiftId)
-  );
+  const shiftRef =
+    doc(
+      db,
+      "shiftCounts",
+      shiftDocId(
+        payload.shiftId
+      )
+    );
 
-  const registrationRef = doc(
-    collection(db, "registrations")
-  );
+  const registrationRef =
+    doc(
+      collection(
+        db,
+        "registrations"
+      )
+    );
 
-  // Normalize the volunteer identity.
   const normFirst =
     normalizeFirstName(
       payload.firstName
@@ -770,23 +1227,22 @@ export async function reserveShiftAndCreateRegistration(
     );
 
   const normEmail =
-    String(payload.email || "")
+    String(
+      payload.email || ""
+    )
       .trim()
       .toLowerCase();
 
-  // Stable, non-PII key used by the email/shift duplicate guard.
   const emailGuardKey =
     encodeURIComponent(
       normEmail
     );
 
-  // Hash of the email used inside the public lookup record.
   const emailHash =
     await sha256Hex(
       normEmail
     );
 
-  // Public lookup document for this last-name + phone combination.
   const lookupId =
     await getRegistrationLookupId(
       payload.lastName,
@@ -794,18 +1250,30 @@ export async function reserveShiftAndCreateRegistration(
       eventConfig.eventId
     );
 
-  const lookupRef = doc(
-    db,
-    "registrationLookups",
-    lookupId
-  );
+  const lookupRef =
+    doc(
+      db,
+      "registrationLookups",
+      lookupId
+    );
 
-  // Same first name + last name + phone + same shift = duplicate.
-  const personShiftGuardRef = doc(
-    db,
-    "registrationGuards",
-    `person_shift_${normFirst}_${normLast}_${normPhone}_${payload.shiftId}`
-  );
+  // Exact person + shift guard.
+  const personShiftGuardRef =
+    doc(
+      db,
+      "registrationGuards",
+      `person_shift_${normFirst}_${normLast}_${normPhone}_${payload.shiftId}`
+    );
+
+  // Same first/last/email + shift guard.
+  // This supplements the phone-based identity without making email alone
+  // a restriction.
+  const emailPersonShiftGuardRef =
+    doc(
+      db,
+      "registrationGuards",
+      `email_person_shift_${emailHash}_${normFirst}_${normLast}_${payload.shiftId}`
+    );
 
   const shiftResult =
     findShift(
@@ -830,23 +1298,29 @@ export async function reserveShiftAndCreateRegistration(
   await runTransaction(
     db,
     async (tx) => {
-      const reads = [
-  tx.get(shiftRef),
-  tx.get(lookupRef),
-  tx.get(personShiftGuardRef),
-];
+      const [
+        shiftSnap,
+        lookupSnap,
+        personShiftGuardSnap,
+        emailPersonShiftGuardSnap,
+      ] = await Promise.all([
+        tx.get(
+          shiftRef
+        ),
+        tx.get(
+          lookupRef
+        ),
+        tx.get(
+          personShiftGuardRef
+        ),
+        tx.get(
+          emailPersonShiftGuardRef
+        ),
+      ]);
 
-const results = await Promise.all(reads);
-const shiftSnap = results[0];
-const lookupSnap = results[1];
-const personShiftGuardSnap = results[2];
-
-if (
-  personShiftGuardSnap.exists() &&
-  personShiftGuardSnap.data()?.status !== "cancelled"
-) {
-  throw new Error("DUPLICATE_SHIFT");
-}
+      // ----------------------------------------------------------------------
+      // Exact duplicate guards.
+      // ----------------------------------------------------------------------
 
       if (
         personShiftGuardSnap.exists() &&
@@ -858,11 +1332,108 @@ if (
         );
       }
 
-      // --------------------------------------------------------------
-      // Existing shift counter / capacity
-      // --------------------------------------------------------------
+      if (
+        emailPersonShiftGuardSnap.exists() &&
+        emailPersonShiftGuardSnap.data()?.status !==
+          "cancelled"
+      ) {
+        throw new Error(
+          "DUPLICATE_SHIFT"
+        );
+      }
 
-      if (!shiftSnap.exists()) {
+      // ----------------------------------------------------------------------
+      // Determine existing registrations for this volunteer.
+      // ----------------------------------------------------------------------
+
+      const lookupData =
+        lookupSnap.exists()
+          ? lookupSnap.data()
+          : {};
+
+      const lookupEntries =
+        Array.isArray(
+          lookupData.entries
+        )
+          ? lookupData.entries
+          : [];
+
+      const sameVolunteerEntries =
+        lookupEntries
+          .filter(
+            (entry) =>
+              entry &&
+              entry.status ===
+                "registered"
+          )
+          .filter(
+            (entry) =>
+              isSameVolunteer(
+                entry,
+                {
+                  normFirst,
+                  normLast,
+                  normPhone,
+                  emailHash,
+                }
+              )
+          );
+
+      // ----------------------------------------------------------------------
+      // Same volunteer + same shift.
+      // ----------------------------------------------------------------------
+
+      const alreadyRegistered =
+        sameVolunteerEntries.some(
+          (entry) =>
+            entry.shiftId ===
+            payload.shiftId
+        );
+
+      if (
+        alreadyRegistered
+      ) {
+        throw new Error(
+          "DUPLICATE_SHIFT"
+        );
+      }
+
+      // ----------------------------------------------------------------------
+      // Same volunteer + overlapping shift.
+      // ----------------------------------------------------------------------
+
+      const overlapping =
+        sameVolunteerEntries.some(
+          (entry) =>
+            hasTimeOverlap(
+              entry.shiftStartTime,
+              entry.shiftEndTime,
+              shift.startTime,
+              shift.endTime
+            )
+        );
+
+      if (overlapping) {
+        throw new Error(
+          "SHIFT_OVERLAP"
+        );
+      }
+
+      // ----------------------------------------------------------------------
+      // Capacity.
+      // ----------------------------------------------------------------------
+
+      if (
+        shift.capacity <= 0
+      ) {
+        throw new Error(
+          "SHIFT_FULL"
+        );
+      }
+
+      if (
+        !shiftSnap.exists()
+      ) {
         tx.set(
           shiftRef,
           {
@@ -893,7 +1464,8 @@ if (
             capacity:
               shift.capacity,
 
-            count: 1,
+            count:
+              1,
           }
         );
       } else {
@@ -929,31 +1501,29 @@ if (
         );
       }
 
-      // --------------------------------------------------------------
-      // Create registration
-      // --------------------------------------------------------------
-
-      const registrationPayload = {
-        ...payload,
-
-        emailGuardKey,
-
-        manageLookupId:
-          lookupId,
-      };
+      // ----------------------------------------------------------------------
+      // Create private registration.
+      // ----------------------------------------------------------------------
 
       tx.set(
         registrationRef,
         buildRegistrationRecord(
-          registrationPayload,
+          {
+            ...payload,
+
+            emailGuardKey,
+
+            manageLookupId:
+              lookupId,
+          },
           position,
           shift
         )
       );
-      
-      // --------------------------------------------------------------
-      // Create person + shift duplicate guard
-      // --------------------------------------------------------------
+
+      // ----------------------------------------------------------------------
+      // Create phone-based person/shift guard.
+      // ----------------------------------------------------------------------
 
       tx.set(
         personShiftGuardRef,
@@ -984,42 +1554,43 @@ if (
         }
       );
 
-      // --------------------------------------------------------------
-      // Update public Manage Registrations lookup
-      // --------------------------------------------------------------
+      // ----------------------------------------------------------------------
+      // Create email + name + shift supplemental guard.
+      // ----------------------------------------------------------------------
 
-      let lookupEntries = [];
+      tx.set(
+        emailPersonShiftGuardRef,
+        {
+          registrationId:
+            registrationRef.id,
 
-      if (
-        lookupSnap.exists()
-      ) {
-        const lookupData =
-          lookupSnap.data();
+          type:
+            "email_person_shift",
 
-        if (
-          lookupData.eventId !==
-          eventConfig.eventId
-        ) {
-          throw new Error(
-            "SHIFT_UNAVAILABLE"
-          );
+          status:
+            "active",
+
+          emailHash,
+
+          firstName:
+            normFirst,
+
+          lastName:
+            normLast,
+
+          shiftId:
+            payload.shiftId,
+
+          createdAt:
+            serverTimestamp(),
         }
+      );
 
-        if (
-          Array.isArray(
-            lookupData.entries
-          )
-        ) {
-          lookupEntries =
-            [
-              ...lookupData.entries,
-            ];
-        }
-      }
+      // ----------------------------------------------------------------------
+      // Update public Manage Registrations lookup.
+      // ----------------------------------------------------------------------
 
-      // Remove an accidental duplicate entry for the same registration
-      // before adding the current one.
-      lookupEntries =
+      let updatedLookupEntries =
         lookupEntries.filter(
           (entry) =>
             entry &&
@@ -1027,107 +1598,119 @@ if (
               registrationRef.id
         );
 
-      lookupEntries.push({
-        registrationId:
-          registrationRef.id,
+      updatedLookupEntries.push(
+        {
+          registrationId:
+            registrationRef.id,
 
-        firstName:
-          payload.firstName,
+          firstName:
+            payload.firstName,
 
-        normalizedFirstName:
-          normFirst,
+          normalizedFirstName:
+            normFirst,
 
-        lastName:
-          payload.lastName,
+          lastName:
+            payload.lastName,
 
-        normalizedLastName:
-          normLast,
+          normalizedLastName:
+            normLast,
 
-        emailHash,
+          phone:
+            payload.phone,
 
-        emailGuardKey,
+          normalizedPhone:
+            normPhone,
 
-        is18OrOlder:
-          payload.is18OrOlder,
+          // Stored so Manage can reuse the email automatically.
+          email:
+            normEmail,
 
-        positionId:
-          position.id,
+          emailHash,
 
-        positionName:
-          position.name,
+          emailGuardKey,
 
-        shiftId:
-          shift.id,
+          is18OrOlder:
+            payload.is18OrOlder,
 
-        shiftStartTime:
-          shift.startTime,
+          positionId:
+            position.id,
 
-        shiftEndTime:
-          shift.endTime,
+          positionName:
+            position.name,
 
-        shiftLabel:
-          formatShiftTime(
+          shiftId:
+            shift.id,
+
+          shiftStartTime:
             shift.startTime,
-            shift.endTime
-          ),
 
-        status:
-          "registered",
+          shiftEndTime:
+            shift.endTime,
 
-        cancelledAt:
-          null,
-      });
+          shiftLabel:
+            formatShiftTime(
+              shift.startTime,
+              shift.endTime
+            ),
 
-      const existingLookupData =
-  lookupSnap.exists()
-    ? lookupSnap.data()
-    : {};
+          status:
+            "registered",
 
-const registrationIds =
-  Array.isArray(
-    existingLookupData.registrationIds
-  )
-    ? [
-        ...existingLookupData.registrationIds,
-      ]
-    : [];
+          cancelledAt:
+            null,
+        }
+      );
 
-if (
-  !registrationIds.includes(
-    registrationRef.id
-  )
-) {
-  registrationIds.push(
-    registrationRef.id
-  );
-}
+      const existingRegistrationIds =
+        Array.isArray(
+          lookupData.registrationIds
+        )
+          ? [
+              ...lookupData.registrationIds,
+            ]
+          : [];
 
-tx.set(
-  lookupRef,
-  {
-    eventId:
-      eventConfig.eventId,
+      if (
+        !existingRegistrationIds.includes(
+          registrationRef.id
+        )
+      ) {
+        existingRegistrationIds.push(
+          registrationRef.id
+        );
+      }
 
-    normalizedLastName:
-      normLast,
+      tx.set(
+        lookupRef,
+        {
+          eventId:
+            eventConfig.eventId,
 
-    entries:
-      lookupEntries,
+          normalizedLastName:
+            normLast,
 
-    registrationIds,
+          entries:
+            updatedLookupEntries,
 
-    updatedAt:
-      serverTimestamp(),
-  },
-  {
-    merge: true,
-  }
-);
+          registrationIds:
+            existingRegistrationIds,
+
+          updatedAt:
+            serverTimestamp(),
+        },
+        {
+          merge: true,
+        }
+      );
     }
   );
 
   return registrationRef.id;
 }
+
+// ============================================================================
+// Registration record builder
+// ============================================================================
 
 export function buildRegistrationRecord(
   payload,
@@ -1163,28 +1746,29 @@ export function buildRegistrationRecord(
       payload.phone,
 
     normalizedFirstName:
-  normalizeFirstName(
-    payload.firstName
-  ),
+      normalizeFirstName(
+        payload.firstName
+      ),
 
-normalizedLastName:
-  normalizeLastName(
-    payload.lastName
-  ),
+    normalizedLastName:
+      normalizeLastName(
+        payload.lastName
+      ),
 
-normalizedPhone:
-  normalizePhoneNumber(
-    payload.phone
-  ),
+    normalizedPhone:
+      normalizePhoneNumber(
+        payload.phone
+      ),
 
-emailGuardKey:
-  payload.emailGuardKey,
+    emailGuardKey:
+      payload.emailGuardKey,
 
-manageLookupId:
-  payload.manageLookupId,
+    manageLookupId:
+      payload.manageLookupId,
 
     is18OrOlder:
-      typeof payload.is18OrOlder === "boolean"
+      typeof payload.is18OrOlder ===
+      "boolean"
         ? payload.is18OrOlder
         : null,
 
@@ -1233,12 +1817,18 @@ manageLookupId:
 async function submitRegistration(event) {
   event.preventDefault();
 
-  if (submissionInFlight) {
+  if (
+    submissionInFlight
+  ) {
     return;
   }
 
   clearAllErrors();
-  setError("submit", "");
+
+  setError(
+    "submit",
+    ""
+  );
 
   const {
     valid,
@@ -1253,7 +1843,9 @@ async function submitRegistration(event) {
   );
 
   if (!valid) {
-    scrollToField(firstInvalidFieldId);
+    scrollToField(
+      firstInvalidFieldId
+    );
 
     announce(
       "Please fix the highlighted fields before submitting."
@@ -1262,10 +1854,14 @@ async function submitRegistration(event) {
     return;
   }
 
-  submissionInFlight = true;
+  submissionInFlight =
+    true;
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Registering…";
+  submitBtn.disabled =
+    true;
+
+  submitBtn.textContent =
+    "Registering…";
 
   try {
     logRegistrationStep(
@@ -1286,11 +1882,19 @@ async function submitRegistration(event) {
     );
 
     showConfirmation({
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      is18OrOlder: payload.is18OrOlder,
+      firstName:
+        payload.firstName,
+
+      lastName:
+        payload.lastName,
+
+      is18OrOlder:
+        payload.is18OrOlder,
+
       position,
+
       shift,
+
       confirmationId,
     });
   } catch (error) {
@@ -1298,11 +1902,15 @@ async function submitRegistration(event) {
       "diwali_volunteer_registration_error"
     );
 
-    handleSubmissionError(error);
+    handleSubmissionError(
+      error
+    );
   } finally {
-    submissionInFlight = false;
+    submissionInFlight =
+      false;
 
-    submitBtn.disabled = false;
+    submitBtn.disabled =
+      false;
 
     submitBtn.textContent =
       `Register for ${eventConfig.eventName}`;
@@ -1313,20 +1921,29 @@ async function submitRegistration(event) {
 // Submission errors
 // ============================================================================
 
-function handleSubmissionError(error) {
+function handleSubmissionError(
+  error
+) {
   const code =
     error &&
-    (error.code || error.message);
+    (
+      error.code ||
+      error.message
+    );
 
   logRegistrationStep(
     "Volunteer registration failed",
     {
       code:
-        code || "unknown",
+        code ||
+        "unknown",
     }
   );
 
-  if (code === "permission-denied") {
+  if (
+    code ===
+    "permission-denied"
+  ) {
     setError(
       "submit",
       "Registration could not be saved because Firebase permissions blocked the request. Please ask the organizers to check the latest Firestore rules."
@@ -1339,18 +1956,37 @@ function handleSubmissionError(error) {
     return;
   }
 
-  if (code === "DUPLICATE_SHIFT") {
-  setError(
-    "submit",
-    "Looks like you're already registered for this shift. Please choose a different shift."
-  );
+  if (
+    code ===
+    "DUPLICATE_SHIFT"
+  ) {
+    setError(
+      "submit",
+      "Looks like you're already registered for this shift. Please choose a different shift."
+    );
 
-  announce(
-    "Looks like you're already registered for this shift. Please choose a different shift."
-  );
+    announce(
+      "Looks like you're already registered for this shift. Please choose a different shift."
+    );
 
-  return;
-}
+    return;
+  }
+
+  if (
+    code ===
+    "SHIFT_OVERLAP"
+  ) {
+    setError(
+      "submit",
+      "That shift overlaps one of your existing shifts. Please choose a different shift."
+    );
+
+    announce(
+      "That shift overlaps one of your existing shifts. Please choose a different shift."
+    );
+
+    return;
+  }
 
   if (
     code === "SHIFT_FULL" ||
@@ -1397,9 +2033,12 @@ function logRegistrationStep(
   );
 }
 
-function announce(message) {
+function announce(
+  message
+) {
   if (statusLive) {
-    statusLive.textContent = message;
+    statusLive.textContent =
+      message;
   }
 }
 
@@ -1419,8 +2058,13 @@ function showConfirmation({
     "confirmation-mode"
   );
 
-  form.classList.add("hidden");
-  confirmationView.classList.remove("hidden");
+  form.classList.add(
+    "hidden"
+  );
+
+  confirmationView.classList.remove(
+    "hidden"
+  );
 
   setText(
     "sum-student",
@@ -1440,7 +2084,9 @@ function showConfirmation({
     "sum-date",
     formatDisplayDate(
       eventConfig.eventDate,
-      { weekday: true }
+      {
+        weekday: true,
+      }
     )
   );
 
@@ -1485,9 +2131,14 @@ function showConfirmation({
   confirmationView.focus();
 }
 
-function setText(id, value) {
+function setText(
+  id,
+  value
+) {
   const element =
-    document.getElementById(id);
+    document.getElementById(
+      id
+    );
 
   if (element) {
     element.textContent =
@@ -1502,8 +2153,11 @@ function setText(id, value) {
 function resetForm() {
   form.reset();
 
-  selectedPositionId = null;
-  selectedShiftId = null;
+  selectedPositionId =
+    null;
+
+  selectedShiftId =
+    null;
 
   clearAllErrors();
 
@@ -1537,11 +2191,15 @@ async function init() {
   await loadEventSettings();
 
   renderConfigurableCopy();
+
   renderHeader();
+
   renderPositionShiftList();
 
   const phoneInput =
-    document.getElementById("phone");
+    document.getElementById(
+      "phone"
+    );
 
   if (phoneInput) {
     phoneInput.addEventListener(
@@ -1602,11 +2260,14 @@ async function init() {
   );
 }
 
-// Only run the registration page initializer when the registration form
-// is present. admin.js imports reserveShiftAndCreateRegistration from this
-// module, so this guard prevents the admin pages from accidentally wiring
-// up registration-form event listeners against DOM elements that don't exist.
-if (document.getElementById("registration-form")) {
+// Only initialize the public registration page when its form exists.
+// admin.js imports reserveShiftAndCreateRegistration(), so this prevents the
+// registration page event listeners from being attached on admin pages.
+if (
+  document.getElementById(
+    "registration-form"
+  )
+) {
   document.addEventListener(
     "DOMContentLoaded",
     init

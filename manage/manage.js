@@ -8,19 +8,25 @@
 //        ↓
 //   First name when multiple volunteers match
 //        ↓
-//   View this volunteer's registrations
+//   View that volunteer's active shifts
 //        ↓
-//   Cancel individual shift
+//   Cancel individual shifts
 //        ↓
 //   Add another non-overlapping shift
 //
-// Important:
-//   - Email is NOT used to identify the volunteer.
-//   - Email is automatically reused from the existing registration.
-//   - A volunteer may register for multiple non-overlapping shifts.
-//   - A volunteer cannot register for the same shift twice.
-//   - Cancelling a shift permanently removes that registration.
-//   - No Firebase Cloud Functions are used.
+// Identity rules:
+//   - Email is never used by itself to identify a volunteer.
+//   - First name + last name + phone identify the volunteer.
+//   - The previously registered email is reused automatically.
+//   - Different first names may share the same email, last name, and phone.
+//
+// Cancellation:
+//   - Registration is physically deleted.
+//   - Person/shift guard is physically deleted.
+//   - Shift capacity is released.
+//   - Lookup entry is removed.
+//
+// No Firebase Cloud Functions are used.
 // ============================================================================
 
 import {
@@ -101,15 +107,10 @@ const addShiftButton =
 // ============================================================================
 
 let lookupId = null;
-
 let lookupEntries = [];
-
 let selectedIdentityEntries = [];
-
 let selectedShift = null;
-
 let lookupStage = "initial";
-
 let lookupSubmitting = false;
 
 const availabilityCache = {};
@@ -159,7 +160,8 @@ function clearErrors() {
 function isActive(entry) {
   return (
     entry &&
-    typeof entry.registrationId === "string" &&
+    typeof entry.registrationId ===
+      "string" &&
     entry.status === "registered"
   );
 }
@@ -207,11 +209,6 @@ function hasTimeOverlap(
   );
 }
 
-/**
- * Existing lookup entries store the normalized email indirectly in
- * emailGuardKey. Decode it so Manage can reuse the volunteer's original
- * email without asking for it again.
- */
 function getStoredEmail(entry) {
   if (
     entry &&
@@ -242,13 +239,39 @@ function getStoredEmail(entry) {
 function getStoredPhone(entry) {
   if (
     entry &&
-    typeof entry.phone === "string"
+    typeof entry.phone === "string" &&
+    entry.phone.trim()
   ) {
     return entry.phone;
   }
 
+  if (
+    entry &&
+    typeof entry.normalizedPhone ===
+      "string"
+  ) {
+    return entry.normalizedPhone;
+  }
+
   return formatPhoneNumber(
     phoneInput.value
+  );
+}
+
+function matchesVolunteerIdentity(
+  entry,
+  normalizedFirst,
+  normalizedLast,
+  normalizedPhone
+) {
+  return (
+    entry &&
+    entry.normalizedFirstName ===
+      normalizedFirst &&
+    entry.normalizedLastName ===
+      normalizedLast &&
+    entry.normalizedPhone ===
+      normalizedPhone
   );
 }
 
@@ -359,12 +382,11 @@ async function submitLookup(event) {
   }
 
   lookupSubmitting = true;
-
   lookupButton.disabled = true;
 
   try {
     // ------------------------------------------------------------------------
-    // Initial lookup
+    // Initial last-name + phone lookup
     // ------------------------------------------------------------------------
 
     if (lookupStage === "initial") {
@@ -391,7 +413,6 @@ async function submitLookup(event) {
           active
         );
 
-      // Multiple volunteers share the same last name + phone.
       if (firstNames.length > 1) {
         identityStep.classList.remove(
           "hidden"
@@ -406,7 +427,6 @@ async function submitLookup(event) {
         return;
       }
 
-      // Only one volunteer identity exists.
       selectedIdentityEntries =
         active.filter(
           (entry) =>
@@ -473,7 +493,6 @@ async function submitLookup(event) {
       "We couldn't complete the lookup. Please try again.";
   } finally {
     lookupSubmitting = false;
-
     lookupButton.disabled = false;
 
     if (lookupStage === "initial") {
@@ -630,9 +649,12 @@ function renderRegistrations() {
     const cancelButton =
       document.createElement("button");
 
-    cancelButton.type = "button";
+    cancelButton.type =
+      "button";
+
     cancelButton.className =
       "btn cancel-btn";
+
     cancelButton.textContent =
       "Cancel Shift";
 
@@ -732,9 +754,7 @@ function getAvailability(shift) {
     ] || {
       capacity:
         shift.capacity,
-
       count: 0,
-
       remaining:
         Math.max(
           0,
@@ -983,7 +1003,7 @@ async function addSelectedShift() {
     );
 
   // --------------------------------------------------------------------------
-  // Client-side overlap check
+  // Client-side overlap check.
   // --------------------------------------------------------------------------
 
   const overlaps =
@@ -1068,18 +1088,18 @@ async function addSelectedShift() {
             ? lookupData.entries
             : [];
 
-        // Only consider the selected volunteer's active registrations.
+        // Only this exact volunteer's active registrations matter.
         const activeEntries =
           allEntries
             .filter(isActive)
             .filter(
               (entry) =>
-                entry.normalizedFirstName ===
-                  normalizedFirst &&
-                entry.normalizedLastName ===
-                  normalizedLast &&
-                entry.normalizedPhone ===
+                matchesVolunteerIdentity(
+                  entry,
+                  normalizedFirst,
+                  normalizedLast,
                   normalizedPhone
+                )
             );
 
         // Same volunteer + same shift.
@@ -1114,7 +1134,6 @@ async function addSelectedShift() {
           );
         }
 
-        // Strong duplicate guard.
         if (
           personGuardSnap.exists() &&
           personGuardSnap.data()?.status !==
@@ -1132,7 +1151,7 @@ async function addSelectedShift() {
         }
 
         // --------------------------------------------------------------------
-        // Reserve capacity
+        // Reserve capacity.
         // --------------------------------------------------------------------
 
         if (shiftSnap.exists()) {
@@ -1204,7 +1223,7 @@ async function addSelectedShift() {
         }
 
         // --------------------------------------------------------------------
-        // Create registration
+        // Create registration.
         // --------------------------------------------------------------------
 
         tx.set(
@@ -1298,7 +1317,7 @@ async function addSelectedShift() {
         );
 
         // --------------------------------------------------------------------
-        // Person-specific duplicate guard
+        // Person-specific guard.
         // --------------------------------------------------------------------
 
         tx.set(
@@ -1331,7 +1350,7 @@ async function addSelectedShift() {
         );
 
         // --------------------------------------------------------------------
-        // Update public lookup
+        // Update lookup.
         // --------------------------------------------------------------------
 
         const updatedEntries =
@@ -1369,7 +1388,8 @@ async function addSelectedShift() {
           email,
 
           emailHash:
-            identity.emailHash || null,
+            identity.emailHash ||
+            null,
 
           emailGuardKey:
             encodeURIComponent(email),
@@ -1448,7 +1468,10 @@ async function addSelectedShift() {
       }
     );
 
-    // Update local state immediately.
+    // ------------------------------------------------------------------------
+    // Update local state.
+    // ------------------------------------------------------------------------
+
     selectedIdentityEntries.push({
       registrationId:
         registrationRef.id,
@@ -1475,11 +1498,12 @@ async function addSelectedShift() {
 
       email,
 
+      emailHash:
+        identity.emailHash ||
+        null,
+
       emailGuardKey:
         encodeURIComponent(email),
-
-      emailHash:
-        identity.emailHash || null,
 
       is18OrOlder:
         identity.is18OrOlder,
@@ -1610,13 +1634,16 @@ async function cancelRegistration(entry) {
         `${CONFIG.eventId}_${entry.shiftId}`
       );
 
+    const normalizedPhone =
+      normalizePhoneNumber(
+        phoneInput.value
+      );
+
     const personGuardRef =
       doc(
         db,
         "registrationGuards",
-        `person_shift_${entry.normalizedFirstName}_${entry.normalizedLastName}_${normalizePhoneNumber(
-          phoneInput.value
-        )}_${entry.shiftId}`
+        `person_shift_${entry.normalizedFirstName}_${entry.normalizedLastName}_${normalizedPhone}_${entry.shiftId}`
       );
 
     await runTransaction(
@@ -1726,9 +1753,9 @@ async function cancelRegistration(entry) {
           );
         }
 
-        // --------------------------------------------------------------------
-        // Permanently remove the public lookup entry.
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
+        // Remove this registration from the lookup.
+        // ----------------------------------------------------------------------
 
         const updatedEntries =
           entries.filter(
@@ -1745,17 +1772,17 @@ async function cancelRegistration(entry) {
               entry.registrationId
           );
 
-        // --------------------------------------------------------------------
-        // Permanently delete the private registration.
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
+        // Permanently delete the registration.
+        // ----------------------------------------------------------------------
 
         tx.delete(
           registrationRef
         );
 
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
         // Release capacity.
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
 
         tx.update(
           shiftRef,
@@ -1768,9 +1795,9 @@ async function cancelRegistration(entry) {
           }
         );
 
-        // --------------------------------------------------------------------
-        // Remove the person/shift duplicate guard.
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
+        // Permanently delete person/shift guard.
+        // ----------------------------------------------------------------------
 
         if (
           personGuardSnap.exists()
@@ -1780,9 +1807,9 @@ async function cancelRegistration(entry) {
           );
         }
 
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
         // Update lookup.
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------------
 
         tx.set(
           lookupRef,
@@ -1811,7 +1838,10 @@ async function cancelRegistration(entry) {
       }
     );
 
-    // Remove from local UI immediately.
+    // ------------------------------------------------------------------------
+    // Remove from local state immediately.
+    // ------------------------------------------------------------------------
+
     selectedIdentityEntries =
       selectedIdentityEntries.filter(
         (candidate) =>
@@ -1819,7 +1849,6 @@ async function cancelRegistration(entry) {
           entry.registrationId
       );
 
-    // Refresh the displayed registrations.
     renderRegistrations();
 
     await renderAddShiftOptions();
@@ -1856,11 +1885,11 @@ async function cancelRegistration(entry) {
     }
 
     if (
-      error?.message ===
-      "SHIFT_UNAVAILABLE"
+      error?.code ===
+      "permission-denied"
     ) {
       window.alert(
-        "The shift information could not be updated. Please try again."
+        "Firebase permissions currently do not allow this cancellation."
       );
 
       return;
@@ -1878,13 +1907,9 @@ async function cancelRegistration(entry) {
 
 function resetManagePage() {
   lookupId = null;
-
   lookupEntries = [];
-
   selectedIdentityEntries = [];
-
   selectedShift = null;
-
   lookupStage = "initial";
 
   lookupForm.reset();
