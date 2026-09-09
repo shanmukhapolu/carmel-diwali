@@ -34,24 +34,24 @@ service cloud.firestore {
 
     match /registrations/{registrationId} {
 
-      // Volunteers' actual registration records remain private.
+      // Actual registration records are private.
       allow read: if isAdmin();
 
-      // Public registration creation.
+      // Public users may create new registrations.
       allow create: if request.auth == null;
 
-      // Administrators can modify registrations normally.
+      // Only administrators may directly modify registrations.
       allow update: if isAdmin();
 
-      // Public Manage cancellation physically deletes the registration.
+      // Public Manage cancellation.
       //
-      // The registration must:
-      // - belong to this event
-      // - still be active
-      // - contain a valid management lookup ID
-      // - still be referenced by that lookup document
+      // The registration may only be deleted when:
+      // - it belongs to this event
+      // - it is currently registered
+      // - it has a valid management lookup
+      // - that lookup currently references this registration
       //
-      // This is intentionally narrower than admin deletion.
+      // This prevents arbitrary deletion of unrelated registration records.
       allow delete: if isAdmin()
         || (
           request.auth == null
@@ -80,22 +80,10 @@ service cloud.firestore {
     // ========================================================================
     // PUBLIC MANAGE REGISTRATION LOOKUPS
     // ========================================================================
-    //
-    // The public Manage page reads these documents instead of the private
-    // registrations collection.
-    //
-    // lookupId:
-    //   SHA-256(eventId + "|" + normalizedLastName + "|" + normalizedPhone)
-    //
-    // These records contain the information needed by the public Manage flow.
-    //
-    // IMPORTANT:
-    // Last name + phone is the management credential requested for this app.
-    // It is not equivalent to authenticated user accounts.
-    //
 
     match /registrationLookups/{lookupId} {
 
+      // The public Manage page needs to read these.
       allow read: if request.auth == null
         || isAdmin();
 
@@ -113,8 +101,8 @@ service cloud.firestore {
         && request.resource.data.registrationIds
            is list;
 
-      // Public Manage/sign-up flows may update only the management
-      // information contained inside an existing event lookup.
+      // Public registration and Manage flows may update only the
+      // registration-management fields.
       allow update: if request.auth == null
         && resource.data.eventId ==
            "carmel-diwali-2026"
@@ -140,6 +128,7 @@ service cloud.firestore {
              "updatedAt"
            ]);
 
+      // Lookup documents cannot be physically deleted publicly.
       allow delete: if isAdmin();
     }
 
@@ -150,26 +139,25 @@ service cloud.firestore {
 
     match /registrationGuards/{guardId} {
 
+      // Needed by the public registration transaction to check guards.
       allow read: if request.auth == null
         || isAdmin();
 
+      // Public registration flow may create guards.
       allow create: if request.auth == null
         || isAdmin();
 
-      // Public Manage cancellation physically deletes the guard.
+      // The current system uses physical deletion for cancellation.
+      // Only administrators may otherwise modify a guard.
+      allow update: if isAdmin();
+
+      // Public Manage cancellation may delete an active guard only when
+      // that guard points to an active registration belonging to this event.
       //
-      // The guard must:
-      // - belong to this event
-      // - still be active
-      // - reference the registration being managed
-      //
-      // The registration itself is additionally verified through its lookup.
+      // NOTE: Guards do not need their own eventId field.
       allow delete: if isAdmin()
         || (
           request.auth == null
-
-          && resource.data.eventId ==
-             "carmel-diwali-2026"
 
           && resource.data.status ==
              "active"
@@ -185,15 +173,7 @@ service cloud.firestore {
                /databases/$(database)/documents/registrations/$(resource.data.registrationId)
              ).data.status ==
              "registered"
-
-          && get(
-               /databases/$(database)/documents/registrations/$(resource.data.registrationId)
-             ).data.manageLookupId is string
         );
-
-      // Retained for compatibility with any older admin/legacy flow.
-      // The current Manage page uses physical deletion instead.
-      allow update: if isAdmin();
     }
 
 
@@ -203,6 +183,7 @@ service cloud.firestore {
 
     match /shiftCounts/{shiftDocId} {
 
+      // Public registration UI needs current availability.
       allow read: if request.auth == null
         || isAdmin();
 
@@ -229,12 +210,8 @@ service cloud.firestore {
              request.resource.data.capacity
         );
 
-      // Public users may change a counter by exactly one:
-      //
-      // +1 = registration/add-shift
-      // -1 = cancellation
-      //
-      // Counter can never become negative or exceed capacity.
+      // Public registration/add-shift = +1.
+      // Public cancellation = -1.
       allow update: if isAdmin()
         || (
           request.auth == null
@@ -295,7 +272,6 @@ service cloud.firestore {
             update,
             delete: if isAdmin();
     }
-
 
     match /checkinActivity/{activityId} {
       allow read,
