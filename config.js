@@ -239,6 +239,45 @@ export const VOLUNTEER_POSITIONS = [
   },
 
   {
+    id: "flower-bracelet-making",
+    name: "Flower Bracelet Making",
+    description:
+      "Assist with the making of flower bracelets for festival attendees.",
+    shifts: [
+      {
+        id: "flower-bracelet-making-1600-1730",
+        startTime: "1600",
+        endTime: "1730",
+        capacity: 2,
+      },
+      {
+        id: "flower-bracelet-making-1730-1830",
+        startTime: "1730",
+        endTime: "1830",
+        capacity: 2,
+      },
+      {
+        id: "flower-bracelet-making-1830-1930",
+        startTime: "1830",
+        endTime: "1930",
+        capacity: 2,
+      },
+      {
+        id: "flower-bracelet-making-1930-2030",
+        startTime: "1930",
+        endTime: "2030",
+        capacity: 2,
+      },
+      {
+        id: "flower-bracelet-making-2030-2130",
+        startTime: "2030",
+        endTime: "2130",
+        capacity: 2,
+      },
+    ],
+  },
+
+  {
     id: "rangoli-crew",
     name: "Rangoli Crew",
     description:
@@ -314,25 +353,25 @@ export const VOLUNTEER_POSITIONS = [
         id: "volunteer-booth-1600-1730",
         startTime: "1600",
         endTime: "1730",
-        capacity: 2,
+        capacity: 3,
       },
       {
         id: "volunteer-booth-1730-1900",
         startTime: "1730",
         endTime: "1900",
-        capacity: 2,
+        capacity: 3,
       },
       {
         id: "volunteer-booth-1900-2030",
         startTime: "1900",
         endTime: "2030",
-        capacity: 2,
+        capacity: 3,
       },
       {
         id: "volunteer-booth-2030-2130",
         startTime: "2030",
         endTime: "2130",
-        capacity: 2,
+        capacity: 3,
       },
     ],
   },
