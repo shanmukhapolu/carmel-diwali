@@ -667,36 +667,27 @@ body {
   margin: 0;
   padding-top: 14px;
 
-  border-top: 1px solid rgba(242, 163, 70, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
 
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
+
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
 .page-footer a {
-  color: rgba(255, 255, 255, 0.72);
-
+  color: rgba(255, 255, 255, 0.88);
   font-size: 12px;
   font-weight: 600;
-
   text-decoration: none;
 
-  transition:
-    color 0.15s ease,
-    opacity 0.15s ease;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 .page-footer a:hover {
-  color: #f2a346;
-}
-
-.page-footer a[href="admin/login.html"] {
-  color: #f2a346;
-  font-weight: 700;
-}
-
-.page-footer a[href="admin/login.html"]:hover {
-  color: #ffc274;
+  color: #ffffff;
 }
 
 @media (max-width: 480px) {
