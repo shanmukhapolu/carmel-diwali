@@ -655,29 +655,62 @@ body {
 }
 
 .page-footer {
-  text-align: center;
-  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
 }
 
 .page-footer p {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(242, 163, 70, 0.35);
+  border-radius: 999px;
+  background: rgba(22, 11, 24, 0.72);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .page-footer a {
   color: #f2a346;
-
   font-size: 13px;
   font-weight: 700;
-
   text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .page-footer a:hover {
-  color: #f2a346;
-  text-decoration: underline;
+  color: #ffffff;
+  text-decoration: none;
 }
 
+.page-footer a[href="admin/login.html"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #532564;
+  box-shadow:
+    0 4px 12px rgba(83, 37, 100, 0.35);
+}
+
+.page-footer a[href="admin/login.html"]:hover {
+  color: #ffffff;
+  background: #472054;
+}
+
+.page-footer a[href="admin/login.html"]::before {
+  content: "⚙";
+  font-size: 12px;
+}
 
 /* ==========================================================================
    FORM CARD
