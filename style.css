@@ -655,61 +655,56 @@ body {
 }
 
 .page-footer {
-  display: flex;
-  justify-content: center;
-  margin-top: 32px;
+  margin-top: 30px;
+  text-align: center;
 }
 
 .page-footer p {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+
   margin: 0;
-  padding: 10px 16px;
-  border: 1px solid rgba(242, 163, 70, 0.35);
-  border-radius: 999px;
-  background: rgba(22, 11, 24, 0.72);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.16);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding-top: 14px;
+
+  border-top: 1px solid rgba(242, 163, 70, 0.28);
+
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
 }
 
 .page-footer a {
-  color: #f2a346;
-  font-size: 13px;
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+
+  font-size: 12px;
+  font-weight: 600;
+
   text-decoration: none;
+
   transition:
     color 0.15s ease,
-    background 0.15s ease;
+    opacity 0.15s ease;
 }
 
 .page-footer a:hover {
-  color: #ffffff;
-  text-decoration: none;
+  color: #f2a346;
 }
 
 .page-footer a[href="admin/login.html"] {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  border-radius: 8px;
-  color: #ffffff;
-  background: #532564;
-  box-shadow:
-    0 4px 12px rgba(83, 37, 100, 0.35);
+  color: #f2a346;
+  font-weight: 700;
 }
 
 .page-footer a[href="admin/login.html"]:hover {
-  color: #ffffff;
-  background: #472054;
+  color: #ffc274;
 }
 
-.page-footer a[href="admin/login.html"]::before {
-  content: "⚙";
-  font-size: 12px;
+@media (max-width: 480px) {
+  .page-footer p {
+    gap: 9px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* ==========================================================================
