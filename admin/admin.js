@@ -126,6 +126,7 @@ function renderNavigation(profile) {
     const adminLinks = [
       ["Dashboard", "/admin/"],
       ["Volunteers", "/admin/registrations.html"],
+      ["WhatsApp", "/admin/whatsapp.html"],
       ["Check-In", "/admin/checkin.html"],
       ["Statistics", "/admin/statistics.html"]
     ];
