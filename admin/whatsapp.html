@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+
+  <title>WhatsApp | Carmel Diwali Festival</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="admin-auth-checking">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <div>
+        <div class="brand-title">
+          Carmel Diwali Festival of Lights
+        </div>
+
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <nav class="nav" aria-label="Admin navigation">
+      <a href="/admin/">Dashboard</a>
+      <a href="/admin/registrations.html">Volunteers</a>
+      <a class="active" href="/admin/whatsapp.html">WhatsApp</a>
+      <a href="/admin/checkin.html">Check-In</a>
+      <a href="/admin/statistics.html">Statistics</a>
+    </nav>
+
+    <section class="panel">
+
+      <div class="summary-line">
+
+        <div>
+          <p class="eyebrow">Volunteer communications</p>
+
+          <h1>WhatsApp</h1>
+
+          <p class="muted">
+            One row per unique normalized phone number. Volunteer names and
+            email addresses are deduplicated within each phone number.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button
+            id="whatsapp-refresh"
+            class="primary"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+
+      </div>
+
+      <div class="toolbar whatsapp-toolbar">
+
+        <div class="wide-field">
+          <label for="whatsapp-search">Search</label>
+
+          <input
+            id="whatsapp-search"
+            type="search"
+            placeholder="Name, email, phone, position, or shift"
+            autocomplete="off"
+          >
+        </div>
+
+        <div>
+          <label for="whatsapp-status-filter">Group Status</label>
+
+          <select id="whatsapp-status-filter">
+            <option value="">All statuses</option>
+            <option value="joined">In WhatsApp group</option>
+            <option value="not_joined">Not in WhatsApp group</option>
+          </select>
+        </div>
+
+        <div class="filter-actions inline-action">
+          <button
+            id="whatsapp-clear-filters"
+            class="secondary"
+            type="button"
+          >
+            Clear filters
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="panel">
+
+      <div class="summary-line">
+        <strong id="whatsapp-counts">
+          Loading WhatsApp contacts...
+        </strong>
+
+        <span
+          id="whatsapp-visible-count"
+          class="muted"
+        ></span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="whatsapp-table">
+          <thead>
+            <tr>
+              <th>WhatsApp Group</th>
+              <th>Phone</th>
+              <th>Volunteer(s)</th>
+              <th>Email(s)</th>
+              <th>Registrations</th>
+              <th>Shift(s)</th>
+            </tr>
+          </thead>
+
+          <tbody id="whatsapp-rows"></tbody>
+        </table>
+      </div>
+
+      <p class="muted whatsapp-note">
+        The checkbox is an administrator-maintained record of whether this
+        phone number is in the volunteer WhatsApp group. Changes save to
+        Firebase immediately.
+      </p>
+
+      <p id="error" class="error"></p>
+
+    </section>
+
+  </main>
+
+  <script type="module" src="whatsapp.js"></script>
+
+</body>
+</html>
