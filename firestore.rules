@@ -288,10 +288,22 @@ service cloud.firestore {
     // WhatsApp group status is administrative metadata and is never
     // readable or writable by public users.
     match /whatsappContacts/{normalizedPhone} {
-      allow read,
-            create,
-            update,
-            delete: if isAdmin();
+      allow read: if isAdmin();
+
+      allow create,
+            update: if isAdmin()
+        && request.resource.data.eventId ==
+           "carmel-diwali-2026"
+        && request.resource.data.normalizedPhone ==
+           normalizedPhone
+        && request.resource.data.status in [
+             "joined",
+             "invited",
+             "not_valid",
+             "not_joined"
+           ];
+
+      allow delete: if isAdmin();
     }
 
 
