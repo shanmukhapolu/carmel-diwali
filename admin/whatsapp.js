@@ -159,14 +159,25 @@ async function refresh(user) {
 
     render();
 
-    const joined =
-      groups.filter(
-        (group) =>
-          group.status === "joined"
-      ).length;
+    const statusCounts = {
+      joined: 0,
+      invited: 0,
+      not_valid: 0,
+      not_joined: 0
+    };
 
-    const notJoined =
-      groups.length - joined;
+    groups.forEach(
+      (group) => {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            statusCounts,
+            group.status
+          )
+        ) {
+          statusCounts[group.status] += 1;
+        }
+      }
+    );
 
     const missing =
       built.missingPhoneRegistrations;
@@ -175,10 +186,14 @@ async function refresh(user) {
       "whatsapp-counts",
       String(groups.length) +
         " unique phone numbers · " +
-        String(joined) +
-        " in group · " +
-        String(notJoined) +
-        " not in group" +
+        String(statusCounts.joined) +
+        " joined · " +
+        String(statusCounts.invited) +
+        " invited · " +
+        String(statusCounts.not_joined) +
+        " not joined · " +
+        String(statusCounts.not_valid) +
+        " not valid" +
         (
           missing
             ? " · " +
@@ -257,12 +272,23 @@ async function loadStatuses() {
         data.eventId ===
         CONFIG.eventId
       ) {
-        statuses.set(
-          entry.id,
-          data.status === "joined"
-            ? "joined"
-            : "not_joined"
-        );
+        const allowedStatuses = new Set([
+          "joined",
+          "invited",
+          "not_valid",
+          "not_joined"
+        ]);
+
+        if (
+          allowedStatuses.has(
+            data.status
+          )
+        ) {
+          statuses.set(
+            entry.id,
+            data.status
+          );
+        }
       }
     }
   );
@@ -309,9 +335,8 @@ function buildGroups(
             status:
               statuses.get(
                 normalizedPhone
-              ) === "joined"
-                ? "joined"
-                : "not_joined"
+              ) ||
+              "not_joined"
           }
         );
       }
@@ -565,53 +590,47 @@ function createRow(group) {
   statusWrap.className =
     "whatsapp-status-wrap";
 
-  const checkbox =
-    document.createElement("input");
+  const statusSelect =
+    document.createElement("select");
 
-  checkbox.type = "checkbox";
-  checkbox.checked =
-    group.status === "joined";
-  checkbox.id =
+  statusSelect.className =
+    "whatsapp-status-select";
+
+  statusSelect.id =
     "whatsapp-" +
     group.normalizedPhone;
 
-  const label =
-    document.createElement("label");
+  [
+    ["joined", "Joined"],
+    ["invited", "Invited"],
+    ["not_valid", "Not valid"],
+    ["not_joined", "Not joined"]
+  ].forEach(
+    ([value, label]) => {
+      statusSelect.append(
+        new Option(
+          label,
+          value,
+          false,
+          group.status === value
+        )
+      );
+    }
+  );
 
-  label.className =
-    "whatsapp-checkbox-label";
+  statusSelect.setAttribute(
+    "aria-label",
+    "WhatsApp group status for " +
+      group.displayPhone
+  );
 
-  label.htmlFor =
-    checkbox.id;
-
-  label.textContent =
-    "In group";
-
-  const badge =
-    document.createElement("span");
-
-  badge.className =
-    "badge " +
-    (
-      group.status === "joined"
-        ? "ok"
-        : "warn"
-    );
-
-  badge.textContent =
-    group.status === "joined"
-      ? "Joined"
-      : "Not in group";
-
-  checkbox.addEventListener(
+  statusSelect.addEventListener(
     "change",
     async () => {
       const nextStatus =
-        checkbox.checked
-          ? "joined"
-          : "not_joined";
+        statusSelect.value;
 
-      checkbox.disabled = true;
+      statusSelect.disabled = true;
 
       try {
         await saveStatus(
@@ -630,10 +649,10 @@ function createRow(group) {
           error
         );
 
-        checkbox.checked =
-          !checkbox.checked;
+        statusSelect.value =
+          group.status;
 
-        checkbox.disabled =
+        statusSelect.disabled =
           false;
 
         showError(
@@ -644,9 +663,7 @@ function createRow(group) {
   );
 
   statusWrap.append(
-    checkbox,
-    label,
-    badge
+    statusSelect
   );
 
   statusCell.appendChild(
@@ -785,6 +802,19 @@ async function saveStatus(
   group,
   status
 ) {
+  const allowedStatuses = new Set([
+    "joined",
+    "invited",
+    "not_valid",
+    "not_joined"
+  ]);
+
+  if (!allowedStatuses.has(status)) {
+    throw new Error(
+      "Invalid WhatsApp status."
+    );
+  }
+
   await setDoc(
     doc(
       db,
