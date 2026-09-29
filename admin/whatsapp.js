@@ -596,6 +596,33 @@ function createRow(group) {
   statusSelect.className =
     "whatsapp-status-select";
 
+  const updateStatusColor = () => {
+    statusSelect.classList.remove(
+      "status-joined",
+      "status-invited",
+      "status-not-valid",
+      "status-not-joined"
+    );
+
+    const classByStatus = {
+      joined: "status-joined",
+      invited: "status-invited",
+      not_valid: "status-not-valid",
+      not_joined: "status-not-joined"
+    };
+
+    const statusClass =
+      classByStatus[
+        statusSelect.value
+      ];
+
+    if (statusClass) {
+      statusSelect.classList.add(
+        statusClass
+      );
+    }
+  };
+
   statusSelect.id =
     "whatsapp-" +
     group.normalizedPhone;
@@ -624,11 +651,15 @@ function createRow(group) {
       group.displayPhone
   );
 
+  updateStatusColor();
+
   statusSelect.addEventListener(
     "change",
     async () => {
       const nextStatus =
         statusSelect.value;
+
+      updateStatusColor();
 
       statusSelect.disabled = true;
 
@@ -651,6 +682,8 @@ function createRow(group) {
 
         statusSelect.value =
           group.status;
+
+        updateStatusColor();
 
         statusSelect.disabled =
           false;
