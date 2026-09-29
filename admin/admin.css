@@ -1719,6 +1719,37 @@ tbody tr:last-child td {
   cursor: pointer;
 }
 
+.whatsapp-status-select.status-joined {
+  background: var(--admin-success-bg);
+  border-color: rgba(40, 115, 77, 0.35);
+  color: var(--admin-success);
+}
+
+.whatsapp-status-select.status-invited {
+  background: var(--admin-warning-bg);
+  border-color: rgba(147, 98, 0, 0.35);
+  color: var(--admin-warning);
+}
+
+.whatsapp-status-select.status-not-valid {
+  background: var(--admin-danger-bg);
+  border-color: rgba(180, 35, 59, 0.35);
+  color: var(--admin-danger);
+}
+
+.whatsapp-status-select.status-not-joined {
+  background: #fff0df;
+  border-color: rgba(215, 116, 24, 0.38);
+  color: #b75f12;
+}
+
+.whatsapp-status-select.status-joined:focus,
+.whatsapp-status-select.status-invited:focus,
+.whatsapp-status-select.status-not-valid:focus,
+.whatsapp-status-select.status-not-joined:focus {
+  box-shadow: var(--admin-focus);
+}
+
 .whatsapp-status-select:disabled {
   cursor: wait;
 }
