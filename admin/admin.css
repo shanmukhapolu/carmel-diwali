@@ -1732,15 +1732,15 @@ tbody tr:last-child td {
 }
 
 .whatsapp-status-select.status-not-valid {
-  background: var(--admin-danger-bg);
-  border-color: rgba(180, 35, 59, 0.35);
-  color: var(--admin-danger);
+  background: #f1e8f7;
+  border-color: rgba(111, 55, 133, 0.35);
+  color: #6f3785;
 }
 
 .whatsapp-status-select.status-not-joined {
-  background: #fff0df;
-  border-color: rgba(215, 116, 24, 0.38);
-  color: #b75f12;
+  background: var(--admin-danger-bg);
+  border-color: rgba(180, 35, 59, 0.35);
+  color: var(--admin-danger);
 }
 
 .whatsapp-status-select.status-joined:focus,
