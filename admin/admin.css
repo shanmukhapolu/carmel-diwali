@@ -1618,6 +1618,138 @@ tbody tr:last-child td {
 }
 
 
+
+/* ==========================================================================
+   WHATSAPP CONTACT MANAGEMENT
+   ========================================================================== */
+
+.whatsapp-toolbar {
+  grid-template-columns:
+    minmax(280px, 2fr)
+    minmax(210px, 1fr)
+    minmax(150px, auto);
+}
+
+.whatsapp-toolbar .wide-field {
+  grid-column: auto;
+}
+
+.whatsapp-table {
+  min-width: 980px;
+}
+
+.whatsapp-table th,
+.whatsapp-table td {
+  vertical-align: top;
+}
+
+.whatsapp-table th:first-child,
+.whatsapp-table td:first-child {
+  min-width: 170px;
+}
+
+.whatsapp-table th:nth-child(2),
+.whatsapp-table td:nth-child(2) {
+  min-width: 145px;
+}
+
+.whatsapp-table th:nth-child(3),
+.whatsapp-table td:nth-child(3) {
+  min-width: 210px;
+  white-space: normal;
+}
+
+.whatsapp-table th:nth-child(4),
+.whatsapp-table td:nth-child(4) {
+  min-width: 260px;
+  white-space: normal;
+}
+
+.whatsapp-table th:nth-child(5),
+.whatsapp-table td:nth-child(5) {
+  min-width: 110px;
+  text-align: center;
+}
+
+.whatsapp-table th:nth-child(6),
+.whatsapp-table td:nth-child(6) {
+  min-width: 300px;
+  white-space: normal;
+}
+
+.whatsapp-status-cell {
+  white-space: normal !important;
+}
+
+.whatsapp-status-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.whatsapp-status-wrap input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--admin-maroon);
+  cursor: pointer;
+}
+
+.whatsapp-checkbox-label {
+  display: inline;
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.whatsapp-stack {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.whatsapp-stack > div {
+  min-width: 0;
+}
+
+.whatsapp-phone-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap !important;
+  font-weight: 700;
+  color: var(--admin-maroon);
+}
+
+.whatsapp-count-cell {
+  font-weight: 800;
+  color: var(--admin-maroon);
+  font-variant-numeric: tabular-nums;
+}
+
+.whatsapp-empty {
+  padding: 34px !important;
+  text-align: center !important;
+  color: var(--admin-muted);
+  white-space: normal !important;
+}
+
+.whatsapp-note {
+  margin: 14px 2px 0;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1024px) {
+  .whatsapp-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ==========================================================================
    RESPONSIVE
    ========================================================================== */
