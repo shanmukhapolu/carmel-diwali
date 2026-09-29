@@ -282,6 +282,20 @@ service cloud.firestore {
 
 
     // ========================================================================
+    // WHATSAPP CONTACT MANAGEMENT
+    // ========================================================================
+
+    // WhatsApp group status is administrative metadata and is never
+    // readable or writable by public users.
+    match /whatsappContacts/{normalizedPhone} {
+      allow read,
+            create,
+            update,
+            delete: if isAdmin();
+    }
+
+
+    // ========================================================================
     // ADMIN ACCOUNTS
     // ========================================================================
 
