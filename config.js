@@ -380,7 +380,7 @@ export const VOLUNTEER_POSITIONS = [
     id: "block-printing",
     name: "Block Printing",
     description:
-      "Assist attendees with a hands-on block printing activity and help keep the activity area organized.",
+      "Assist attendees with a hands-on block printing activity.",
     shifts: [
       {
         id: "block-printing-1630-1830",
