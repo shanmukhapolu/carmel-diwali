@@ -1707,6 +1707,22 @@ tbody tr:last-child td {
   cursor: pointer;
 }
 
+.whatsapp-status-select {
+  width: 138px;
+  min-width: 138px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 750;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.whatsapp-status-select:disabled {
+  cursor: wait;
+}
+
 .whatsapp-stack {
   display: grid;
   gap: 5px;
