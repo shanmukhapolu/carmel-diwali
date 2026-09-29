@@ -377,6 +377,27 @@ export const VOLUNTEER_POSITIONS = [
   },
 
   {
+    id: "block-printing",
+    name: "Block Printing",
+    description:
+      "Assist attendees with a hands-on block printing activity and help keep the activity area organized.",
+    shifts: [
+      {
+        id: "block-printing-1630-1830",
+        startTime: "1630",
+        endTime: "1830",
+        capacity: 2,
+      },
+      {
+        id: "block-printing-1830-2030",
+        startTime: "1830",
+        endTime: "2030",
+        capacity: 2,
+      },
+    ],
+  },
+
+  {
     id: "teardown-cleanup",
     name: "Tear Down & Clean Up",
     description:
