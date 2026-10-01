@@ -398,6 +398,33 @@ export const VOLUNTEER_POSITIONS = [
   },
 
   {
+    id: "parking-assistants",
+    name: "Parking Assistants",
+    description:
+      "Help direct volunteers and attendees to available parking areas and keep parking traffic organized.",
+    shifts: [
+      {
+        id: "parking-assistants-1600-1730",
+        startTime: "1600",
+        endTime: "1730",
+        capacity: 2,
+      },
+      {
+        id: "parking-assistants-1730-1900",
+        startTime: "1730",
+        endTime: "1900",
+        capacity: 2,
+      },
+      {
+        id: "parking-assistants-1900-2030",
+        startTime: "1900",
+        endTime: "2030",
+        capacity: 2,
+      },
+    ],
+  },
+
+  {
     id: "teardown-cleanup",
     name: "Tear Down & Clean Up",
     description:
