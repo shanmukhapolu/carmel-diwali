@@ -138,10 +138,11 @@
         </p>
 
         <div class="city-import-note">
-          Choose the Carmel Diwali position and shift you want each imported
-          volunteer assigned to. The City position in the <strong>Need</strong>
-          column is kept as the original source information, but does not
-          determine the imported assignment.
+          Choose the Carmel Diwali position you want each imported volunteer
+          assigned to. The Timeslot dropdown can assign one configured shift
+          to the batch, or choose <strong>Read start/end time from sheet</strong>
+          to use each row's City Start and End columns as that volunteer's
+          assigned shift time.
         </div>
 
         <p class="city-import-help">
@@ -171,10 +172,22 @@
           </div>
 
           <div class="city-import-field">
-            <label for="import-shift">Default shift</label>
+            <label for="import-shift">Timeslot</label>
             <select id="import-shift"></select>
             <p id="import-shift-capacity" class="city-import-help">
-              Every row in this import will be assigned to this shift.
+              Used for every row when Shift time is set to Use selected timeslot.
+            </p>
+          </div>
+
+          <div class="city-import-field">
+            <label for="import-shift-mode">Shift time</label>
+            <select id="import-shift-mode">
+              <option value="configured">Use selected timeslot</option>
+              <option value="sheet">Read start/end time from sheet</option>
+            </select>
+            <p class="city-import-help">
+              In sheet mode, each row uses column G (Start) and H (End) for its own assigned shift time.
+              The Timeslot above is ignored.
             </p>
           </div>
 
