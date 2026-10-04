@@ -2071,3 +2071,144 @@ tbody tr:last-child td {
     min-width: 0;
   }
 }
+
+
+/* ==========================================================================
+   CITY VOLUNTEER IMPORT
+   ========================================================================== */
+
+.city-import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.city-import-card {
+  min-width: 0;
+}
+
+.city-import-form {
+  display: grid;
+  gap: 14px;
+}
+
+.city-import-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.city-import-field {
+  min-width: 0;
+}
+
+.city-import-field.full {
+  grid-column: 1 / -1;
+}
+
+.city-import-field label,
+.city-import-card > label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--admin-text);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.city-import-help {
+  margin-top: 6px;
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.city-import-code {
+  padding: 12px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: #fffaf3;
+  color: var(--admin-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.city-import-preview {
+  margin-top: 16px;
+}
+
+.city-import-preview table {
+  min-width: 940px;
+}
+
+.city-import-preview .row-skip td {
+  opacity: 0.64;
+}
+
+.city-import-preview .row-warning td {
+  background: #fffaf0;
+}
+
+.city-import-preview .row-error td {
+  background: #fff0ef;
+}
+
+.city-import-preview .result-cell {
+  white-space: normal;
+  min-width: 240px;
+}
+
+.city-import-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.city-import-summary .badge {
+  white-space: nowrap;
+}
+
+.city-import-note {
+  padding: 12px 14px;
+  border-left: 3px solid var(--admin-saffron);
+  border-radius: 10px;
+  background: #fffaf3;
+  color: var(--admin-text);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.city-import-dropzone {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--admin-border);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.72);
+}
+
+.city-import-dropzone input[type="file"] {
+  min-height: auto;
+  padding: 8px;
+}
+
+.city-import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .city-import-grid,
+  .city-import-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .city-import-field.full {
+    grid-column: auto;
+  }
+}
