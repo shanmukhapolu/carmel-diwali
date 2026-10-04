@@ -1009,6 +1009,37 @@ tbody tr:last-child td {
   white-space: nowrap;
 }
 
+/* Long-category chart labels stay readable by giving each bar a fixed
+   horizontal footprint and moving the label below the chart at an angle.
+   The chart remains horizontally scrollable on smaller screens. */
+.chart-angled-labels {
+  min-height: 390px;
+  height: 390px;
+  padding-bottom: 150px;
+  gap: 24px;
+}
+
+.chart-angled-labels .bar {
+  min-width: 96px;
+}
+
+.chart-angled-labels .bar span {
+  bottom: -118px;
+  left: 50%;
+  width: 132px;
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  transform:
+    translateX(-7px)
+    rotate(-42deg);
+  transform-origin: top left;
+}
+
+
 /* ==========================================================================
    LISTS
    ========================================================================== */
