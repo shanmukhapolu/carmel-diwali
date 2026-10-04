@@ -7,6 +7,7 @@ import {
   getShiftById,
   findShift,
   normalizeLastName,
+  normalizeFirstName,
   normalizePhoneNumber
 } from "../config.js";
 
@@ -43,7 +44,7 @@ const EVENT_TIME_ZONE_LABEL = CONFIG.timeZoneLabel || "EST";
 
 let activeStatsTab = "registration";
 
-const REGISTRATION_START = new Date("2026-08-15T00:00:00");
+const REGISTRATION_START = new Date("2026-09-07T00:00:00");
 
 const $ = (id) => document.getElementById(id);
 
@@ -3968,6 +3969,8 @@ async function initStatisticsPage() {
       '<section class="panel"><p>Loading statistics…</p></section>';
   }
 
+  await loadShiftCapacities();
+
   registrations =
     await loadRegistrations();
 
@@ -4031,8 +4034,16 @@ function renderStats(
 
   if (!stats) return;
 
-  const total =
+  const totalRegistrations =
     records.length;
+
+  const volunteerStats =
+    buildUniqueVolunteerStats(
+      records
+    );
+
+  const totalVolunteers =
+    volunteerStats.people.size;
 
   const all =
     allShifts();
@@ -4061,12 +4072,22 @@ function renderStats(
       )
     );
 
-  const byPosition =
+  const byPositionRegistrations =
     Object.fromEntries(
       VOLUNTEER_POSITIONS.map(
         (position) => [
           position.id,
           0
+        ]
+      )
+    );
+
+  const byPositionVolunteers =
+    new Map(
+      VOLUNTEER_POSITIONS.map(
+        (position) => [
+          position.id,
+          new Set()
         ]
       )
     );
@@ -4107,13 +4128,29 @@ function renderStats(
       }
 
       if (
-        byPosition[
+        byPositionRegistrations[
           record.positionId
         ] != null
       ) {
-        byPosition[
+        byPositionRegistrations[
           record.positionId
         ] += 1;
+      }
+
+      if (
+        byPositionVolunteers.has(
+          record.positionId
+        )
+      ) {
+        byPositionVolunteers
+          .get(
+            record.positionId
+          )
+          .add(
+            volunteerIdentity(
+              record
+            )
+          );
       }
 
       const submitted =
@@ -4288,7 +4325,7 @@ function renderStats(
         Math.max(
           0,
           capacity -
-            total
+            totalRegistrations
         )
       ]
     ]),
