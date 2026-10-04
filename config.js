@@ -339,9 +339,9 @@ export const VOLUNTEER_POSITIONS = [
 
   {
     id: "volunteer-booth",
-    name: "Volunteer Booth",
+    name: "Guest Services",
     description:
-      "Assist with volunteer coordination and information at the main booth.",
+      "Assist guests with questions, directions, and general information at the main booth.",
     shifts: [
       {
         id: "volunteer-booth-1600-1730",
