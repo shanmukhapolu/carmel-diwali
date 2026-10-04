@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>City Volunteer Import | Carmel Diwali Festival</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="admin-auth-checking">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="brand-title">Carmel Diwali Festival of Lights</div>
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <nav class="nav">
+      <a href="/admin/">Dashboard</a>
+      <a href="registrations.html">Volunteers</a>
+      <a class="active" href="city-volunteers.html">City Import</a>
+      <a href="whatsapp.html">WhatsApp</a>
+      <a href="checkin.html">Check-In</a>
+      <a href="statistics.html">Statistics</a>
+    </nav>
+
+    <section class="panel">
+      <p class="eyebrow">City of Carmel roster</p>
+      <div class="summary-line">
+        <div>
+          <h1>Import City Volunteers</h1>
+          <p class="muted">
+            Add Event Set-Up volunteers from the City roster directly into the
+            Carmel Diwali volunteer system. Event Support volunteers should
+            continue through the public registration form instead.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="city-import-grid">
+
+      <section class="panel city-import-card">
+        <p class="eyebrow">Manual entry</p>
+        <h2>Add one City volunteer</h2>
+        <p class="muted">
+          Use this when a City volunteer needs to be added individually.
+          Capacity will not block an admin import.
+        </p>
+
+        <form id="manual-form" class="city-import-form">
+          <div class="city-import-fields">
+            <div class="city-import-field">
+              <label for="manual-first">First name</label>
+              <input id="manual-first" required autocomplete="given-name">
+            </div>
+
+            <div class="city-import-field">
+              <label for="manual-last">Last name</label>
+              <input id="manual-last" required autocomplete="family-name">
+            </div>
+
+            <div class="city-import-field">
+              <label for="manual-email">Email</label>
+              <input id="manual-email" type="email" autocomplete="email">
+            </div>
+
+            <div class="city-import-field">
+              <label for="manual-phone">Mobile</label>
+              <input id="manual-phone" inputmode="tel" autocomplete="tel">
+            </div>
+
+            <div class="city-import-field">
+              <label for="manual-age">Age</label>
+              <select id="manual-age">
+                <option value="true">18 or older</option>
+                <option value="false">Under 18</option>
+                <option value="">Not specified</option>
+              </select>
+            </div>
+
+            <div class="city-import-field">
+              <label for="manual-position">Position</label>
+              <select id="manual-position"></select>
+            </div>
+
+            <div class="city-import-field full">
+              <label for="manual-shift">Shift</label>
+              <select id="manual-shift"></select>
+              <p id="manual-shift-capacity" class="city-import-help"></p>
+            </div>
+
+            <div class="city-import-field full">
+              <label for="manual-city-need">Original City registration</label>
+              <input
+                id="manual-city-need"
+                value="Diwali Festival of Lights - Set Up"
+              >
+            </div>
+          </div>
+
+          <div class="city-import-actions">
+            <button id="manual-submit" class="primary" type="submit">
+              Add City Volunteer
+            </button>
+          </div>
+
+          <p id="manual-message" class="error" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel city-import-card">
+        <p class="eyebrow">Google Sheets import</p>
+        <h2>Paste City roster rows</h2>
+        <p>
+          In Google Sheets, select the rows you want to import and copy them.
+          Paste them below. The importer is built for the exact City sheet
+          layout shown here.
+        </p>
+
+        <div class="city-import-note">
+          Only rows whose <strong>Need</strong> contains
+          <strong>Set Up</strong> are eligible. Event Support, General Event
+          Staff, and other City rows are skipped automatically.
+        </div>
+
+        <p class="city-import-help">
+          A First · B Last · C Email · D Mobile · E Need · F Date ·
+          G Start · H End · I Emergency Contact · J &lt;18 · K Parent/Guardian
+        </p>
+
+        <textarea
+          id="sheet-input"
+          rows="12"
+          placeholder="Paste rows copied directly from Google Sheets..."
+          spellcheck="false"
+        ></textarea>
+
+        <div class="city-import-dropzone">
+          <strong>Or upload a CSV exported from Google Sheets</strong>
+          <input id="csv-file" type="file" accept=".csv,text/csv">
+        </div>
+
+        <div class="city-import-fields">
+          <div class="city-import-field">
+            <label for="import-position">Import into position</label>
+            <select id="import-position"></select>
+            <p class="city-import-help">
+              The selected position is applied to every eligible Set-Up row.
+              Shift times from columns G/H determine the specific shift.
+            </p>
+          </div>
+
+          <div class="city-import-field">
+            <label>Expected event date</label>
+            <input value="October 10, 2026" disabled>
+            <p class="city-import-help">
+              Rows with a different date are rejected during preview.
+            </p>
+          </div>
+        </div>
+
+        <div class="city-import-actions">
+          <button id="preview-import" class="secondary" type="button">
+            Preview Rows
+          </button>
+          <button id="import-rows" class="primary" type="button" disabled>
+            Import Valid Rows
+          </button>
+        </div>
+
+        <p id="sheet-message" class="error" aria-live="polite"></p>
+      </section>
+
+    </section>
+
+    <section class="panel">
+      <div class="summary-line">
+        <div>
+          <p class="eyebrow">Preview</p>
+          <h2>Import review</h2>
+        </div>
+        <strong id="preview-counts">No rows loaded</strong>
+      </div>
+
+      <div id="preview-summary" class="city-import-summary"></div>
+
+      <div class="table-wrap city-import-preview">
+        <table>
+          <thead>
+            <tr>
+              <th>Sheet Row</th>
+              <th>Volunteer</th>
+              <th>Email</th>
+              <th>City Need</th>
+              <th>Position</th>
+              <th>Shift</th>
+              <th>Age</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="preview-rows">
+            <tr>
+              <td colspan="8">Paste or upload City rows, then choose Preview Rows.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p id="page-error" class="error" aria-live="polite"></p>
+    </section>
+
+  </main>
+
+  <script type="module" src="city-volunteers.js"></script>
+
+</body>
+</html>
