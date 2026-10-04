@@ -44,6 +44,7 @@ requireAdmin({
     $("logout")?.addEventListener("click", logout);
 
     renderPositionSelects();
+    refreshImportShiftSelect();
     bindManualForm();
     bindImportControls();
 
@@ -77,79 +78,119 @@ async function refreshData() {
 
 function renderPositionSelects() {
   const manual = $("manual-position");
-  const imported = $("import-position");
 
   if (manual) {
     manual.textContent = "";
 
-    VOLUNTEER_POSITIONS.forEach((position) => {
-      manual.append(new Option(position.name, position.id));
-    });
+    VOLUNTEER_POSITIONS.forEach(
+      (position) => {
+        manual.append(
+          new Option(
+            position.name,
+            position.id
+          )
+        );
+      }
+    );
 
     manual.value = "event-setup";
-    manual.addEventListener("change", refreshManualShiftSelect);
+    manual.addEventListener(
+      "change",
+      refreshManualShiftSelect
+    );
   }
+
+  const imported = $("import-position");
 
   if (imported) {
     imported.textContent = "";
 
-    VOLUNTEER_POSITIONS.forEach((position) => {
-      imported.append(new Option(position.name, position.id));
-    });
+    VOLUNTEER_POSITIONS.forEach(
+      (position) => {
+        imported.append(
+          new Option(
+            position.name,
+            position.id
+          )
+        );
+      }
+    );
 
     imported.value = "event-setup";
-    imported.addEventListener("change", () => {
-      refreshImportShiftSelect();
-    });
+    imported.addEventListener(
+      "change",
+      refreshImportShiftSelect
+    );
   }
 }
 
 function refreshImportShiftSelect() {
-  const positionId = $("import-position")?.value || "event-setup";
-  const shiftSelect = $("import-shift");
+  const positionId =
+    $("import-position")?.value ||
+    "event-setup";
+
+  const shiftSelect =
+    $("import-shift");
+
   if (!shiftSelect) return;
 
   shiftSelect.textContent = "";
 
-  const position = getPositionById(positionId);
+  const position =
+    getPositionById(positionId);
 
-  (position?.shifts || []).forEach((shift) => {
-    const current =
-      Number(shiftCounts.get(shift.id)?.count) || 0;
-    const capacity =
-      Number(
-        shiftCounts.get(shift.id)?.capacity ??
-        shift.capacity ??
-        0
-      );
+  (position?.shifts || []).forEach(
+    (shift) => {
+      const current =
+        Number(
+          shiftCounts.get(shift.id)?.count
+        ) || 0;
 
-    shiftSelect.append(
-      new Option(
-        `${formatShiftTime(shift)} • ${current}/${capacity}`,
-        shift.id
+      const capacity =
+        Number(
+          shiftCounts.get(shift.id)?.capacity ??
+            shift.capacity ??
+            0
+        );
+
+      shiftSelect.append(
+        new Option(
+          `${formatShiftTime(shift)} • ${current}/${capacity}`,
+          shift.id
+        )
       );
-    );
-  });
+    }
+  );
 
   updateImportCapacityText();
 }
 
 function updateImportCapacityText() {
-  const shiftId = $("import-shift")?.value;
-  const shift = findConfiguredShift(shiftId);
+  const shiftId =
+    $("import-shift")?.value ||
+    "";
+
+  const shift =
+    findConfiguredShift(shiftId);
 
   if (!shift) {
-    setText("import-shift-capacity", "");
+    setText(
+      "import-shift-capacity",
+      ""
+    );
     return;
   }
 
   const current =
-    Number(shiftCounts.get(shift.id)?.count) || 0;
+    Number(
+      shiftCounts.get(shift.id)?.count
+    ) || 0;
+
   const capacity =
     Number(
       shiftCounts.get(shift.id)?.capacity ??
-      shift.capacity ??
-      0
+        shift.capacity ??
+        0
     );
 
   setText(
@@ -334,11 +375,6 @@ function bindImportControls() {
     buildPreview
   );
 
-  $("apply-defaults")?.addEventListener(
-    "click",
-    applyDefaultAssignment
-  );
-
   $("import-rows")?.addEventListener(
     "click",
     importValidRows
@@ -447,24 +483,31 @@ function buildPreview() {
   }
 
   const importPositionId =
-    $("import-position")?.value || "event-setup";
+    $("import-position")?.value ||
+    "event-setup";
+
   const importPosition =
     getPositionById(importPositionId);
 
+  const importShiftId =
+    $("import-shift")?.value ||
+    "";
+
   previewRows = rows
     .map((cells, index) =>
-      makeCandidateFromSheetRow(cells, index + 1, importPosition)
+      makeCandidateFromSheetRow(
+        cells,
+        index + 1,
+        importPosition,
+        importShiftId
+      )
     )
     .filter(Boolean);
-
-  applyPreviewDuplicateChecks();
 
   renderPreview();
 
   const valid = previewRows.filter(
-    (row) =>
-      row.status === "ready" ||
-      row.status === "warning"
+    (row) => row.status === "ready"
   ).length;
 
   if (!valid) {
@@ -478,7 +521,8 @@ function buildPreview() {
 function makeCandidateFromSheetRow(
   cells,
   rowNumber,
-  importPosition
+  importPosition,
+  importShiftId
 ) {
   const value = (index) =>
     String(cells[index] ?? "").trim();
@@ -520,11 +564,13 @@ function makeCandidateFromSheetRow(
       email: "",
       phone: "",
       cityNeed,
-      positionId: importPosition?.id || "",
+      positionId:
+        importPosition?.id || "",
       shiftId: "",
       is18OrOlder: null,
       status: "skip",
-      result: "Blank/section row skipped.",
+      result:
+        "Blank/section row skipped.",
     };
   }
 
@@ -536,11 +582,14 @@ function makeCandidateFromSheetRow(
       email,
       phone,
       cityNeed,
-      positionId: importPosition?.id || "",
+      positionId:
+        importPosition?.id || "",
       shiftId: "",
-      is18OrOlder: parseAge(under18Raw),
+      is18OrOlder:
+        parseAge(under18Raw),
       status: "error",
-      result: "Missing first or last name.",
+      result:
+        "Missing first or last name.",
     };
   }
 
@@ -558,11 +607,14 @@ function makeCandidateFromSheetRow(
       email,
       phone,
       cityNeed,
-      positionId: importPosition?.id || "",
+      positionId:
+        importPosition?.id || "",
       shiftId: "",
-      is18OrOlder: parseAge(under18Raw),
+      is18OrOlder:
+        parseAge(under18Raw),
       status: "error",
-      result: `Date ${cityDateRaw || "missing"} does not match ${EVENT_DATE}.`,
+      result:
+        `Date ${cityDateRaw || "missing"} does not match ${EVENT_DATE}.`,
     };
   }
 
@@ -574,20 +626,23 @@ function makeCandidateFromSheetRow(
       email,
       phone,
       cityNeed,
-      positionId: importPosition?.id || "",
+      positionId:
+        importPosition?.id || "",
       shiftId: "",
-      is18OrOlder: parseAge(under18Raw),
+      is18OrOlder:
+        parseAge(under18Raw),
       status: "error",
-      result: `Could not read date "${cityDateRaw}".`,
+      result:
+        `Could not read date "${cityDateRaw}".`,
     };
   }
 
   const positionId =
     importPosition?.id ||
-    "event-setup";
+    "";
 
   const shiftId =
-    $("import-shift")?.value ||
+    importShiftId ||
     "";
 
   const shift =
@@ -596,7 +651,10 @@ function makeCandidateFromSheetRow(
       shiftId
     );
 
-  if (!shift) {
+  if (
+    !importPosition ||
+    !shift
+  ) {
     return {
       rowNumber,
       firstName,
@@ -606,9 +664,11 @@ function makeCandidateFromSheetRow(
       cityNeed,
       positionId,
       shiftId: "",
-      is18OrOlder: parseAge(under18Raw),
+      is18OrOlder:
+        parseAge(under18Raw),
       status: "error",
-      result: "Choose a valid default position and shift before previewing.",
+      result:
+        "Choose a target position and shift before previewing.",
     };
   }
 
@@ -629,8 +689,10 @@ function makeCandidateFromSheetRow(
     parentGuardianEmail: extractEmail(parentGuardianRaw),
     sourceMethod: "sheets",
     sourceRow: rowNumber,
-    originalCityStartTime: startRaw,
-    originalCityEndTime: endRaw,
+    originalCityStartTime:
+      startRaw,
+    originalCityEndTime:
+      endRaw,
     status: "ready",
     result: "",
   };
@@ -641,185 +703,7 @@ function makeCandidateFromSheetRow(
       "No email or mobile. Review this row carefully before importing.";
   }
 
-  candidate.baseStatus = candidate.status;
-  candidate.baseResult = candidate.result;
-
   return candidate;
-}
-
-function resetDuplicateStatuses() {
-  previewRows.forEach((row) => {
-    if (row.status === "duplicate") {
-      row.status =
-        row.baseStatus || "ready";
-      row.result =
-        row.baseResult || "";
-    }
-  });
-}
-
-function applyDefaultAssignment() {
-  const positionId =
-    $("import-position")?.value || "event-setup";
-  const shiftId =
-    $("import-shift")?.value || "";
-
-  const shift =
-    getShiftById(
-      positionId,
-      shiftId
-    );
-
-  if (!shift) {
-    setMessage(
-      "sheet-message",
-      "Choose a valid default position and shift first."
-    );
-    return;
-  }
-
-  previewRows.forEach((row) => {
-    if (
-      row.status !== "error" &&
-      row.status !== "skip" &&
-      row.status !== "imported"
-    ) {
-      row.positionId = positionId;
-      row.shiftId = shiftId;
-
-      row.baseStatus =
-        row.baseStatus === "warning"
-          ? "warning"
-          : "ready";
-      row.baseResult =
-        row.baseStatus === "warning"
-          ? row.baseResult
-          : "";
-      row.status =
-        row.baseStatus || "ready";
-      row.result =
-        row.baseResult || "";
-    }
-  });
-
-  resetDuplicateStatuses();
-  applyPreviewDuplicateChecks();
-  renderPreview();
-
-  setMessage(
-    "sheet-message",
-    `Default assignment applied: ${getPositionById(positionId)?.name || positionId} • ${formatShiftTime(shift)}.`,
-    "success"
-  );
-}
-
-function createAssignmentSelects(row) {
-  const positionSelect = document.createElement("select");
-  positionSelect.className = "city-import-row-select";
-
-  VOLUNTEER_POSITIONS.forEach((position) => {
-    positionSelect.append(
-      new Option(position.name, position.id)
-    );
-  });
-
-  positionSelect.value = row.positionId || "";
-  positionSelect.disabled =
-    row.status === "imported" ||
-    row.status === "skip";
-  positionSelect.addEventListener("change", () => {
-    row.positionId = positionSelect.value;
-    row.shiftId = "";
-
-    resetDuplicateStatuses();
-    applyPreviewDuplicateChecks();
-    renderPreview();
-  });
-
-  const shiftSelect = document.createElement("select");
-  shiftSelect.className = "city-import-row-select";
-
-  const position = getPositionById(row.positionId);
-
-  (position?.shifts || []).forEach((shift) => {
-    shiftSelect.append(
-      new Option(formatShiftTime(shift), shift.id)
-    );
-  });
-
-  shiftSelect.value = row.shiftId || "";
-  shiftSelect.disabled =
-    row.status === "imported" ||
-    row.status === "skip";
-  shiftSelect.addEventListener("change", () => {
-    row.shiftId = shiftSelect.value;
-
-    resetDuplicateStatuses();
-    applyPreviewDuplicateChecks();
-    renderPreview();
-  });
-
-  return { positionSelect, shiftSelect };
-}
-
-function applyPreviewDuplicateChecks() {
-  const seen = [];
-
-  for (const row of previewRows) {
-    if (
-      row.status !== "ready" &&
-      row.status !== "warning"
-    ) {
-      continue;
-    }
-
-    if (!row.shiftId || !row.positionId) {
-      row.status = "error";
-      row.result = "Choose a target position and shift.";
-      continue;
-    }
-
-    const duplicate = findExistingDuplicate(row);
-
-    if (duplicate) {
-      row.status = "duplicate";
-      row.result =
-        "This volunteer is already registered for this shift. It was not added.";
-      continue;
-    }
-
-    const prior = seen.find(
-      (candidate) =>
-        candidate.shiftId === row.shiftId &&
-        normalizeFirstName(candidate.firstName) ===
-          normalizeFirstName(row.firstName) &&
-        normalizeLastName(candidate.lastName) ===
-          normalizeLastName(row.lastName) &&
-        (
-          (
-            normalizePhoneNumber(candidate.phone) &&
-            normalizePhoneNumber(row.phone) &&
-            normalizePhoneNumber(candidate.phone) ===
-              normalizePhoneNumber(row.phone)
-          ) ||
-          (
-            normalizeEmail(candidate.email) &&
-            normalizeEmail(row.email) &&
-            normalizeEmail(candidate.email) ===
-              normalizeEmail(row.email)
-          )
-        )
-    );
-
-    if (prior) {
-      row.status = "duplicate";
-      row.result =
-        `Duplicate of sheet row ${prior.rowNumber}; it will only be imported once.`;
-      continue;
-    }
-
-    seen.push(row);
-  }
 }
 
 function parseAge(value) {
@@ -1033,24 +917,22 @@ function renderPreview() {
     appendCell(tr, row.email || "—");
     appendCell(tr, row.cityNeed || "—");
 
-    const assignment =
-      createAssignmentSelects(row);
-
-    const positionCell =
-      document.createElement("td");
-    positionCell.className = "result-cell";
-    positionCell.appendChild(
-      assignment.positionSelect
+    const position =
+      getPositionById(row.positionId);
+    appendCell(
+      tr,
+      position?.name || "—"
     );
-    tr.appendChild(positionCell);
 
-    const shiftCell =
-      document.createElement("td");
-    shiftCell.className = "result-cell";
-    shiftCell.appendChild(
-      assignment.shiftSelect
+    const shift =
+      getShiftById(
+        row.positionId,
+        row.shiftId
+      );
+    appendCell(
+      tr,
+      shift ? formatShiftTime(shift) : "—"
     );
-    tr.appendChild(shiftCell);
 
     appendCell(
       tr,
