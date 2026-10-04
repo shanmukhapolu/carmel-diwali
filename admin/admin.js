@@ -127,6 +127,7 @@ function renderNavigation(profile) {
     const adminLinks = [
       ["Dashboard", "/admin/"],
       ["Volunteers", "/admin/registrations.html"],
+      ["City Import", "/admin/city-volunteers.html"],
       ["WhatsApp", "/admin/whatsapp.html"],
       ["Check-In", "/admin/checkin.html"],
       ["Statistics", "/admin/statistics.html"]
@@ -4045,6 +4046,22 @@ function renderStats(
   const totalVolunteers =
     volunteerStats.people.size;
 
+  // City-imported volunteers are part of the live roster and all shift/position
+  // totals, but their import timestamp is not an actual signup timestamp. Keep
+  // them out of time-based registration/new-volunteer analytics so a bulk
+  // import does not create a false spike on the import date.
+  const activityRecords =
+    records.filter(
+      (record) =>
+        record.registrationSource !==
+        "city_import"
+    );
+
+  const activityVolunteerStats =
+    buildUniqueVolunteerStats(
+      activityRecords
+    );
+
   const all =
     allShifts();
 
@@ -4138,7 +4155,7 @@ function renderStats(
       )
     );
 
-  volunteerStats.firstRegistrationDateByPerson.forEach(
+  activityVolunteerStats.firstRegistrationDateByPerson.forEach(
     (date) => {
       const key =
         isoDate(
@@ -4196,9 +4213,12 @@ function renderStats(
       }
 
       const submitted =
-        toDate(
-          record.createdAt
-        );
+        record.registrationSource !==
+          "city_import"
+          ? toDate(
+              record.createdAt
+            )
+          : null;
 
       if (
         submitted &&
@@ -4236,28 +4256,28 @@ function renderStats(
 
   const registrationsToday =
     countSince(
-      records,
+      activityRecords,
       today,
       tomorrow
     );
 
   const registrationsThisWeek =
     countSince(
-      records,
+      activityRecords,
       weekStart,
       tomorrow
     );
 
   const newVolunteersToday =
     countNewVolunteersSince(
-      volunteerStats,
+      activityVolunteerStats,
       today,
       tomorrow
     );
 
   const newVolunteersThisWeek =
     countNewVolunteersSince(
-      volunteerStats,
+      activityVolunteerStats,
       weekStart,
       tomorrow
     );
@@ -4278,7 +4298,7 @@ function renderStats(
   const average =
     byDate.length
       ? (
-          totalRegistrations /
+          activityRecords.length /
           byDate.length
         ).toFixed(1)
       : "0";
