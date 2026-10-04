@@ -4978,7 +4978,7 @@ function shiftRows(
         text:
           `${shift.positionName} — ${formatShiftTime(
             shift
-          )}: ${shift.count} of ${shift.capacity} filled (${Math.round(
+          )}: ${shift.count} of ${shift.capacity} registrations filled (${Math.round(
             shift.capacity
               ? (shift.count /
                   shift.capacity) *
@@ -5004,14 +5004,20 @@ function positionLeaderboardRows(
       index
     ) => ({
       text:
-        `#${index + 1} ${
-          position.name
-        } — ${
-          position.count
-        } volunteers (${percent(
-          position.count,
-          total
-        )})`,
+        "#" +
+          (index + 1) +
+          " " +
+          position.name +
+          " — " +
+          position.volunteerCount +
+          " unique volunteers · " +
+          position.registrationCount +
+          " registrations (" +
+          percent(
+            position.volunteerCount,
+            total
+          ) +
+          ")",
 
       className:
         "leaderboard-row"
