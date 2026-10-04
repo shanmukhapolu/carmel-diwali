@@ -4249,15 +4249,15 @@ function renderStats(
     );
 
   const newVolunteersToday =
-    countUniqueVolunteersSince(
-      records,
+    countNewVolunteersSince(
+      volunteerStats,
       today,
       tomorrow
     );
 
   const newVolunteersThisWeek =
-    countUniqueVolunteersSince(
-      records,
+    countNewVolunteersSince(
+      volunteerStats,
       weekStart,
       tomorrow
     );
@@ -4671,38 +4671,26 @@ function buildUniqueVolunteerStats(
 }
 
 
-function countUniqueVolunteersSince(
-  records,
+function countNewVolunteersSince(
+  volunteerStats,
   start,
   end
 ) {
-  const identities =
-    new Set();
+  let count = 0;
 
-  records.forEach(
-    (record) => {
-      const created =
-        toDate(
-          record.createdAt
-        );
-
+  volunteerStats.firstRegistrationDateByPerson.forEach(
+    (date) => {
       if (
-        created &&
-        created >= start &&
-        created < end
+        date >= start &&
+        date < end
       ) {
-        identities.add(
-          volunteerIdentity(
-            record
-          )
-        );
+        count += 1;
       }
     }
   );
 
-  return identities.size;
+  return count;
 }
-
 
 
 /* =========================================================
