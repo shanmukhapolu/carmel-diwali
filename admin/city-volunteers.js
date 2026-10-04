@@ -64,6 +64,7 @@ async function refreshData() {
       ]);
 
     refreshManualShiftSelect();
+    refreshImportShiftSelect();
     renderPreview();
   } catch (error) {
     console.error("[City Import] load failed", error);
@@ -725,8 +726,7 @@ function createAssignmentSelects(row) {
   positionSelect.value = row.positionId || "";
   positionSelect.disabled =
     row.status === "imported" ||
-    row.status === "skip" ||
-    row.status === "error";
+    row.status === "skip";
   positionSelect.addEventListener("change", () => {
     row.positionId = positionSelect.value;
     row.shiftId = "";
@@ -750,8 +750,7 @@ function createAssignmentSelects(row) {
   shiftSelect.value = row.shiftId || "";
   shiftSelect.disabled =
     row.status === "imported" ||
-    row.status === "skip" ||
-    row.status === "error";
+    row.status === "skip";
   shiftSelect.addEventListener("change", () => {
     row.shiftId = shiftSelect.value;
 
