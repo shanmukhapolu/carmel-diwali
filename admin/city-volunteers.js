@@ -392,10 +392,14 @@ function buildPreview() {
     )
     .filter(Boolean);
 
+  applyPreviewDuplicateChecks();
+
   renderPreview();
 
   const valid = previewRows.filter(
-    (row) => row.status === "ready"
+    (row) =>
+      row.status === "ready" ||
+      row.status === "warning"
   ).length;
 
   if (!valid) {
@@ -622,6 +626,60 @@ function makeCandidateFromSheetRow(
   }
 
   return candidate;
+}
+
+function applyPreviewDuplicateChecks() {
+  const seen = [];
+
+  for (const row of previewRows) {
+    if (
+      row.status !== "ready" &&
+      row.status !== "warning"
+    ) {
+      continue;
+    }
+
+    const duplicate = findExistingDuplicate(row);
+
+    if (duplicate) {
+      row.status = "duplicate";
+      row.result =
+        "This volunteer is already registered for this shift. It was not added.";
+      continue;
+    }
+
+    const prior = seen.find(
+      (candidate) =>
+        candidate.shiftId === row.shiftId &&
+        normalizeFirstName(candidate.firstName) ===
+          normalizeFirstName(row.firstName) &&
+        normalizeLastName(candidate.lastName) ===
+          normalizeLastName(row.lastName) &&
+        (
+          (
+            normalizePhoneNumber(candidate.phone) &&
+            normalizePhoneNumber(row.phone) &&
+            normalizePhoneNumber(candidate.phone) ===
+              normalizePhoneNumber(row.phone)
+          ) ||
+          (
+            normalizeEmail(candidate.email) &&
+            normalizeEmail(row.email) &&
+            normalizeEmail(candidate.email) ===
+              normalizeEmail(row.email)
+          )
+        )
+    );
+
+    if (prior) {
+      row.status = "duplicate";
+      row.result =
+        `Duplicate of sheet row ${prior.rowNumber}; it will only be imported once.`;
+      continue;
+    }
+
+    seen.push(row);
+  }
 }
 
 function parseAge(value) {
