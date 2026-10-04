@@ -5354,7 +5354,7 @@ function openVolunteerReport(
           ${escapeHtml(
             CONFIG.eventName
           )}
-          Volunteer Report
+          Volunteer Registration Report
         </h1>
 
         <p>
@@ -5434,7 +5434,7 @@ function openVolunteerReport(
         ${stats.rates.notArrived}
       </p>
 
-      <h2>All volunteers</h2>
+      <h2>All registrations</h2>
 
       <table>
         <thead>
