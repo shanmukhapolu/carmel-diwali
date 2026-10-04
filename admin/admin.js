@@ -4416,6 +4416,169 @@ function renderStats(
   );
 }
 
+/* =========================================================
+   UNIQUE VOLUNTEER STATISTICS
+========================================================= */
+
+function volunteerIdentity(
+  record
+) {
+  const first =
+    normalizeFirstName(
+      record.firstName
+    );
+
+  const last =
+    normalizeLastName(
+      record.lastName
+    );
+
+  if (
+    first &&
+    last
+  ) {
+    return first + "|" + last;
+  }
+
+  return "registration:" +
+    String(
+      record.id
+    );
+}
+
+
+function buildUniqueVolunteerStats(
+  records
+) {
+  const people =
+    new Map();
+
+  const firstRegistrationDateByPerson =
+    new Map();
+
+  records.forEach(
+    (record) => {
+      const identity =
+        volunteerIdentity(
+          record
+        );
+
+      if (!people.has(identity)) {
+        people.set(
+          identity,
+          {
+            name:
+              (
+                (record.firstName || "") +
+                " " +
+                (record.lastName || "")
+              ).trim() ||
+              "Unnamed volunteer",
+
+            registrations: 0
+          }
+        );
+      }
+
+      const person =
+        people.get(
+          identity
+        );
+
+      person.registrations += 1;
+
+      const created =
+        toDate(
+          record.createdAt
+        );
+
+      if (
+        created &&
+        (
+          !firstRegistrationDateByPerson.has(
+            identity
+          ) ||
+          created <
+            firstRegistrationDateByPerson.get(
+              identity
+            )
+        )
+      ) {
+        firstRegistrationDateByPerson.set(
+          identity,
+          created
+        );
+      }
+    }
+  );
+
+  let maxRegistrations = 0;
+  let maxRegistrationPerson = "";
+
+  people.forEach(
+    (person) => {
+      if (
+        person.registrations >
+        maxRegistrations
+      ) {
+        maxRegistrations =
+          person.registrations;
+
+        maxRegistrationPerson =
+          person.name;
+      }
+    }
+  );
+
+  return {
+    people,
+    firstRegistrationDateByPerson,
+    multiShiftVolunteers:
+      Array.from(
+        people.values()
+      ).filter(
+        (person) =>
+          person.registrations > 1
+      ).length,
+    maxRegistrations,
+    maxRegistrationPerson
+  };
+}
+
+
+function countUniqueVolunteersSince(
+  records,
+  start,
+  end
+) {
+  const identities =
+    new Set();
+
+  records.forEach(
+    (record) => {
+      const created =
+        toDate(
+          record.createdAt
+        );
+
+      if (
+        created &&
+        created >= start &&
+        created < end
+      ) {
+        identities.add(
+          volunteerIdentity(
+            record
+          )
+        );
+      }
+    }
+  );
+
+  return identities.size;
+}
+
+
 
 /* =========================================================
    STATISTICS COMPONENTS
