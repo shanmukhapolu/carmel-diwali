@@ -138,9 +138,10 @@
         </p>
 
         <div class="city-import-note">
-          Only rows whose <strong>Need</strong> contains
-          <strong>Set Up</strong> are eligible. Event Support, General Event
-          Staff, and other City rows are skipped automatically.
+          Choose the Carmel Diwali position and shift you want each imported
+          volunteer assigned to. The City position in the <strong>Need</strong>
+          column is kept as the original source information, but does not
+          determine the imported assignment.
         </div>
 
         <p class="city-import-help">
@@ -162,11 +163,18 @@
 
         <div class="city-import-fields">
           <div class="city-import-field">
-            <label for="import-position">Import into position</label>
+            <label for="import-position">Default position</label>
             <select id="import-position"></select>
             <p class="city-import-help">
-              The selected position is applied to every eligible Set-Up row.
-              Shift times from columns G/H determine the specific shift.
+              This is used as the initial position for imported rows.
+            </p>
+          </div>
+
+          <div class="city-import-field">
+            <label for="import-shift">Default shift</label>
+            <select id="import-shift"></select>
+            <p id="import-shift-capacity" class="city-import-help">
+              This is used as the initial shift for imported rows.
             </p>
           </div>
 
@@ -180,6 +188,9 @@
         </div>
 
         <div class="city-import-actions">
+          <button id="apply-defaults" class="secondary" type="button">
+            Apply Default Position &amp; Shift to Rows
+          </button>
           <button id="preview-import" class="secondary" type="button">
             Preview Rows
           </button>
