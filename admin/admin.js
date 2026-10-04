@@ -4115,6 +4115,48 @@ function renderStats(
       )
     );
 
+  const byNewVolunteerDate =
+    dateRange(
+      REGISTRATION_START,
+      EVENT_DATE
+    ).map(
+      (date) => ({
+        date,
+        count: 0
+      })
+    );
+
+  const byNewVolunteerDateMap =
+    Object.fromEntries(
+      byNewVolunteerDate.map(
+        (entry) => [
+          isoDate(
+            entry.date
+          ),
+          entry
+        ]
+      )
+    );
+
+  volunteerStats.firstRegistrationDateByPerson.forEach(
+    (date) => {
+      const key =
+        isoDate(
+          date
+        );
+
+      if (
+        byNewVolunteerDateMap[
+          key
+        ]
+      ) {
+        byNewVolunteerDateMap[
+          key
+        ].count += 1;
+      }
+    }
+  );
+
   records.forEach(
     (record) => {
       if (
@@ -4175,35 +4217,49 @@ function renderStats(
     }
   );
 
-  const todayCount =
-    countSince(
-      records,
-      startOfDay(
-        new Date()
-      ),
-      addDays(
-        startOfDay(
-          new Date()
-        ),
-        1
-      )
+  const today =
+    startOfDay(
+      new Date()
     );
 
-  const weekCount =
+  const tomorrow =
+    addDays(
+      today,
+      1
+    );
+
+  const weekStart =
+    addDays(
+      today,
+      -6
+    );
+
+  const registrationsToday =
     countSince(
       records,
-      addDays(
-        startOfDay(
-          new Date()
-        ),
-        -6
-      ),
-      addDays(
-        startOfDay(
-          new Date()
-        ),
-        1
-      )
+      today,
+      tomorrow
+    );
+
+  const registrationsThisWeek =
+    countSince(
+      records,
+      weekStart,
+      tomorrow
+    );
+
+  const newVolunteersToday =
+    countUniqueVolunteersSince(
+      records,
+      today,
+      tomorrow
+    );
+
+  const newVolunteersThisWeek =
+    countUniqueVolunteersSince(
+      records,
+      weekStart,
+      tomorrow
     );
 
   const highestDay =
@@ -4222,7 +4278,7 @@ function renderStats(
   const average =
     byDate.length
       ? (
-          total /
+          totalRegistrations /
           byDate.length
         ).toFixed(1)
       : "0";
@@ -4231,12 +4287,10 @@ function renderStats(
     all.map(
       (shift) => ({
         ...shift,
-
         count:
           byShift[
             shift.id
           ] || 0,
-
         capacity:
           Number(
             shiftCapacities.get(
@@ -4253,17 +4307,23 @@ function renderStats(
       .map(
         (position) => ({
           ...position,
-
-          count:
-            byPosition[
+          registrationCount:
+            byPositionRegistrations[
               position.id
-            ] || 0
+            ] || 0,
+          volunteerCount:
+            byPositionVolunteers
+              .get(
+                position.id
+              )?.size || 0
         })
       )
       .sort(
         (a, b) =>
-          b.count -
-          a.count
+          b.volunteerCount -
+          a.volunteerCount ||
+          b.registrationCount -
+          a.registrationCount
       );
 
   stats.textContent = "";
@@ -4289,11 +4349,9 @@ function renderStats(
       dayOfOverview(
         records
       ),
-
       dayOfStatsPanel(
         records
       ),
-
       shiftOverview(
         records,
         checkins
@@ -4306,81 +4364,151 @@ function renderStats(
   stats.append(
     statGrid([
       [
-        "Total volunteers",
-        total
+        "Unique volunteers",
+        totalVolunteers,
+        "Distinct first + last names, normalized"
       ],
-
+      [
+        "Total registrations",
+        totalRegistrations,
+        "Shift signups; one volunteer may have multiple"
+      ],
+      [
+        "Average registrations / volunteer",
+        totalVolunteers
+          ? (
+              totalRegistrations /
+              totalVolunteers
+            ).toFixed(1)
+          : "0.0",
+        "Average shifts signed up per person"
+      ],
+      [
+        "Multi-shift volunteers",
+        volunteerStats.multiShiftVolunteers,
+        totalVolunteers
+          ? percent(
+              volunteerStats.multiShiftVolunteers,
+              totalVolunteers
+            ) +
+            " of volunteers"
+          : "0% of volunteers"
+      ],
       [
         "Registrations today",
-        todayCount
+        registrationsToday,
+        "Shift registrations submitted today"
       ],
-
+      [
+        "New volunteers today",
+        newVolunteersToday,
+        "People whose first registration was today"
+      ],
       [
         "Registrations this week",
-        weekCount
+        registrationsThisWeek,
+        "Last 7 calendar days"
       ],
-
       [
-        "Remaining capacity",
+        "New volunteers this week",
+        newVolunteersThisWeek,
+        "People first seen in the last 7 calendar days"
+      ],
+      [
+        "Remaining shift capacity",
         Math.max(
           0,
           capacity -
             totalRegistrations
-        )
+        ),
+        percent(
+          totalRegistrations,
+          capacity
+        ) +
+          " of configured capacity filled"
+      ],
+      [
+        "Most registrations by one volunteer",
+        volunteerStats.maxRegistrations,
+        volunteerStats.maxRegistrationPerson ||
+          "No registrations"
       ]
     ]),
 
     chartPanel(
       "Registrations over time",
-      "Daily volunteer registrations through the event date.",
-
+      "Daily shift registrations from September 7 through the event date.",
       byDate.map(
         (entry) => ({
           label:
             shortDate(
               entry.date
             ),
-
           value:
             entry.count
         })
       ),
-
       [
-        `Total volunteers — ${total}`,
+        "Unique volunteers — " +
+          totalVolunteers,
+        "Total registrations — " +
+          totalRegistrations,
+        "Average registrations per day — " +
+          average,
+        "Highest-registration day — " +
+          shortDate(
+            highestDay.date
+          ) +
+          " (" +
+          highestDay.count +
+          ")"
+      ]
+    ),
 
-        `Average registrations per day — ${average}`,
-
-        `Highest-registration day — ${shortDate(
-          highestDay.date
-        )} (${highestDay.count})`
+    chartPanel(
+      "New volunteers over time",
+      "Daily count of people whose first registration occurred on or after September 7.",
+      byNewVolunteerDate.map(
+        (entry) => ({
+          label:
+            shortDate(
+              entry.date
+            ),
+          value:
+            entry.count
+        })
+      ),
+      [
+        "Unique volunteers — " +
+          totalVolunteers,
+        "Multi-shift volunteers — " +
+          volunteerStats.multiShiftVolunteers
       ]
     ),
 
     chartPanel(
       "Shift analytics",
-      "Volunteer capacity filled for each event shift.",
-
+      "Registrations for each event shift. Each shift has its own capacity.",
       shiftCounts.map(
         (shift) => ({
           label:
-            `${shift.positionName} — ${formatShiftTime(
+            shift.positionName +
+            " · " +
+            formatShiftTime(
               shift
-            )}`,
-
+            ),
           value:
             shift.count,
-
           max:
             shift.capacity
         })
       ),
-
       shiftRows(
         shiftCounts
       ),
-
       {
+        chartClass:
+          "chart-angled-labels",
         listClass:
           "appointment-list"
       }
@@ -4388,27 +4516,24 @@ function renderStats(
 
     chartPanel(
       "Position analytics",
-      "Volunteer registrations by event position.",
-
+      "Unique volunteers by position. Registration totals are shown below so repeat shifts are not mistaken for additional people.",
       positionRows.map(
         (position) => ({
           label:
             position.name,
-
           value:
-            position.count
+            position.volunteerCount
         })
       ),
-
       positionLeaderboardRows(
         positionRows,
-        total
+        totalVolunteers
       ),
-
       {
         panelClass:
           "position-panel",
-
+        chartClass:
+          "chart-angled-labels",
         listClass:
           "leaderboard-list"
       }
