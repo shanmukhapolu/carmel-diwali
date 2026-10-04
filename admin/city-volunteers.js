@@ -380,6 +380,13 @@ function bindImportControls() {
     importValidRows
   );
 
+  $("import-shift-mode")?.addEventListener(
+    "change",
+    updateImportShiftModeUI
+  );
+
+  updateImportShiftModeUI();
+
   $("csv-file")?.addEventListener("change", async () => {
     clearMessage("sheet-message");
 
@@ -401,6 +408,18 @@ function bindImportControls() {
       );
     }
   });
+}
+
+function updateImportShiftModeUI() {
+  const mode = $("import-shift-mode")?.value || "configured";
+  const helper = $("import-shift-capacity");
+
+  if (helper) {
+    helper.textContent =
+      mode === "sheet"
+        ? "Column G (Start) and H (End) will set each row's assigned shift time. Configured capacity does not block admin imports."
+        : "Used for every row when Shift time is set to Use selected timeslot.";
+  }
 }
 
 function parseSheetInput() {
@@ -493,13 +512,18 @@ function buildPreview() {
     $("import-shift")?.value ||
     "";
 
+  const shiftMode =
+    $("import-shift-mode")?.value ||
+    "configured";
+
   previewRows = rows
     .map((cells, index) =>
       makeCandidateFromSheetRow(
         cells,
         index + 1,
         importPosition,
-        importShiftId
+        importShiftId,
+        shiftMode
       )
     )
     .filter(Boolean);
@@ -507,7 +531,9 @@ function buildPreview() {
   renderPreview();
 
   const valid = previewRows.filter(
-    (row) => row.status === "ready"
+    (row) =>
+      row.status === "ready" ||
+      row.status === "warning"
   ).length;
 
   if (!valid) {
@@ -522,7 +548,8 @@ function makeCandidateFromSheetRow(
   cells,
   rowNumber,
   importPosition,
-  importShiftId
+  importShiftId,
+  shiftMode
 ) {
   const value = (index) =>
     String(cells[index] ?? "").trim();
@@ -637,24 +664,7 @@ function makeCandidateFromSheetRow(
     };
   }
 
-  const positionId =
-    importPosition?.id ||
-    "";
-
-  const shiftId =
-    importShiftId ||
-    "";
-
-  const shift =
-    getShiftById(
-      positionId,
-      shiftId
-    );
-
-  if (
-    !importPosition ||
-    !shift
-  ) {
+  if (!importPosition) {
     return {
       rowNumber,
       firstName,
@@ -662,14 +672,102 @@ function makeCandidateFromSheetRow(
       email,
       phone,
       cityNeed,
-      positionId,
+      positionId: "",
       shiftId: "",
       is18OrOlder:
         parseAge(under18Raw),
       status: "error",
       result:
-        "Choose a target position and shift before previewing.",
+        "Choose a target position before previewing.",
     };
+  }
+
+  let assignedShift = null;
+
+  if (shiftMode === "sheet") {
+    const startMinutes =
+      parseTimeToMinutes(startRaw);
+    const endMinutes =
+      parseTimeToMinutes(endRaw);
+
+    if (startMinutes === null || endMinutes === null) {
+      return {
+        rowNumber,
+        firstName,
+        lastName,
+        email,
+        phone,
+        cityNeed,
+        positionId: importPosition.id,
+        shiftId: "",
+        is18OrOlder:
+          parseAge(under18Raw),
+        status: "error",
+        result:
+          "Could not read the Start/End time in columns G/H. Use times such as 11:00 AM and 1:00 PM.",
+      };
+    }
+
+    if (endMinutes <= startMinutes) {
+      return {
+        rowNumber,
+        firstName,
+        lastName,
+        email,
+        phone,
+        cityNeed,
+        positionId: importPosition.id,
+        shiftId: "",
+        is18OrOlder:
+          parseAge(under18Raw),
+        status: "error",
+        result:
+          "The sheet End time must be later than the Start time.",
+      };
+    }
+
+    const startTime =
+      minutesToHHMM(startMinutes);
+    const endTime =
+      minutesToHHMM(endMinutes);
+
+    assignedShift = {
+      id: buildCityCustomShiftId(
+        importPosition.id,
+        startTime,
+        endTime
+      ),
+      positionId: importPosition.id,
+      positionName: importPosition.name,
+      startTime,
+      endTime,
+      capacity: 0,
+      isCustomShift: true,
+    };
+  } else {
+    assignedShift =
+      getShiftById(
+        importPosition.id,
+        importShiftId
+      );
+
+    if (!assignedShift) {
+      return {
+        rowNumber,
+        firstName,
+        lastName,
+        email,
+        phone,
+        cityNeed,
+        positionId: importPosition.id,
+        shiftId: "",
+        is18OrOlder:
+          parseAge(under18Raw),
+        status: "error",
+        result:
+          "Choose a target Timeslot before previewing.",
+      };
+    }
   }
 
   const candidate = {
@@ -680,13 +778,19 @@ function makeCandidateFromSheetRow(
     phone,
     cityNeed,
     positionId: importPosition.id,
-    shiftId: shift.id,
+    shiftId: assignedShift.id,
+    shiftStartTime: assignedShift.startTime,
+    shiftEndTime: assignedShift.endTime,
+    shiftLabel: formatShiftTime(assignedShift),
+    isCustomShift:
+      assignedShift.isCustomShift === true,
     is18OrOlder: parseAge(under18Raw),
     cityDate: normalizedDate || EVENT_DATE,
     cityStartTime: startRaw,
     cityEndTime: endRaw,
     emergencyContact,
-    parentGuardianEmail: extractEmail(parentGuardianRaw),
+    parentGuardianEmail:
+      extractEmail(parentGuardianRaw),
     sourceMethod: "sheets",
     sourceRow: rowNumber,
     originalCityStartTime:
@@ -786,30 +890,96 @@ function parseTimeToMinutes(value) {
   const text = String(value || "").trim();
 
   let match =
-    text.match(/^(\d{1,2}):?(\d{2})\s*([AP]M)$/i);
+    text.match(/^(\d{1,2})(?::?(\d{2}))?\s*([AP]M)$/i);
+
+  if (match) {
+    let hour = Number(match[1]);
+    const minute =
+      Number(match[2] || "0");
+    const period =
+      match[3].toUpperCase();
+
+    if (
+      hour < 1 ||
+      hour > 12 ||
+      minute < 0 ||
+      minute > 59
+    ) {
+      return null;
+    }
+
+    if (period === "AM") {
+      if (hour === 12) hour = 0;
+    } else if (hour !== 12) {
+      hour += 12;
+    }
+
+    return hour * 60 + minute;
+  }
+
+  match =
+    text.match(/^(\d{1,2}):?(\d{2})$/);
 
   if (!match) return null;
 
-  let hour = Number(match[1]);
+  const hour = Number(match[1]);
   const minute = Number(match[2]);
-  const period = match[3].toUpperCase();
 
   if (
-    hour < 1 ||
-    hour > 12 ||
+    hour < 0 ||
+    hour > 23 ||
     minute < 0 ||
     minute > 59
   ) {
     return null;
   }
 
-  if (period === "AM") {
-    if (hour === 12) hour = 0;
-  } else if (hour !== 12) {
-    hour += 12;
+  return hour * 60 + minute;
+}
+
+function minutesToHHMM(minutes) {
+  const hour =
+    Math.floor(minutes / 60);
+
+  const minute =
+    minutes % 60;
+
+  return (
+    String(hour).padStart(2, "0") +
+    String(minute).padStart(2, "0")
+  );
+}
+
+function buildCityCustomShiftId(
+  positionId,
+  startTime,
+  endTime
+) {
+  return `city_${positionId}_${startTime}_${endTime}`;
+}
+
+function getCandidateShift(candidate) {
+  if (candidate?.isCustomShift) {
+    return {
+      id: candidate.shiftId,
+      positionId: candidate.positionId,
+      positionName:
+        candidate.positionName ||
+        getPositionById(candidate.positionId)?.name ||
+        "",
+      startTime:
+        candidate.shiftStartTime,
+      endTime:
+        candidate.shiftEndTime,
+      capacity: 0,
+      isCustomShift: true,
+    };
   }
 
-  return hour * 60 + minute;
+  return getShiftById(
+    candidate?.positionId,
+    candidate?.shiftId
+  );
 }
 
 function timeStringToMinutes(hhmm) {
@@ -925,10 +1095,7 @@ function renderPreview() {
     );
 
     const shift =
-      getShiftById(
-        row.positionId,
-        row.shiftId
-      );
+      getCandidateShift(row);
     appendCell(
       tr,
       shift ? formatShiftTime(shift) : "—"
@@ -1060,13 +1227,19 @@ async function importValidRows() {
 }
 
 async function writeCityVolunteer(candidate) {
-  const position = getPositionById(candidate.positionId);
-  const shift = getShiftById(
-    candidate.positionId,
-    candidate.shiftId
-  );
+  const position =
+    getPositionById(candidate.positionId);
 
-  if (!position || !shift) {
+  const shift =
+    getCandidateShift(candidate);
+
+  if (
+    !position ||
+    !shift ||
+    shift.positionId !== position.id ||
+    !shift.startTime ||
+    !shift.endTime
+  ) {
     throw new Error("SHIFT_UNAVAILABLE");
   }
 
@@ -1173,11 +1346,13 @@ async function writeCityVolunteer(candidate) {
         : null;
 
     const configuredCapacity =
-      Number(
-        shiftData?.capacity ??
-        shift.capacity ??
-        0
-      );
+      candidate.isCustomShift
+        ? 0
+        : Number(
+            shiftData?.capacity ??
+            shift.capacity ??
+            0
+          );
 
     const currentCount =
       Number(
