@@ -1340,14 +1340,71 @@ async function writeCityVolunteer(candidate) {
     const emailGuardSnap =
       getSnap(emailPersonShiftGuardRef);
 
-    if (
+    // A guard is only a real duplicate when the registration it references
+    // still exists and is active. Older/deleted registrations can leave stale
+    // guard documents behind, which must not block a new City import.
+    const phoneGuardRegistrationId =
+      phoneGuardSnap?.exists()
+        ? phoneGuardSnap.data()?.registrationId
+        : null;
+
+    const emailGuardRegistrationId =
+      emailGuardSnap?.exists()
+        ? emailGuardSnap.data()?.registrationId
+        : null;
+
+    const phoneGuardRegistrationSnap =
+      phoneGuardSnap?.exists() &&
+      phoneGuardRegistrationId
+        ? await tx.get(
+            doc(
+              db,
+              REGISTRATIONS_COLLECTION,
+              phoneGuardRegistrationId
+            )
+          )
+        : null;
+
+    const emailGuardRegistrationSnap =
+      emailGuardSnap?.exists() &&
+      emailGuardRegistrationId
+        ? await tx.get(
+            doc(
+              db,
+              REGISTRATIONS_COLLECTION,
+              emailGuardRegistrationId
+            )
+          )
+        : null;
+
+    const phoneGuardIsStale =
+      phoneGuardSnap?.exists() &&
+      (
+        !phoneGuardRegistrationId ||
+        !phoneGuardRegistrationSnap?.exists() ||
+        phoneGuardRegistrationSnap.data()?.status === "cancelled"
+      );
+
+    const emailGuardIsStale =
+      emailGuardSnap?.exists() &&
+      (
+        !emailGuardRegistrationId ||
+        !emailGuardRegistrationSnap?.exists() ||
+        emailGuardRegistrationSnap.data()?.status === "cancelled"
+      );
+
+    if (phoneGuardIsStale) {
+      tx.delete(personShiftGuardRef);
+    } else if (
       phoneGuardSnap?.exists() &&
       phoneGuardSnap.data()?.status !== "cancelled"
     ) {
       throw new Error("DUPLICATE_SHIFT");
     }
 
-    if (
+    if (emailGuardIsStale) {
+      tx.delete(emailPersonShiftGuardRef);
+    } else if (
       emailGuardSnap?.exists() &&
       emailGuardSnap.data()?.status !== "cancelled"
     ) {
