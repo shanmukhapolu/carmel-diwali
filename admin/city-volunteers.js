@@ -731,19 +731,27 @@ function makeCandidateFromSheetRow(
     const endTime =
       minutesToHHMM(endMinutes);
 
-    assignedShift = {
-      id: buildCityCustomShiftId(
+    const configuredMatch =
+      findConfiguredShiftByTimes(
         importPosition.id,
         startTime,
         endTime
-      ),
-      positionId: importPosition.id,
-      positionName: importPosition.name,
-      startTime,
-      endTime,
-      capacity: 0,
-      isCustomShift: true,
-    };
+      );
+
+    assignedShift =
+      configuredMatch || {
+        id: buildCityCustomShiftId(
+          importPosition.id,
+          startTime,
+          endTime
+        ),
+        positionId: importPosition.id,
+        positionName: importPosition.name,
+        startTime,
+        endTime,
+        capacity: 0,
+        isCustomShift: true,
+      };
   } else {
     assignedShift =
       getShiftById(
@@ -976,10 +984,36 @@ function getCandidateShift(candidate) {
     };
   }
 
-  return getShiftById(
-    candidate?.positionId,
+  return findConfiguredShift(
     candidate?.shiftId
   );
+}
+
+function findConfiguredShiftByTimes(
+  positionId,
+  startTime,
+  endTime
+) {
+  const position =
+    getPositionById(positionId);
+
+  if (!position) return null;
+
+  const match =
+    position.shifts.find(
+      (shift) =>
+        shift.startTime === startTime &&
+        shift.endTime === endTime
+    );
+
+  if (!match) return null;
+
+  return {
+    ...match,
+    positionId: position.id,
+    positionName: position.name,
+    isCustomShift: false,
+  };
 }
 
 function timeStringToMinutes(hhmm) {
@@ -1250,9 +1284,12 @@ async function writeCityVolunteer(candidate) {
   if (
     !position ||
     !shift ||
-    shift.positionId !== position.id ||
     !shift.startTime ||
-    !shift.endTime
+    !shift.endTime ||
+    (
+      shift.positionId &&
+      shift.positionId !== position.id
+    )
   ) {
     throw new Error("SHIFT_UNAVAILABLE");
   }
