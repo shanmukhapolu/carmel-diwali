@@ -319,7 +319,9 @@ async function loadRegistrations() {
 
     return records.map(
       (record) => ({
-        ...record,
+        ...normalizeRegistrationShift(
+          record
+        ),
 
         checkin:
           checkins.get(record.id) ||
@@ -374,6 +376,121 @@ function serialize(value) {
   return value;
 }
 
+
+function normalizeRegistrationShift(record) {
+  if (!record) return record;
+
+  const configured =
+    getShiftById(
+      record.positionId,
+      record.shiftId
+    );
+
+  if (configured) {
+    return {
+      ...record,
+      shiftId: configured.id,
+      shiftStartTime:
+        configured.startTime,
+      shiftEndTime:
+        configured.endTime,
+      shiftLabel:
+        formatShiftTime(
+          configured
+        )
+    };
+  }
+
+  const position =
+    getPositionById(
+      record.positionId
+    );
+
+  if (!position) return record;
+
+  const startTime =
+    normalizeStoredShiftTime(
+      record.shiftStartTime
+    );
+
+  const endTime =
+    normalizeStoredShiftTime(
+      record.shiftEndTime
+    );
+
+  if (!startTime || !endTime) {
+    return record;
+  }
+
+  const match =
+    position.shifts?.find(
+      (shift) =>
+        shift.startTime ===
+          startTime &&
+        shift.endTime ===
+          endTime
+    );
+
+  if (!match) {
+    return record;
+  }
+
+  return {
+    ...record,
+    shiftId: match.id,
+    shiftStartTime:
+      match.startTime,
+    shiftEndTime:
+      match.endTime,
+    shiftLabel:
+      formatShiftTime(match)
+  };
+}
+
+function normalizeStoredShiftTime(value) {
+  const text =
+    String(value || "").trim();
+
+  if (/^\d{3,4}$/.test(text)) {
+    return text.padStart(4, "0");
+  }
+
+  const match =
+    text.match(
+      /^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i
+    );
+
+  if (!match) return "";
+
+  let hour =
+    Number(match[1]);
+
+  const minute =
+    Number(match[2] || "0");
+
+  const period =
+    match[3].toUpperCase();
+
+  if (
+    hour < 1 ||
+    hour > 12 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  if (period === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (hour !== 12) {
+    hour += 12;
+  }
+
+  return (
+    String(hour).padStart(2, "0") +
+    String(minute).padStart(2, "0")
+  );
+}
 
 /* =========================================================
    FILTERS
@@ -5647,7 +5764,7 @@ function shiftLabel(
   fallback = ""
 ) {
   const shift =
-    getShiftById(id);
+    findShift(id)?.shift;
 
   return (
     shift
@@ -5666,7 +5783,7 @@ function shiftStartLabel(
   fallback = ""
 ) {
   const shift =
-    getShiftById(id);
+    findShift(id)?.shift;
 
   return shift
     ? formatTime(
@@ -5681,7 +5798,7 @@ function shiftEndLabel(
   fallback = ""
 ) {
   const shift =
-    getShiftById(id);
+    findShift(id)?.shift;
 
   return shift
     ? formatTime(
