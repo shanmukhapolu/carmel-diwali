@@ -1431,6 +1431,9 @@ async function writeCityVolunteer(candidate) {
       );
 
     if (!shiftSnap?.exists()) {
+      // Admin imports always consume a spot in the shared shift counter.
+      // They are allowed to push count above capacity, but the configured
+      // capacity itself remains unchanged so the public form can show Full.
       tx.set(shiftRef, {
         eventId: CONFIG.eventId,
         shiftId: shift.id,
@@ -1445,6 +1448,15 @@ async function writeCityVolunteer(candidate) {
     } else {
       tx.update(shiftRef, {
         count: currentCount + 1,
+        ...(candidate.isCustomShift
+          ? {}
+          : {
+              capacity: Number(
+                shiftData?.capacity ??
+                shift.capacity ??
+                configuredCapacity
+              ) || configuredCapacity,
+            }),
       });
     }
 
