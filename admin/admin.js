@@ -8,7 +8,8 @@ import {
   findShift,
   normalizeLastName,
   normalizeFirstName,
-  normalizePhoneNumber
+  normalizePhoneNumber,
+  sha256Hex
 } from "../config.js";
 
 import { db } from "../firebase-init.js";
@@ -2061,6 +2062,45 @@ function showDeleteModal(record) {
 
             await deleteDoc(
               doc(db, "registrationGuards", namePhoneKey)
+            ).catch(() => {});
+          }
+
+          const normFirst =
+            record.normalizedFirstName ||
+            normalizeFirstName(record.firstName);
+
+          if (
+            normFirst &&
+            normLast &&
+            normPhone &&
+            record.shiftId
+          ) {
+            const personShiftKey =
+              `person_shift_${normFirst}_${normLast}_${normPhone}_${record.shiftId}`;
+
+            await deleteDoc(
+              doc(db, "registrationGuards", personShiftKey)
+            ).catch(() => {});
+          }
+
+          if (
+            record.email &&
+            normFirst &&
+            normLast &&
+            record.shiftId
+          ) {
+            const emailHash =
+              await sha256Hex(
+                String(record.email)
+                  .trim()
+                  .toLowerCase()
+              );
+
+            const emailPersonShiftKey =
+              `email_person_shift_${emailHash}_${normFirst}_${normLast}_${record.shiftId}`;
+
+            await deleteDoc(
+              doc(db, "registrationGuards", emailPersonShiftKey)
             ).catch(() => {});
           }
 
