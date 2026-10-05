@@ -1085,6 +1085,10 @@ function renderPreview() {
         .join(" ")
     );
     appendCell(tr, row.email || "—");
+    appendCell(
+      tr,
+      formatPreviewPhone(row.phone)
+    );
     appendCell(tr, row.cityNeed || "—");
 
     const position =
@@ -1136,7 +1140,7 @@ function renderPreview() {
 function messageRow(text) {
   const tr = document.createElement("tr");
   const td = document.createElement("td");
-  td.colSpan = 8;
+  td.colSpan = 9;
   td.textContent = text;
   tr.appendChild(td);
   return tr;
@@ -1146,6 +1150,16 @@ function appendCell(row, value) {
   const td = document.createElement("td");
   td.textContent = String(value ?? "");
   row.appendChild(td);
+}
+
+function formatPreviewPhone(value) {
+  const digits = normalizePhoneNumber(value);
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  return digits || "—";
 }
 
 function appendSummaryBadge(parent, text, kind) {
