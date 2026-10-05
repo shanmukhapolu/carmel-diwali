@@ -231,6 +231,83 @@ function timeToMinutes(hhmm) {
   );
 }
 
+function isSameShiftAssignment(
+  entry,
+  shift,
+  selectedShiftId
+) {
+  if (!entry || !shift) {
+    return false;
+  }
+
+  if (
+    entry.shiftId ===
+    selectedShiftId
+  ) {
+    return true;
+  }
+
+  return (
+    normalizeStoredShiftTime(
+      entry.shiftStartTime
+    ) ===
+      normalizeStoredShiftTime(
+        shift.startTime
+      ) &&
+    normalizeStoredShiftTime(
+      entry.shiftEndTime
+    ) ===
+      normalizeStoredShiftTime(
+        shift.endTime
+      )
+  );
+}
+
+function normalizeStoredShiftTime(value) {
+  const text =
+    String(value || "").trim();
+
+  if (/^\d{3,4}$/.test(text)) {
+    return text.padStart(4, "0");
+  }
+
+  const match =
+    text.match(
+      /^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i
+    );
+
+  if (!match) return "";
+
+  let hour =
+    Number(match[1]);
+
+  const minute =
+    Number(match[2] || "0");
+
+  const period =
+    match[3].toUpperCase();
+
+  if (
+    hour < 1 ||
+    hour > 12 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  if (period === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (hour !== 12) {
+    hour += 12;
+  }
+
+  return (
+    String(hour).padStart(2, "0") +
+    String(minute).padStart(2, "0")
+  );
+}
+
 function hasTimeOverlap(
   startA,
   endA,
@@ -1386,8 +1463,11 @@ export async function reserveShiftAndCreateRegistration(
       const alreadyRegistered =
         sameVolunteerEntries.some(
           (entry) =>
-            entry.shiftId ===
-            payload.shiftId
+            isSameShiftAssignment(
+              entry,
+              shift,
+              payload.shiftId
+            )
         );
 
       if (
