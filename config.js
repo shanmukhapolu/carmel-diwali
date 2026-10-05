@@ -641,13 +641,38 @@ export function normalizeFirstName(name) {
  * 11-digit (leading 1) numbers.
  */
 export function normalizePhoneNumber(phone) {
-  if (typeof phone !== "string") {
+  if (
+    phone === null ||
+    phone === undefined
+  ) {
     return "";
   }
 
-  const digits =
-    phone.replace(/\D/g, "");
+  let value = String(phone).trim();
 
+  if (!value) {
+    return "";
+  }
+
+  // Google Sheets/CSV exports can sometimes turn a numeric phone value
+  // into a string ending in ".0".
+  value = value.replace(/\.0$/, "");
+
+  // Remove common extension text before extracting the phone digits.
+  value = value.replace(
+    /(?:ext\.?|extension|x)\s*\d+$/i,
+    ""
+  );
+
+  const digits =
+    value.replace(/\D/g, "");
+
+  // For U.S. numbers, accept either:
+  //   3175551234
+  //   13175551234
+  // and store both as the same 10-digit number.
+  // Do not blindly remove a leading 1 from every number; only treat it
+  // as the U.S. country code when there are exactly 11 digits.
   if (
     digits.length === 11 &&
     digits.startsWith("1")
