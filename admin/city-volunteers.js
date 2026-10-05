@@ -21,6 +21,7 @@ import {
   getDocs,
   runTransaction,
   serverTimestamp,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const EVENT_DATE = CONFIG.eventDate;
@@ -58,11 +59,29 @@ requireAdmin({
 
 async function refreshData() {
   try {
-    [existingRegistrations, shiftCounts] =
+    const [rawRegistrations, loadedShiftCounts] =
       await Promise.all([
         loadExistingRegistrations(),
         loadShiftCounts(),
       ]);
+
+    existingRegistrations =
+      rawRegistrations.map(
+        normalizeCityRegistrationShift
+      );
+
+    shiftCounts =
+      loadedShiftCounts;
+
+    await normalizeStoredCityShifts(
+      rawRegistrations,
+      existingRegistrations
+    );
+
+    await reconcileConfiguredShiftCounts(
+      existingRegistrations,
+      shiftCounts
+    );
 
     refreshManualShiftSelect();
     refreshImportShiftSelect();
@@ -1676,6 +1695,302 @@ async function loadShiftCounts() {
       item.data(),
     ])
   );
+}
+
+function normalizeCityRegistrationShift(record) {
+  if (!record) return record;
+
+  const configured =
+    getShiftById(
+      record.positionId,
+      record.shiftId
+    );
+
+  if (configured) {
+    return {
+      ...record,
+      shiftId: configured.id,
+      shiftStartTime: configured.startTime,
+      shiftEndTime: configured.endTime,
+      shiftLabel: formatShiftTime(configured),
+    };
+  }
+
+  const position =
+    getPositionById(record.positionId);
+
+  if (!position) return record;
+
+  const startTime =
+    normalizeStoredShiftTime(
+      record.shiftStartTime
+    );
+
+  const endTime =
+    normalizeStoredShiftTime(
+      record.shiftEndTime
+    );
+
+  if (!startTime || !endTime) {
+    return record;
+  }
+
+  const match =
+    position.shifts.find(
+      (shift) =>
+        shift.startTime === startTime &&
+        shift.endTime === endTime
+    );
+
+  if (!match) return record;
+
+  return {
+    ...record,
+    shiftId: match.id,
+    shiftStartTime: match.startTime,
+    shiftEndTime: match.endTime,
+    shiftLabel: formatShiftTime(match),
+  };
+}
+
+function normalizeStoredShiftTime(value) {
+  const text =
+    String(value || "").trim();
+
+  if (/^\d{3,4}$/.test(text)) {
+    return text.padStart(4, "0");
+  }
+
+  const match =
+    text.match(
+      /^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i
+    );
+
+  if (!match) return "";
+
+  let hour =
+    Number(match[1]);
+
+  const minute =
+    Number(match[2] || "0");
+
+  const period =
+    match[3].toUpperCase();
+
+  if (
+    hour < 1 ||
+    hour > 12 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  if (period === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (hour !== 12) {
+    hour += 12;
+  }
+
+  return (
+    String(hour).padStart(2, "0") +
+    String(minute).padStart(2, "0")
+  );
+}
+
+async function normalizeStoredCityShifts(
+  rawRegistrations,
+  normalizedRegistrations
+) {
+  const changed =
+    normalizedRegistrations.filter(
+      (record, index) => {
+        const original =
+          rawRegistrations[index];
+
+        return (
+          record.shiftId !==
+            original?.shiftId ||
+          record.shiftStartTime !==
+            original?.shiftStartTime ||
+          record.shiftEndTime !==
+            original?.shiftEndTime ||
+          record.shiftLabel !==
+            original?.shiftLabel
+        );
+      }
+    );
+
+  if (!changed.length) return;
+
+  for (
+    let start = 0;
+    start < changed.length;
+    start += 450
+  ) {
+    const batch = writeBatch(db);
+    const chunk =
+      changed.slice(
+        start,
+        start + 450
+      );
+
+    chunk.forEach((record) => {
+      batch.update(
+        doc(
+          db,
+          REGISTRATIONS_COLLECTION,
+          record.id
+        ),
+        {
+          shiftId:
+            record.shiftId,
+          shiftStartTime:
+            record.shiftStartTime,
+          shiftEndTime:
+            record.shiftEndTime,
+          shiftLabel:
+            record.shiftLabel,
+        }
+      );
+    });
+
+    await batch.commit();
+  }
+}
+
+async function reconcileConfiguredShiftCounts(
+  records,
+  counts
+) {
+  const activeRecords =
+    records.filter(
+      (record) =>
+        record.status !== "cancelled"
+    );
+
+  const updates = [];
+
+  VOLUNTEER_POSITIONS.forEach(
+    (position) => {
+      position.shifts?.forEach(
+        (shift) => {
+          const count =
+            activeRecords.filter(
+              (record) =>
+                record.positionId ===
+                  position.id &&
+                record.shiftId ===
+                  shift.id
+            ).length;
+
+          const existing =
+            counts.get(shift.id);
+
+          const capacity =
+            Number(
+              existing?.capacity ??
+                shift.capacity ??
+                0
+            );
+
+          const existingCount =
+            Number(
+              existing?.count ?? 0
+            );
+
+          if (
+            existingCount !== count ||
+            !existing
+          ) {
+            updates.push({
+              shift,
+              position,
+              count,
+              capacity,
+            });
+          }
+        }
+      );
+    }
+  );
+
+  if (!updates.length) return;
+
+  for (
+    let start = 0;
+    start < updates.length;
+    start += 450
+  ) {
+    const batch = writeBatch(db);
+    const chunk =
+      updates.slice(
+        start,
+        start + 450
+      );
+
+    chunk.forEach(
+      ({
+        shift,
+        position,
+        count,
+        capacity,
+      }) => {
+        batch.set(
+          doc(
+            db,
+            SHIFT_COUNTS_COLLECTION,
+            shiftDocId(shift.id)
+          ),
+          {
+            eventId:
+              CONFIG.eventId,
+            shiftId:
+              shift.id,
+            positionId:
+              position.id,
+            positionName:
+              position.name,
+            startTime:
+              shift.startTime,
+            endTime:
+              shift.endTime,
+            label:
+              formatShiftTime(shift),
+            capacity,
+            count,
+          },
+          {
+            merge: true,
+          }
+        );
+
+        counts.set(
+          shift.id,
+          {
+            eventId:
+              CONFIG.eventId,
+            shiftId:
+              shift.id,
+            positionId:
+              position.id,
+            positionName:
+              position.name,
+            startTime:
+              shift.startTime,
+            endTime:
+              shift.endTime,
+            label:
+              formatShiftTime(shift),
+            capacity,
+            count,
+          }
+        );
+      }
+    );
+
+    await batch.commit();
+  }
 }
 
 function findExistingDuplicate(candidate) {
