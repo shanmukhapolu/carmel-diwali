@@ -73,8 +73,24 @@ async function refreshData() {
     shiftCounts =
       loadedShiftCounts;
 
+    await migrateLegacyBlockPrintingRegistrations();
+
+    const [migratedRawRegistrations, migratedShiftCounts] =
+      await Promise.all([
+        loadExistingRegistrations(),
+        loadShiftCounts(),
+      ]);
+
+    existingRegistrations =
+      migratedRawRegistrations.map(
+        normalizeCityRegistrationShift
+      );
+
+    shiftCounts =
+      migratedShiftCounts;
+
     await normalizeStoredCityShifts(
-      rawRegistrations,
+      migratedRawRegistrations,
       existingRegistrations
     );
 
@@ -1694,6 +1710,424 @@ async function loadShiftCounts() {
       item.data().shiftId || item.id.split("_").pop(),
       item.data(),
     ])
+  );
+}
+
+async function migrateLegacyBlockPrintingRegistrations() {
+  const legacyShiftId =
+    "block-printing-1630-1830";
+
+  const targetShiftId =
+    "block-printing-1630-1800";
+
+  const targetShift =
+    getShiftById(
+      "block-printing",
+      targetShiftId
+    );
+
+  if (!targetShift) {
+    return;
+  }
+
+  const snapshot =
+    await getDocs(
+      collection(
+        db,
+        REGISTRATIONS_COLLECTION
+      )
+    );
+
+  const legacyRecords =
+    snapshot.docs
+      .map((item) => ({
+        id: item.id,
+        ...item.data(),
+      }))
+      .filter(
+        (record) =>
+          record.status !== "cancelled" &&
+          record.positionId === "block-printing" &&
+          record.shiftId === legacyShiftId
+      );
+
+  if (!legacyRecords.length) {
+    return;
+  }
+
+  for (
+    const record of legacyRecords
+  ) {
+    await migrateOneLegacyBlockPrintingRegistration(
+      record,
+      targetShiftId,
+      targetShift
+    );
+  }
+}
+
+async function migrateOneLegacyBlockPrintingRegistration(
+  record,
+  targetShiftId,
+  targetShift
+) {
+  const oldShiftId =
+    record.shiftId;
+
+  const oldShiftRef =
+    doc(
+      db,
+      SHIFT_COUNTS_COLLECTION,
+      shiftDocId(oldShiftId)
+    );
+
+  const newShiftRef =
+    doc(
+      db,
+      SHIFT_COUNTS_COLLECTION,
+      shiftDocId(targetShiftId)
+    );
+
+  const registrationRef =
+    doc(
+      db,
+      REGISTRATIONS_COLLECTION,
+      record.id
+    );
+
+  const normFirst =
+    record.normalizedFirstName ||
+    normalizeFirstName(record.firstName);
+
+  const normLast =
+    record.normalizedLastName ||
+    normalizeLastName(record.lastName);
+
+  const normPhone =
+    record.normalizedPhone ||
+    normalizePhoneNumber(record.phone);
+
+  const email =
+    normalizeEmail(record.email);
+
+  const emailHash =
+    email
+      ? await sha256Hex(email)
+      : "";
+
+  const lookupId =
+    normPhone
+      ? await getRegistrationLookupId(
+          record.lastName,
+          normPhone,
+          CONFIG.eventId
+        )
+      : null;
+
+  const lookupRef =
+    lookupId
+      ? doc(
+          db,
+          "registrationLookups",
+          lookupId
+        )
+      : null;
+
+  const oldPhoneGuardRef =
+    normPhone
+      ? doc(
+          db,
+          "registrationGuards",
+          `person_shift_${normFirst}_${normLast}_${normPhone}_${oldShiftId}`
+        )
+      : null;
+
+  const newPhoneGuardRef =
+    normPhone
+      ? doc(
+          db,
+          "registrationGuards",
+          `person_shift_${normFirst}_${normLast}_${normPhone}_${targetShiftId}`
+        )
+      : null;
+
+  const oldEmailGuardRef =
+    email
+      ? doc(
+          db,
+          "registrationGuards",
+          `email_person_shift_${emailHash}_${normFirst}_${normLast}_${oldShiftId}`
+        )
+      : null;
+
+  const newEmailGuardRef =
+    email
+      ? doc(
+          db,
+          "registrationGuards",
+          `email_person_shift_${emailHash}_${normFirst}_${normLast}_${targetShiftId}`
+        )
+      : null;
+
+  await runTransaction(
+    db,
+    async (tx) => {
+      const refs = [
+        registrationRef,
+        oldShiftRef,
+        newShiftRef,
+        lookupRef,
+        oldPhoneGuardRef,
+        newPhoneGuardRef,
+        oldEmailGuardRef,
+        newEmailGuardRef,
+      ].filter(Boolean);
+
+      const snaps =
+        await Promise.all(
+          refs.map((ref) => tx.get(ref))
+        );
+
+      const getSnap = (ref) => {
+        if (!ref) return null;
+        const index =
+          refs.indexOf(ref);
+        return index >= 0
+          ? snaps[index]
+          : null;
+      };
+
+      const registrationSnap =
+        getSnap(registrationRef);
+
+      if (!registrationSnap?.exists()) {
+        return;
+      }
+
+      const oldShiftSnap =
+        getSnap(oldShiftRef);
+
+      const newShiftSnap =
+        getSnap(newShiftRef);
+
+      const lookupSnap =
+        getSnap(lookupRef);
+
+      const oldPhoneGuardSnap =
+        getSnap(oldPhoneGuardRef);
+
+      const oldEmailGuardSnap =
+        getSnap(oldEmailGuardRef);
+
+      const newPhoneGuardSnap =
+        getSnap(newPhoneGuardRef);
+
+      const newEmailGuardSnap =
+        getSnap(newEmailGuardRef);
+
+      if (
+        newPhoneGuardSnap?.exists() &&
+        newPhoneGuardSnap.data()?.registrationId !==
+          record.id
+      ) {
+        throw new Error(
+          "BLOCK_PRINTING_MIGRATION_DUPLICATE"
+        );
+      }
+
+      if (
+        newEmailGuardSnap?.exists() &&
+        newEmailGuardSnap.data()?.registrationId !==
+          record.id
+      ) {
+        throw new Error(
+          "BLOCK_PRINTING_MIGRATION_DUPLICATE"
+        );
+      }
+
+      const oldCount =
+        Number(
+          oldShiftSnap?.data()?.count ?? 0
+        );
+
+      const newCount =
+        Number(
+          newShiftSnap?.data()?.count ?? 0
+        );
+
+      const newCapacity =
+        Number(
+          newShiftSnap?.data()?.capacity ??
+          targetShift.capacity ??
+          0
+        );
+
+      tx.update(
+        registrationRef,
+        {
+          shiftId:
+            targetShift.id,
+          shiftStartTime:
+            targetShift.startTime,
+          shiftEndTime:
+            targetShift.endTime,
+          shiftLabel:
+            formatShiftTime(
+              targetShift
+            ),
+        }
+      );
+
+      if (oldShiftSnap?.exists()) {
+        tx.update(
+          oldShiftRef,
+          {
+            count:
+              Math.max(
+                0,
+                oldCount - 1
+              ),
+          }
+        );
+      }
+
+      tx.set(
+        newShiftRef,
+        {
+          eventId:
+            CONFIG.eventId,
+          shiftId:
+            targetShift.id,
+          positionId:
+            "block-printing",
+          positionName:
+            "Block Printing",
+          startTime:
+            targetShift.startTime,
+          endTime:
+            targetShift.endTime,
+          label:
+            formatShiftTime(
+              targetShift
+            ),
+          capacity:
+            newCapacity,
+          count:
+            newCount + 1,
+        },
+        {
+          merge: true,
+        }
+      );
+
+      if (oldPhoneGuardRef?.exists?.()) {
+        tx.delete(
+          oldPhoneGuardRef
+        );
+      }
+
+      if (newPhoneGuardRef) {
+        tx.set(
+          newPhoneGuardRef,
+          {
+            registrationId:
+              record.id,
+            type:
+              "person_shift",
+            status:
+              "active",
+            firstName:
+              normFirst,
+            lastName:
+              normLast,
+            phone:
+              normPhone,
+            shiftId:
+              targetShift.id,
+            createdAt:
+              serverTimestamp(),
+          }
+        );
+      }
+
+      if (oldEmailGuardRef?.exists?.()) {
+        tx.delete(
+          oldEmailGuardRef
+        );
+      }
+
+      if (newEmailGuardRef) {
+        tx.set(
+          newEmailGuardRef,
+          {
+            registrationId:
+              record.id,
+            type:
+              "email_person_shift",
+            status:
+              "active",
+            emailHash,
+            firstName:
+              normFirst,
+            lastName:
+              normLast,
+            shiftId:
+              targetShift.id,
+            createdAt:
+              serverTimestamp(),
+          }
+        );
+      }
+
+      if (lookupRef) {
+        const lookupData =
+          lookupSnap?.exists()
+            ? lookupSnap.data()
+            : {};
+
+        const entries =
+          Array.isArray(
+            lookupData.entries
+          )
+            ? lookupData.entries.map(
+                (entry) =>
+                  entry &&
+                  entry.registrationId ===
+                    record.id
+                    ? {
+                        ...entry,
+                        positionId:
+                          "block-printing",
+                        positionName:
+                          "Block Printing",
+                        shiftId:
+                          targetShift.id,
+                        shiftStartTime:
+                          targetShift.startTime,
+                        shiftEndTime:
+                          targetShift.endTime,
+                        shiftLabel:
+                          formatShiftTime(
+                            targetShift
+                          ),
+                      }
+                    : entry
+              )
+            : [];
+
+        tx.set(
+          lookupRef,
+          {
+            entries,
+            updatedAt:
+              serverTimestamp(),
+          },
+          {
+            merge: true,
+          }
+        );
+      }
+    }
   );
 }
 
