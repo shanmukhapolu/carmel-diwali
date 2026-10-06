@@ -2235,7 +2235,7 @@ function showEditModal(record) {
         const newEmailShiftRef =
           newNormFirst &&
           newNormLast &&
-          newEmailHash &&
+          emailHash &&
           newShiftId
             ? doc(
                 db,
