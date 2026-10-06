@@ -377,15 +377,21 @@ export const VOLUNTEER_POSITIONS = [
       "Assist kids with a hands-on block printing activity.",
     shifts: [
       {
-        id: "block-printing-1630-1830",
+        id: "block-printing-1630-1800",
         startTime: "1630",
-        endTime: "1830",
+        endTime: "1800",
         capacity: 2,
       },
       {
-        id: "block-printing-1830-2030",
-        startTime: "1830",
-        endTime: "2030",
+        id: "block-printing-1800-1930",
+        startTime: "1800",
+        endTime: "1930",
+        capacity: 2,
+      },
+      {
+        id: "block-printing-1930-2100",
+        startTime: "1930",
+        endTime: "2100",
         capacity: 2,
       },
     ],
