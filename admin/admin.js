@@ -9,6 +9,7 @@ import {
   normalizeLastName,
   normalizeFirstName,
   normalizePhoneNumber,
+  getRegistrationLookupId,
   sha256Hex
 } from "../config.js";
 
