@@ -2020,7 +2020,7 @@ async function migrateOneLegacyBlockPrintingRegistration(
         }
       );
 
-      if (oldPhoneGuardRef?.exists?.()) {
+      if (oldPhoneGuardSnap?.exists()) {
         tx.delete(
           oldPhoneGuardRef
         );
@@ -2050,7 +2050,7 @@ async function migrateOneLegacyBlockPrintingRegistration(
         );
       }
 
-      if (oldEmailGuardRef?.exists?.()) {
+      if (oldEmailGuardSnap?.exists()) {
         tx.delete(
           oldEmailGuardRef
         );
