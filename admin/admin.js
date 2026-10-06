@@ -1806,12 +1806,15 @@ function showEditModal(record) {
   const modal = modalShell(
     `Edit registration for ${
       record.firstName || "this"
-    } ${record.lastName || "volunteer"}`
+    } ${
+      record.lastName || "volunteer"
+    }`
   );
 
   const form = document.createElement("form");
   form.className = "settings-grid";
-  form.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+  form.style.gridTemplateColumns =
+    "repeat(auto-fit, minmax(260px, 1fr))";
 
   function fieldWrap(labelHtml, input) {
     const wrap = document.createElement("div");
@@ -1820,173 +1823,1136 @@ function showEditModal(record) {
     return wrap;
   }
 
-  const firstNameInput = document.createElement("input");
+  const firstNameInput =
+    document.createElement("input");
   firstNameInput.type = "text";
-  firstNameInput.value = record.firstName || "";
-  firstNameInput.placeholder = "First name";
+  firstNameInput.value =
+    record.firstName || "";
+  firstNameInput.placeholder =
+    "First name";
   firstNameInput.required = true;
 
-  const lastNameInput = document.createElement("input");
+  const lastNameInput =
+    document.createElement("input");
   lastNameInput.type = "text";
-  lastNameInput.value = record.lastName || "";
-  lastNameInput.placeholder = "Last name";
+  lastNameInput.value =
+    record.lastName || "";
+  lastNameInput.placeholder =
+    "Last name";
   lastNameInput.required = true;
 
-  const emailInput = document.createElement("input");
+  const emailInput =
+    document.createElement("input");
   emailInput.type = "email";
-  emailInput.value = record.email || "";
-  emailInput.placeholder = "volunteer@example.com";
+  emailInput.value =
+    record.email || "";
+  emailInput.placeholder =
+    "volunteer@example.com";
   emailInput.required = true;
 
-  const phoneInput = document.createElement("input");
+  const phoneInput =
+    document.createElement("input");
   phoneInput.type = "tel";
-  phoneInput.value = record.phone || "";
-  phoneInput.placeholder = "(317) 555-0100";
+  phoneInput.value =
+    record.phone || "";
+  phoneInput.placeholder =
+    "(317) 555-0100";
   phoneInput.required = true;
 
-  const is18Row = document.createElement("div");
-  is18Row.style.display = "flex";
-  is18Row.style.gap = "16px";
-  is18Row.style.marginTop = "8px";
-  is18Row.style.alignItems = "center";
+  const positionSelect =
+    document.createElement("select");
 
-  const yesRadio = document.createElement("input");
-  yesRadio.type = "radio";
-  yesRadio.name = "edit-is18OrOlder";
-  yesRadio.value = "yes";
-  yesRadio.required = true;
-  if (record.is18OrOlder === true) yesRadio.checked = true;
-  const yesLabel = document.createElement("label");
-  yesLabel.style.display = "inline-flex";
-  yesLabel.style.alignItems = "center";
-  yesLabel.style.gap = "6px";
-  yesLabel.style.cursor = "pointer";
-  yesLabel.style.fontWeight = "500";
-  yesLabel.appendChild(yesRadio);
-  const yesSpan = document.createElement("span");
-  yesSpan.textContent = "Yes (18+)";
-  yesLabel.appendChild(yesSpan);
-
-  const noRadio = document.createElement("input");
-  noRadio.type = "radio";
-  noRadio.name = "edit-is18OrOlder";
-  noRadio.value = "no";
-  noRadio.required = true;
-  if (record.is18OrOlder === false) noRadio.checked = true;
-  const noLabel = document.createElement("label");
-  noLabel.style.display = "inline-flex";
-  noLabel.style.alignItems = "center";
-  noLabel.style.gap = "6px";
-  noLabel.style.cursor = "pointer";
-  noLabel.style.fontWeight = "500";
-  noLabel.appendChild(noRadio);
-  const noSpan = document.createElement("span");
-  noSpan.textContent = "No (<18)";
-  noLabel.appendChild(noSpan);
-
-  is18Row.append(yesLabel, noLabel);
-
-  const notesInput = document.createElement("input");
-  notesInput.type = "text";
-  notesInput.value = record.notes || "";
-  notesInput.placeholder = "Special skills, requests, or organizer notes";
-
-  const error = document.createElement("p");
-  error.className = "error";
-
-  const confirmBtn = smallButton(
-    "Save Changes",
-    async () => {
-      const newFirstName = firstNameInput.value.trim();
-      const newLastName = lastNameInput.value.trim();
-      const newEmail = emailInput.value.trim();
-      const newPhone = phoneInput.value.trim();
-      const newNotes = notesInput.value.trim();
-      const is18Raw = form.querySelector('input[name="edit-is18OrOlder"]:checked')?.value;
-      const newIs18OrOlder = is18Raw === "yes" ? true : is18Raw === "no" ? false : null;
-
-      if (!newFirstName || !newLastName || !newEmail || !newPhone || newIs18OrOlder === null) {
-        error.textContent = "All fields are required. Please complete the form.";
-        return;
-      }
-
-      try {
-        await runTransaction(db, async (tx) => {
-          const regRef = doc(db, REGISTRATIONS_COLLECTION, record.id);
-          tx.update(regRef, {
-            firstName: newFirstName,
-            lastName: newLastName,
-            email: newEmail,
-            phone: newPhone,
-            is18OrOlder: newIs18OrOlder,
-            notes: newNotes,
-          });
-
-          if (record.email && newEmail.toLowerCase().trim() !== record.email.toLowerCase().trim()) {
-            const oldKey = `email_${encodeURIComponent(String(record.email).toLowerCase().trim())}`;
-            const newKey = `email_${encodeURIComponent(String(newEmail).toLowerCase().trim())}`;
-            tx.delete(doc(db, "registrationGuards", oldKey));
-            tx.set(doc(db, "registrationGuards", newKey), {
-              registrationId: record.id,
-              createdAt: serverTimestamp(),
-            });
-          }
-        });
-
-        const idx = registrations.findIndex((r) => r.id === record.id);
-        if (idx >= 0) {
-          registrations[idx] = {
-            ...registrations[idx],
-            firstName: newFirstName,
-            lastName: newLastName,
-            email: newEmail,
-            phone: newPhone,
-            is18OrOlder: newIs18OrOlder,
-            notes: newNotes,
-          };
-        }
-
-        root.textContent = "";
-        renderRegistrations();
-      } catch (editError) {
-        console.error("[Admin] Edit failed:", editError);
-        error.textContent = "Update failed. Please try again or check the console.";
-      }
-    },
-    "primary"
+  VOLUNTEER_POSITIONS.forEach(
+    (position) => {
+      positionSelect.append(
+        new Option(
+          position.name,
+          position.id,
+          false,
+          position.id ===
+            record.positionId
+        )
+      );
+    }
   );
 
+  const shiftSelect =
+    document.createElement("select");
+
+  function refreshEditShiftOptions(
+    selectedShiftId = ""
+  ) {
+    shiftSelect.textContent = "";
+
+    const position =
+      getPositionById(
+        positionSelect.value
+      );
+
+    position?.shifts?.forEach(
+      (shift) => {
+        shiftSelect.append(
+          new Option(
+            formatShiftTime(
+              shift
+            ),
+            shift.id,
+            false,
+            shift.id ===
+              selectedShiftId
+          )
+        );
+      }
+    );
+
+    if (
+      !shiftSelect.value &&
+      position?.shifts?.length
+    ) {
+      shiftSelect.value =
+        position.shifts[0].id;
+    }
+  }
+
+  positionSelect.addEventListener(
+    "change",
+    () =>
+      refreshEditShiftOptions()
+  );
+
+  refreshEditShiftOptions(
+    findShift(record.shiftId)?.shift
+      ? record.shiftId
+      : findConfiguredShiftForRecord(
+          record
+        )?.id
+  );
+
+  const is18Row =
+    document.createElement(
+      "div"
+    );
+
+  is18Row.style.display =
+    "flex";
+  is18Row.style.gap =
+    "16px";
+  is18Row.style.marginTop =
+    "8px";
+  is18Row.style.alignItems =
+    "center";
+
+  const yesRadio =
+    document.createElement(
+      "input"
+    );
+
+  yesRadio.type = "radio";
+  yesRadio.name =
+    "edit-is18OrOlder";
+  yesRadio.value = "yes";
+  yesRadio.required = true;
+
+  if (
+    record.is18OrOlder ===
+    true
+  ) {
+    yesRadio.checked = true;
+  }
+
+  const yesLabel =
+    document.createElement(
+      "label"
+    );
+
+  yesLabel.style.display =
+    "inline-flex";
+  yesLabel.style.alignItems =
+    "center";
+  yesLabel.style.gap =
+    "6px";
+  yesLabel.style.cursor =
+    "pointer";
+  yesLabel.style.fontWeight =
+    "500";
+  yesLabel.appendChild(
+    yesRadio
+  );
+
+  const yesSpan =
+    document.createElement(
+      "span"
+    );
+
+  yesSpan.textContent =
+    "Yes (18+)";
+
+  yesLabel.appendChild(
+    yesSpan
+  );
+
+  const noRadio =
+    document.createElement(
+      "input"
+    );
+
+  noRadio.type = "radio";
+  noRadio.name =
+    "edit-is18OrOlder";
+  noRadio.value = "no";
+  noRadio.required = true;
+
+  if (
+    record.is18OrOlder ===
+    false
+  ) {
+    noRadio.checked = true;
+  }
+
+  const noLabel =
+    document.createElement(
+      "label"
+    );
+
+  noLabel.style.display =
+    "inline-flex";
+  noLabel.style.alignItems =
+    "center";
+  noLabel.style.gap =
+    "6px";
+  noLabel.style.cursor =
+    "pointer";
+  noLabel.style.fontWeight =
+    "500";
+  noLabel.appendChild(
+    noRadio
+  );
+
+  const noSpan =
+    document.createElement(
+      "span"
+    );
+
+  noSpan.textContent =
+    "No (<18)";
+
+  noLabel.appendChild(
+    noSpan
+  );
+
+  is18Row.append(
+    yesLabel,
+    noLabel
+  );
+
+  const notesInput =
+    document.createElement(
+      "input"
+    );
+
+  notesInput.type = "text";
+  notesInput.value =
+    record.notes || "";
+  notesInput.placeholder =
+    "Special skills, requests, or organizer notes";
+
+  const error =
+    document.createElement(
+      "p"
+    );
+
+  error.className =
+    "error";
+
+  const confirmBtn =
+    smallButton(
+      "Save Changes",
+      async () => {
+        const newFirstName =
+          firstNameInput.value.trim();
+
+        const newLastName =
+          lastNameInput.value.trim();
+
+        const newEmail =
+          emailInput.value
+            .trim()
+            .toLowerCase();
+
+        const newPhone =
+          normalizePhoneNumber(
+            phoneInput.value
+          );
+
+        const newPositionId =
+          positionSelect.value;
+
+        const newShiftId =
+          shiftSelect.value;
+
+        const newNotes =
+          notesInput.value.trim();
+
+        const is18Raw =
+          form.querySelector(
+            'input[name="edit-is18OrOlder"]:checked'
+          )?.value;
+
+        const newIs18OrOlder =
+          is18Raw === "yes"
+            ? true
+            : is18Raw === "no"
+            ? false
+            : null;
+
+        const target =
+          findShift(
+            newShiftId
+          );
+
+        if (
+          !newFirstName ||
+          !newLastName ||
+          !newEmail ||
+          !newPhone ||
+          newIs18OrOlder ===
+            null
+        ) {
+          error.textContent =
+            "All fields are required. Please complete the form.";
+          return;
+        }
+
+        if (
+          !target ||
+          target.position.id !==
+            newPositionId
+        ) {
+          error.textContent =
+            "Choose a valid position and shift.";
+          return;
+        }
+
+        const newPosition =
+          target.position;
+
+        const newShift =
+          target.shift;
+
+        const oldPositionId =
+          record.positionId;
+
+        const oldShiftId =
+          record.shiftId;
+
+        const shiftChanged =
+          oldPositionId !==
+            newPositionId ||
+          oldShiftId !==
+            newShiftId;
+
+        const oldNormFirst =
+          record.normalizedFirstName ||
+          normalizeFirstName(
+            record.firstName
+          );
+
+        const oldNormLast =
+          record.normalizedLastName ||
+          normalizeLastName(
+            record.lastName
+          );
+
+        const oldNormPhone =
+          record.normalizedPhone ||
+          normalizePhoneNumber(
+            record.phone
+          );
+
+        const newNormFirst =
+          normalizeFirstName(
+            newFirstName
+          );
+
+        const newNormLast =
+          normalizeLastName(
+            newLastName
+          );
+
+        const emailHash =
+          await sha256Hex(
+            newEmail
+          );
+
+        const oldEmail =
+          normalizeEmailForAdmin(
+            record.email
+          );
+
+        const oldEmailHash =
+          oldEmail
+            ? await sha256Hex(
+                oldEmail
+              )
+            : "";
+
+        const oldPersonShiftRef =
+          oldNormFirst &&
+          oldNormLast &&
+          oldNormPhone &&
+          oldShiftId
+            ? doc(
+                db,
+                "registrationGuards",
+                `person_shift_${oldNormFirst}_${oldNormLast}_${oldNormPhone}_${oldShiftId}`
+              )
+            : null;
+
+        const newPersonShiftRef =
+          newNormFirst &&
+          newNormLast &&
+          newPhone &&
+          newShiftId
+            ? doc(
+                db,
+                "registrationGuards",
+                `person_shift_${newNormFirst}_${newNormLast}_${newPhone}_${newShiftId}`
+              )
+            : null;
+
+        const oldEmailShiftRef =
+          oldNormFirst &&
+          oldNormLast &&
+          oldEmailHash &&
+          oldShiftId
+            ? doc(
+                db,
+                "registrationGuards",
+                `email_person_shift_${oldEmailHash}_${oldNormFirst}_${oldNormLast}_${oldShiftId}`
+              )
+            : null;
+
+        const newEmailShiftRef =
+          newNormFirst &&
+          newNormLast &&
+          newEmailHash &&
+          newShiftId
+            ? doc(
+                db,
+                "registrationGuards",
+                `email_person_shift_${emailHash}_${newNormFirst}_${newNormLast}_${newShiftId}`
+              )
+            : null;
+
+        const newLookupId =
+          newPhone
+            ? await getRegistrationLookupId(
+                newLastName,
+                newPhone,
+                CONFIG.eventId
+              )
+            : null;
+
+        const oldLookupId =
+          record.manageLookupId ||
+          (
+            oldNormPhone
+              ? await getRegistrationLookupId(
+                  record.lastName,
+                  oldNormPhone,
+                  CONFIG.eventId
+                )
+              : null
+          );
+
+        const oldLookupRef =
+          oldLookupId
+            ? doc(
+                db,
+                "registrationLookups",
+                oldLookupId
+              )
+            : null;
+
+        const newLookupRef =
+          newLookupId
+            ? doc(
+                db,
+                "registrationLookups",
+                newLookupId
+              )
+            : null;
+
+        try {
+          await runTransaction(
+            db,
+            async (tx) => {
+              const regRef =
+                doc(
+                  db,
+                  REGISTRATIONS_COLLECTION,
+                  record.id
+                );
+
+              const oldShiftRef =
+                oldShiftId
+                  ? doc(
+                      db,
+                      SHIFT_COUNTS_COLLECTION,
+                      shiftDocId(
+                        oldShiftId
+                      )
+                    )
+                  : null;
+
+              const newShiftRef =
+                doc(
+                  db,
+                  SHIFT_COUNTS_COLLECTION,
+                  shiftDocId(
+                    newShiftId
+                  )
+                );
+
+              const readRefs = [
+                regRef,
+                oldShiftRef,
+                newShiftRef,
+                oldPersonShiftRef,
+                newPersonShiftRef,
+                oldEmailShiftRef,
+                newEmailShiftRef,
+                oldLookupRef,
+                newLookupRef,
+              ].filter(Boolean);
+
+              const snaps =
+                await Promise.all(
+                  readRefs.map(
+                    (ref) =>
+                      tx.get(ref)
+                  )
+                );
+
+              const getSnap =
+                (ref) => {
+                  if (!ref) return null;
+
+                  const index =
+                    readRefs.indexOf(
+                      ref
+                    );
+
+                  return index >= 0
+                    ? snaps[index]
+                    : null;
+                };
+
+              const regSnap =
+                getSnap(regRef);
+
+              if (
+                !regSnap?.exists()
+              ) {
+                throw new Error(
+                  "REGISTRATION_NOT_FOUND"
+                );
+              }
+
+              const targetPhoneGuardSnap =
+                getSnap(
+                  newPersonShiftRef
+                );
+
+              const targetEmailGuardSnap =
+                getSnap(
+                  newEmailShiftRef
+                );
+
+              if (
+                shiftChanged &&
+                targetPhoneGuardSnap?.exists() &&
+                targetPhoneGuardSnap.data()?.registrationId !==
+                  record.id
+              ) {
+                throw new Error(
+                  "TARGET_SHIFT_DUPLICATE"
+                );
+              }
+
+              if (
+                shiftChanged &&
+                targetEmailGuardSnap?.exists() &&
+                targetEmailGuardSnap.data()?.registrationId !==
+                  record.id
+              ) {
+                throw new Error(
+                  "TARGET_SHIFT_DUPLICATE"
+                );
+              }
+
+              const oldShiftSnap =
+                getSnap(
+                  oldShiftRef
+                );
+
+              const newShiftSnap =
+                getSnap(
+                  newShiftRef
+                );
+
+              const oldCount =
+                Number(
+                  oldShiftSnap?.data()?.count ??
+                    0
+                );
+
+              const newCount =
+                Number(
+                  newShiftSnap?.data()?.count ??
+                    0
+                );
+
+              const newCapacity =
+                Number(
+                  newShiftSnap?.data()?.capacity ??
+                    newShift.capacity ??
+                    0
+                );
+
+              if (
+                shiftChanged &&
+                oldShiftId !==
+                  newShiftId
+              ) {
+                if (
+                  oldShiftSnap?.exists()
+                ) {
+                  tx.update(
+                    oldShiftRef,
+                    {
+                      count:
+                        Math.max(
+                          0,
+                          oldCount - 1
+                        ),
+                    }
+                  );
+                }
+
+                if (
+                  newShiftSnap?.exists()
+                ) {
+                  tx.update(
+                    newShiftRef,
+                    {
+                      count:
+                        newCount + 1,
+                      capacity:
+                        newCapacity,
+                    }
+                  );
+                } else {
+                  tx.set(
+                    newShiftRef,
+                    {
+                      eventId:
+                        CONFIG.eventId,
+                      shiftId:
+                        newShift.id,
+                      positionId:
+                        newPosition.id,
+                      positionName:
+                        newPosition.name,
+                      startTime:
+                        newShift.startTime,
+                      endTime:
+                        newShift.endTime,
+                      label:
+                        formatShiftTime(
+                          newShift
+                        ),
+                      capacity:
+                        newCapacity,
+                      count:
+                        1,
+                    }
+                  );
+                }
+              }
+
+              tx.update(
+                regRef,
+                {
+                  firstName:
+                    newFirstName,
+                  lastName:
+                    newLastName,
+                  email:
+                    newEmail,
+                  phone:
+                    newPhone,
+                  normalizedFirstName:
+                    newNormFirst,
+                  normalizedLastName:
+                    newNormLast,
+                  normalizedPhone:
+                    newPhone,
+                  emailGuardKey:
+                    encodeURIComponent(
+                      newEmail
+                    ),
+                  manageLookupId:
+                    newLookupId,
+                  is18OrOlder:
+                    newIs18OrOlder,
+                  notes:
+                    newNotes,
+                  positionId:
+                    newPosition.id,
+                  positionName:
+                    newPosition.name,
+                  shiftId:
+                    newShift.id,
+                  shiftStartTime:
+                    newShift.startTime,
+                  shiftEndTime:
+                    newShift.endTime,
+                  shiftLabel:
+                    formatShiftTime(
+                      newShift
+                    ),
+                }
+              );
+
+              if (
+                oldPersonShiftRef &&
+                (
+                  !newPersonShiftRef ||
+                  oldPersonShiftRef.path !==
+                    newPersonShiftRef.path
+                )
+              ) {
+                tx.delete(
+                  oldPersonShiftRef
+                );
+              }
+
+              if (newPersonShiftRef) {
+                tx.set(
+                  newPersonShiftRef,
+                  {
+                    registrationId:
+                      record.id,
+                    type:
+                      "person_shift",
+                    status:
+                      "active",
+                    firstName:
+                      newNormFirst,
+                    lastName:
+                      newNormLast,
+                    phone:
+                      newPhone,
+                    shiftId:
+                      newShift.id,
+                    createdAt:
+                      serverTimestamp(),
+                  }
+                );
+              }
+
+              if (
+                oldEmailShiftRef &&
+                (
+                  !newEmailShiftRef ||
+                  oldEmailShiftRef.path !==
+                    newEmailShiftRef.path
+                )
+              ) {
+                tx.delete(
+                  oldEmailShiftRef
+                );
+              }
+
+              if (newEmailShiftRef) {
+                tx.set(
+                  newEmailShiftRef,
+                  {
+                    registrationId:
+                      record.id,
+                    type:
+                      "email_person_shift",
+                    status:
+                      "active",
+                    emailHash,
+                    firstName:
+                      newNormFirst,
+                    lastName:
+                      newNormLast,
+                    shiftId:
+                      newShift.id,
+                    createdAt:
+                      serverTimestamp(),
+                  }
+                );
+              }
+
+              const oldLookupSnap =
+                getSnap(
+                  oldLookupRef
+                );
+
+              const newLookupSnap =
+                getSnap(
+                  newLookupRef
+                );
+
+              const oldEntries =
+                Array.isArray(
+                  oldLookupSnap?.data()
+                    ?.entries
+                )
+                  ? oldLookupSnap
+                      .data()
+                      .entries
+                  : [];
+
+              const updatedEntry = {
+                registrationId:
+                  record.id,
+                firstName:
+                  newFirstName,
+                normalizedFirstName:
+                  newNormFirst,
+                lastName:
+                  newLastName,
+                normalizedLastName:
+                  newNormLast,
+                phone:
+                  newPhone,
+                normalizedPhone:
+                  newPhone,
+                email:
+                  newEmail,
+                emailHash,
+                emailGuardKey:
+                  encodeURIComponent(
+                    newEmail
+                  ),
+                is18OrOlder:
+                  newIs18OrOlder,
+                positionId:
+                  newPosition.id,
+                positionName:
+                  newPosition.name,
+                shiftId:
+                  newShift.id,
+                shiftStartTime:
+                  newShift.startTime,
+                shiftEndTime:
+                  newShift.endTime,
+                shiftLabel:
+                  formatShiftTime(
+                    newShift
+                  ),
+                status:
+                  "registered",
+                cancelledAt:
+                  null,
+                registrationSource:
+                  record.registrationSource ||
+                  "admin",
+              };
+
+              const targetEntries =
+                oldEntries.filter(
+                  (entry) =>
+                    entry &&
+                    entry.registrationId !==
+                      record.id
+                );
+
+              targetEntries.push(
+                updatedEntry
+              );
+
+              if (newLookupRef) {
+                const newLookupData =
+                  newLookupSnap?.exists()
+                    ? newLookupSnap.data()
+                    : {};
+
+                const mergedEntries =
+                  Array.isArray(
+                    newLookupData.entries
+                  )
+                    ? newLookupData.entries.filter(
+                        (entry) =>
+                          entry &&
+                          entry.registrationId !==
+                            record.id
+                      )
+                    : [];
+
+                if (
+                  oldLookupRef &&
+                  oldLookupRef.path ===
+                    newLookupRef.path
+                ) {
+                  mergedEntries.length = 0;
+                  mergedEntries.push(
+                    ...targetEntries
+                  );
+                } else {
+                  mergedEntries.push(
+                    ...targetEntries
+                  );
+                }
+
+                const registrationIds =
+                  Array.isArray(
+                    newLookupData.registrationIds
+                  )
+                    ? [
+                        ...newLookupData.registrationIds,
+                      ]
+                    : [];
+
+                if (
+                  !registrationIds.includes(
+                    record.id
+                  )
+                ) {
+                  registrationIds.push(
+                    record.id
+                  );
+                }
+
+                tx.set(
+                  newLookupRef,
+                  {
+                    eventId:
+                      CONFIG.eventId,
+                    normalizedLastName:
+                      newNormLast,
+                    entries:
+                      mergedEntries,
+                    registrationIds,
+                    updatedAt:
+                      serverTimestamp(),
+                  },
+                  {
+                    merge:
+                      true,
+                  }
+                );
+              }
+
+              if (
+                oldLookupRef &&
+                newLookupRef &&
+                oldLookupRef.path !==
+                  newLookupRef.path
+              ) {
+                const remainingOldEntries =
+                  oldEntries.filter(
+                    (entry) =>
+                      entry &&
+                      entry.registrationId !==
+                        record.id
+                  );
+
+                const oldData =
+                  oldLookupSnap?.data()
+                    || {};
+
+                tx.set(
+                  oldLookupRef,
+                  {
+                    entries:
+                      remainingOldEntries,
+                    registrationIds:
+                      Array.isArray(
+                        oldData.registrationIds
+                      )
+                        ? oldData.registrationIds.filter(
+                            (id) =>
+                              id !==
+                              record.id
+                          )
+                        : [],
+                    updatedAt:
+                      serverTimestamp(),
+                  },
+                  {
+                    merge:
+                      true,
+                  }
+                );
+              }
+            }
+          );
+
+          registrations =
+            registrations.map(
+              (item) =>
+                item.id ===
+                record.id
+                  ? {
+                      ...item,
+                      firstName:
+                        newFirstName,
+                      lastName:
+                        newLastName,
+                      email:
+                        newEmail,
+                      phone:
+                        newPhone,
+                      normalizedFirstName:
+                        newNormFirst,
+                      normalizedLastName:
+                        newNormLast,
+                      normalizedPhone:
+                        newPhone,
+                      manageLookupId:
+                        newLookupId,
+                      is18OrOlder:
+                        newIs18OrOlder,
+                      notes:
+                        newNotes,
+                      positionId:
+                        newPosition.id,
+                      positionName:
+                        newPosition.name,
+                      shiftId:
+                        newShift.id,
+                      shiftStartTime:
+                        newShift.startTime,
+                      shiftEndTime:
+                        newShift.endTime,
+                      shiftLabel:
+                        formatShiftTime(
+                          newShift
+                        )
+                    }
+                  : item
+            );
+
+          await loadShiftCapacities();
+
+          root.textContent = "";
+          renderRegistrations();
+        } catch (editError) {
+          console.error(
+            "[Admin] Edit failed:",
+            editError
+          );
+
+          error.textContent =
+            editError?.message ===
+            "TARGET_SHIFT_DUPLICATE"
+              ? "That volunteer is already registered for the selected shift."
+              : editError?.message ===
+                "REGISTRATION_NOT_FOUND"
+              ? "That registration could not be found. Refresh the page and try again."
+              : "Update failed. Please try again or check the console.";
+        }
+      },
+      "primary"
+    );
+
   form.append(
-    fieldWrap("<label>First Name <span class='req'>*</span></label>", firstNameInput),
-    fieldWrap("<label>Last Name <span class='req'>*</span></label>", lastNameInput),
-    fieldWrap("<label>Email Address <span class='req'>*</span></label>", emailInput),
-    fieldWrap("<label>Phone Number <span class='req'>*</span></label>", phoneInput),
-    fieldWrap("<label>18 or Older? <span class='req'>*</span></label>", is18Row),
+    fieldWrap(
+      "<label>First Name <span class='req'>*</span></label>",
+      firstNameInput
+    ),
+    fieldWrap(
+      "<label>Last Name <span class='req'>*</span></label>",
+      lastNameInput
+    ),
+    fieldWrap(
+      "<label>Email Address <span class='req'>*</span></label>",
+      emailInput
+    ),
+    fieldWrap(
+      "<label>Phone Number <span class='req'>*</span></label>",
+      phoneInput
+    ),
+    fieldWrap(
+      "<label>Position <span class='req'>*</span></label>",
+      positionSelect
+    ),
+    fieldWrap(
+      "<label>Shift <span class='req'>*</span></label>",
+      shiftSelect
+    ),
+    fieldWrap(
+      "<label>18 or Older? <span class='req'>*</span></label>",
+      is18Row
+    ),
     (() => {
-      const wrap = document.createElement("div");
-      wrap.style.gridColumn = "1 / -1";
-      const label = document.createElement("label");
-      label.htmlFor = "edit-notes";
-      label.textContent = "Notes (Optional)";
-      wrap.appendChild(label);
-      wrap.appendChild(notesInput);
+      const wrap =
+        document.createElement(
+          "div"
+        );
+
+      wrap.style.gridColumn =
+        "1 / -1";
+
+      const label =
+        document.createElement(
+          "label"
+        );
+
+      label.htmlFor =
+        "edit-notes";
+
+      label.textContent =
+        "Notes (Optional)";
+
+      wrap.appendChild(
+        label
+      );
+
+      wrap.appendChild(
+        notesInput
+      );
+
       return wrap;
     })(),
     (() => {
-      const wrap = document.createElement("div");
-      wrap.style.gridColumn = "1 / -1";
-      wrap.style.marginTop = "8px";
-      wrap.appendChild(error);
-      wrap.appendChild(confirmBtn);
+      const wrap =
+        document.createElement(
+          "div"
+        );
+
+      wrap.style.gridColumn =
+        "1 / -1";
+
+      wrap.style.marginTop =
+        "8px";
+
+      wrap.appendChild(
+        error
+      );
+
+      wrap.appendChild(
+        confirmBtn
+      );
+
       return wrap;
     })()
   );
 
-  modal.card.appendChild(form);
+  modal.card.appendChild(
+    form
+  );
 
-  root.appendChild(modal.overlay);
+  root.appendChild(
+    modal.overlay
+  );
 }
-
 
 /* =========================================================
    DELETE
@@ -5743,6 +6709,105 @@ function adminName(
   );
 }
 
+
+function normalizeEmailForAdmin(value) {
+  return String(
+    value || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function findConfiguredShiftForRecord(record) {
+  const position =
+    getPositionById(
+      record?.positionId
+    );
+
+  if (!position) return null;
+
+  const normalizedStart =
+    normalizeStoredShiftTimeForAdmin(
+      record?.shiftStartTime
+    );
+
+  const normalizedEnd =
+    normalizeStoredShiftTimeForAdmin(
+      record?.shiftEndTime
+    );
+
+  return (
+    position.shifts?.find(
+      (shift) =>
+        shift.startTime ===
+          normalizedStart &&
+        shift.endTime ===
+          normalizedEnd
+    ) || null
+  );
+}
+
+function normalizeStoredShiftTimeForAdmin(value) {
+  const text =
+    String(value || "").trim();
+
+  if (/^\d{3,4}$/.test(text)) {
+    return text.padStart(
+      4,
+      "0"
+    );
+  }
+
+  const match =
+    text.match(
+      /^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i
+    );
+
+  if (!match) return "";
+
+  let hour =
+    Number(match[1]);
+
+  const minute =
+    Number(
+      match[2] || "0"
+    );
+
+  const period =
+    match[3].toUpperCase();
+
+  if (
+    hour < 1 ||
+    hour > 12 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  if (
+    period === "AM"
+  ) {
+    if (hour === 12) {
+      hour = 0;
+    }
+  } else if (
+    hour !== 12
+  ) {
+    hour += 12;
+  }
+
+  return (
+    String(hour).padStart(
+      2,
+      "0"
+    ) +
+    String(minute).padStart(
+      2,
+      "0"
+    )
+  );
+}
 
 function positionLabel(
   id,
