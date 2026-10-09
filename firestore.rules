@@ -486,12 +486,17 @@ service cloud.firestore {
           || isAdmin()
         );
 
-      allow create: if signedIn()
-        && adminId == request.auth.uid
-        && request.resource.data.role ==
-           "none"
-        && request.resource.data.status ==
-           "disabled";
+      // Enabled admins may provision role records for newly created
+      // Authentication users from the administrator-only signup page.
+      // This also preserves the disabled self-profile path for any legacy
+      // account registration flow.
+      allow create: if isAdmin()
+        || (
+          signedIn()
+          && adminId == request.auth.uid
+          && request.resource.data.role == "none"
+          && request.resource.data.status == "disabled"
+        );
 
       allow update,
             delete: if isAdmin();
