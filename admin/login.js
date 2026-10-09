@@ -46,7 +46,11 @@ form.addEventListener("submit", async (event) => {
       return;
     }
 
-    window.location.replace("/admin/");
+    window.location.replace(
+      profile.role === "checkin"
+        ? "/admin/checkin.html"
+        : "/admin/"
+    );
   } catch (error) {
     console.info("[Diwali Admin Login] sign in failed", {
       code: error?.code || "unknown"
