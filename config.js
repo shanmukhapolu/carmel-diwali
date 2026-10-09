@@ -302,9 +302,9 @@ export const VOLUNTEER_POSITIONS = [
         capacity: 3,
       },
       {
-        id: "rangoli-crew-2030-2200",
+        id: "rangoli-crew-2030-2130",
         startTime: "2030",
-        endTime: "2200",
+        endTime: "2130",
         capacity: 3,
       },
     ],
