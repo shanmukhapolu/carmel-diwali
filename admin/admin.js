@@ -134,7 +134,8 @@ function renderNavigation(profile) {
           ["City Import", "/admin/city-volunteers.html"],
           ["WhatsApp", "/admin/whatsapp.html"],
           ["Check-In", "/admin/checkin.html"],
-          ["Statistics", "/admin/statistics.html"]
+          ["Statistics", "/admin/statistics.html"],
+          ["Create Check-In Account", "/admin/signup.html"]
         ];
 
     let current =
