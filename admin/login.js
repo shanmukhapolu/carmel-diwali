@@ -46,6 +46,18 @@ form.addEventListener("submit", async (event) => {
       return;
     }
 
+    const requestedReturnTo = new URLSearchParams(
+      window.location.search
+    ).get("returnTo");
+
+    if (
+      profile.role === "admin" &&
+      requestedReturnTo === "/admin/signup.html"
+    ) {
+      window.location.replace("/admin/signup.html");
+      return;
+    }
+
     window.location.replace(
       profile.role === "checkin"
         ? "/admin/checkin.html"
