@@ -36,7 +36,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebas
 // Firebase web configuration for the Carmel Diwali Festival volunteer app.
 // The Web API key is not a secret; see the security note above.
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyA31-qvxuiFPxBhhFcdmv7vgxH0l4Ehe5U",
   authDomain: "volunteerdiwali.firebaseapp.com",
   projectId: "volunteerdiwali",
