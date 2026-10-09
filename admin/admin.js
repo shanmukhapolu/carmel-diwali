@@ -14,7 +14,7 @@ import {
 } from "../config.js";
 
 import { db } from "../firebase-init.js";
-import { requireAdmin, logout, isEnabledAdmin } from "./auth.js";
+import { requireAdmin, logout, isEnabledCheckinStaff } from "./auth.js";
 
 import {
   collection,
@@ -126,14 +126,16 @@ function renderNavigation(profile) {
   document.querySelectorAll(".nav").forEach((nav) => {
     nav.textContent = "";
 
-    const adminLinks = [
-      ["Dashboard", "/admin/"],
-      ["Volunteers", "/admin/registrations.html"],
-      ["City Import", "/admin/city-volunteers.html"],
-      ["WhatsApp", "/admin/whatsapp.html"],
-      ["Check-In", "/admin/checkin.html"],
-      ["Statistics", "/admin/statistics.html"]
-    ];
+    const links = isEnabledCheckinStaff(profile)
+      ? [["Check-In", "/admin/checkin.html"]]
+      : [
+          ["Dashboard", "/admin/"],
+          ["Volunteers", "/admin/registrations.html"],
+          ["City Import", "/admin/city-volunteers.html"],
+          ["WhatsApp", "/admin/whatsapp.html"],
+          ["Check-In", "/admin/checkin.html"],
+          ["Statistics", "/admin/statistics.html"]
+        ];
 
     let current =
       location.pathname.split("/").pop() ||
@@ -154,7 +156,7 @@ function renderNavigation(profile) {
       current = "index.html";
     }
 
-    adminLinks.forEach(([label, href]) => {
+    links.forEach(([label, href]) => {
       const a = document.createElement("a");
 
       a.href = href;
@@ -3735,7 +3737,9 @@ async function initCheckinPage(
     new Map();
 
   try {
-    await loadAdminDirectory();
+    if (!isEnabledCheckinStaff(profile)) {
+      await loadAdminDirectory();
+    }
 
     const snap =
       await getDocs(
@@ -3874,7 +3878,7 @@ async function initCheckinPage(
   );
 
   // Wire up the activity feed that lives in the same page layout.
-  initActivityPage();
+  initActivityPage(isEnabledCheckinStaff(profile));
 }
 
 
@@ -3980,145 +3984,103 @@ async function markLateRegistrations(
   uid,
   actorName
 ) {
-  const now =
-    new Date();
+  const now = new Date();
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(now);
 
-  const eventDate =
-    CONFIG.eventDate;
-
-  const today =
-    new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone:
-          EVENT_TIME_ZONE,
-
-        year: "numeric",
-
-        month: "2-digit",
-
-        day: "2-digit"
-      }
-    ).format(now);
-
-  if (
-    today !== eventDate
-  ) {
+  if (today !== CONFIG.eventDate) {
     return;
   }
 
-  const currentMinutes =
-    timeParts(
-      now
-    ).hour *
-      60 +
-    timeParts(
-      now
-    ).minute;
+  const currentParts = timeParts(now);
+  const currentMinutes = currentParts.hour * 60 + currentParts.minute;
 
-  const late =
-    regs
-      .filter(
-        (r) => {
-          const shift =
-            getShiftById(
-              r.shiftId
-            );
+  const candidates = regs
+    .filter((record) => {
+      const shift = getShiftById(record.shiftId);
+      if (!shift) return false;
 
-          if (!shift)
-            return false;
+      const status = checkins.get(record.id)?.status;
+      if (["checked_in", "completed", "late"].includes(status)) {
+        return false;
+      }
 
-          const status =
-            checkins.get(
-              r.id
-            )?.status;
+      return shiftMinutes(shift.endTime) < currentMinutes;
+    })
+    .slice(0, 20);
 
+  await Promise.all(
+    candidates.map(async (record) => {
+      const checkinRef = doc(
+        db,
+        CHECKINS_COLLECTION,
+        record.id
+      );
+      const activityRef = doc(
+        collection(db, CHECKIN_ACTIVITY_COLLECTION)
+      );
+
+      try {
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(checkinRef);
+          const currentStatus = snap.exists()
+            ? snap.data().status
+            : "registered";
+
+          // Another device may have checked the volunteer in or marked them late
+          // after this device built its local candidate list.
           if (
-            [
-              "checked_in",
-              "completed"
-            ].includes(
-              status
+            ["checked_in", "completed", "late"].includes(
+              currentStatus
             )
           ) {
             return false;
           }
 
-          return (
-            shiftMinutes(
-              shift.endTime
-            ) <
-            currentMinutes
-          );
-        }
-      )
-      .slice(0, 20);
-
-  await Promise.all(
-    late.map(
-      (r) =>
-        setDoc(
-          doc(
-            db,
-            CHECKINS_COLLECTION,
-            r.id
-          ),
-          {
-            registrationId:
-              r.id,
-
-            status:
-              "late",
-
-            lateAt:
-              serverTimestamp(),
-
-            updatedAt:
-              serverTimestamp(),
-
-            updatedBy:
-              uid,
-
-            updatedByName:
-              actorName
-          },
-          {
-            merge: true
+          if (
+            currentStatus !== "registered" &&
+            currentStatus !== undefined &&
+            currentStatus !== null
+          ) {
+            return false;
           }
-        )
-          .then(
-            () =>
-              setDoc(
-                doc(
-                  collection(
-                    db,
-                    CHECKIN_ACTIVITY_COLLECTION
-                  )
-                ),
-                {
-                  registrationId:
-                    r.id,
 
-                  action:
-                    "late",
+          tx.set(
+            checkinRef,
+            {
+              registrationId: record.id,
+              status: "late",
+              lateAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              updatedBy: uid,
+              updatedByName: actorName
+            },
+            { merge: true }
+          );
 
-                  actorUid:
-                    uid,
+          tx.set(activityRef, {
+            registrationId: record.id,
+            action: "late",
+            actorUid: uid,
+            actorName,
+            occurredAt: serverTimestamp()
+          });
 
-                  actorName,
-
-                  occurredAt:
-                    serverTimestamp()
-                }
-              )
-          )
-          .catch(
-            () => {}
-          )
-    )
+          return true;
+        });
+      } catch (error) {
+        console.info("[Admin Check-In] Could not mark late:", {
+          registrationId: record.id,
+          code: error?.code || "unknown"
+        });
+      }
+    })
   );
 }
-
 
 function isLateArrival(
   record
@@ -4836,7 +4798,7 @@ function renderOperationsDashboard(
    ACTIVITY
 ========================================================= */
 
-async function initActivityPage() {
+async function initActivityPage(checkinOnly = false) {
   const type =
     $("activity-type");
 
@@ -4846,13 +4808,19 @@ async function initActivityPage() {
   const rows =
     $("activity-list");
 
+  if (checkinOnly) {
+    staff?.closest("div")?.remove();
+  }
+
   let items = [];
 
   let names =
     new Map();
 
   try {
-    await loadAdminDirectory();
+    if (!checkinOnly) {
+      await loadAdminDirectory();
+    }
 
     const regs =
       await getDocs(
@@ -4875,9 +4843,9 @@ async function initActivityPage() {
         )
       );
 
-    fillAdminFilter(
-      staff
-    );
+    if (!checkinOnly) {
+      fillAdminFilter(staff);
+    }
 
   } catch {}
 
