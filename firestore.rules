@@ -27,6 +27,23 @@ service cloud.firestore {
       return enabledRole("admin");
     }
 
+    function isCheckinStaff() {
+      return enabledRole("checkin");
+    }
+
+    function canCheckIn() {
+      return isAdmin() || isCheckinStaff();
+    }
+
+    function registrationIsForEvent(registrationId) {
+      return exists(
+          /databases/$(database)/documents/registrations/$(registrationId)
+        )
+        && get(
+          /databases/$(database)/documents/registrations/$(registrationId)
+        ).data.eventId == "carmel-diwali-2026";
+    }
+
 
     // ========================================================================
     // VOLUNTEER REGISTRATIONS
@@ -34,8 +51,8 @@ service cloud.firestore {
 
     match /registrations/{registrationId} {
 
-      // Actual registration records are private.
-      allow read: if isAdmin();
+      // Registration data is readable by admins and check-in staff only.
+      allow read: if canCheckIn();
 
       // Public users may create new registrations.
       allow create: if request.auth == null;
@@ -267,16 +284,166 @@ service cloud.firestore {
     // ========================================================================
 
     match /checkins/{registrationId} {
-      allow read,
-            create,
-            update,
-            delete: if isAdmin();
+      // Check-in staff can read attendance status, but cannot delete records.
+      allow read: if canCheckIn();
+
+      // A check-in staff account can create only a valid check-in or late
+      // record for a registration belonging to this event.
+      allow create: if isAdmin()
+        || (
+          isCheckinStaff()
+          && registrationIsForEvent(registrationId)
+          && request.resource.data.registrationId == registrationId
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.updatedByName is string
+          && request.resource.data.updatedAt is timestamp
+          && (
+            (
+              request.resource.data.status == "checked_in"
+              && request.resource.data.keys().hasAll([
+                "registrationId",
+                "status",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName",
+                "checkedInAt",
+                "checkedInBy",
+                "checkedInByName"
+              ])
+              && request.resource.data.keys().hasOnly([
+                "registrationId",
+                "status",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName",
+                "checkedInAt",
+                "checkedInBy",
+                "checkedInByName"
+              ])
+              && request.resource.data.checkedInAt is timestamp
+              && request.resource.data.checkedInBy == request.auth.uid
+              && request.resource.data.checkedInByName is string
+            )
+            ||
+            (
+              request.resource.data.status == "late"
+              && request.resource.data.keys().hasAll([
+                "registrationId",
+                "status",
+                "lateAt",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName"
+              ])
+              && request.resource.data.keys().hasOnly([
+                "registrationId",
+                "status",
+                "lateAt",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName"
+              ])
+              && request.resource.data.lateAt is timestamp
+            )
+          )
+        );
+
+      // Updates are limited to the valid state changes:
+      // late/registered -> checked_in, checked_in -> completed, and
+      // registered -> late. The transaction in the client enforces the
+      // same transitions to prevent two devices acting on stale state.
+      allow update: if isAdmin()
+        || (
+          isCheckinStaff()
+          && registrationIsForEvent(registrationId)
+          && request.resource.data.registrationId == registrationId
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.updatedByName is string
+          && request.resource.data.updatedAt is timestamp
+          && (
+            (
+              resource.data.status in ["registered", "late"]
+              && request.resource.data.status == "checked_in"
+              && request.resource.data.checkedInAt is timestamp
+              && request.resource.data.checkedInBy == request.auth.uid
+              && request.resource.data.checkedInByName is string
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                "status",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName",
+                "checkedInAt",
+                "checkedInBy",
+                "checkedInByName"
+              ])
+            )
+            ||
+            (
+              resource.data.status == "checked_in"
+              && request.resource.data.status == "completed"
+              && request.resource.data.checkedOutAt is timestamp
+              && request.resource.data.checkedOutBy == request.auth.uid
+              && request.resource.data.checkedOutByName is string
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                "status",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName",
+                "checkedOutAt",
+                "checkedOutBy",
+                "checkedOutByName"
+              ])
+            )
+            ||
+            (
+              resource.data.status == "registered"
+              && request.resource.data.status == "late"
+              && request.resource.data.lateAt is timestamp
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                "status",
+                "lateAt",
+                "updatedAt",
+                "updatedBy",
+                "updatedByName"
+              ])
+            )
+          )
+        );
+
+      // Check-in staff may not delete attendance records.
+      allow delete: if isAdmin();
     }
 
     match /checkinActivity/{activityId} {
-      allow read,
-            create,
-            update,
+      allow read: if canCheckIn();
+
+      // Activity documents are append-only for check-in staff.
+      allow create: if isAdmin()
+        || (
+          isCheckinStaff()
+          && request.resource.data.keys().hasAll([
+            "registrationId",
+            "action",
+            "actorUid",
+            "actorName",
+            "occurredAt"
+          ])
+          && request.resource.data.keys().hasOnly([
+            "registrationId",
+            "action",
+            "actorUid",
+            "actorName",
+            "occurredAt"
+          ])
+          && request.resource.data.registrationId is string
+          && registrationIsForEvent(request.resource.data.registrationId)
+          && request.resource.data.action in ["checkin", "checkout", "late"]
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.actorName is string
+          && request.resource.data.occurredAt is timestamp
+        );
+
+      allow update,
             delete: if isAdmin();
     }
 
