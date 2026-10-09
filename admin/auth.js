@@ -54,7 +54,7 @@ function normalizeAdminProfile(id, data) {
     id,
     ...data,
     email: normalizeEmail(data?.email),
-    role: role === "admin" ? "admin" : "none",
+    role: role === "admin" || role === "checkin" ? role : "none",
     status: status === "enabled" ? "enabled" : "disabled",
   };
 }
@@ -66,8 +66,18 @@ export function isEnabledAdmin(profile) {
   );
 }
 
+export function isEnabledCheckinStaff(profile) {
+  return (
+    profile?.role === "checkin" &&
+    profile.status === "enabled"
+  );
+}
+
 function isEnabledRole(profile) {
-  return isEnabledAdmin(profile);
+  return (
+    isEnabledAdmin(profile) ||
+    isEnabledCheckinStaff(profile)
+  );
 }
 
 function normalizeEmail(email) {
@@ -94,12 +104,21 @@ export function requireAdmin({
 
       finishAuthCheck();
 
-      if (!profile || !isEnabledAdmin(profile)) {
-        onDenied?.(UNAUTHORIZED);
+      if (isEnabledAdmin(profile)) {
+        onReady?.(user, profile);
         return;
       }
 
-      onReady?.(user, profile);
+      if (isEnabledCheckinStaff(profile)) {
+        if (window.location.pathname.includes("checkin")) {
+          onReady?.(user, profile);
+        } else {
+          window.location.replace("/admin/checkin.html");
+        }
+        return;
+      }
+
+      onDenied?.(UNAUTHORIZED);
     } catch (error) {
       finishAuthCheck();
 
