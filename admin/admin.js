@@ -4629,6 +4629,305 @@ function actionButton(
 }
 
 
+function checkoutMethodLabel(method) {
+  switch (method) {
+    case "estimated_shift_end":
+      return "Estimated shift-end time";
+    case "custom":
+      return "Custom/admin-adjusted time";
+    case "actual_current_time":
+    default:
+      // The old system recorded the current time and did not store a method.
+      // Treat legacy completed records without metadata as actual checkouts.
+      return "Actual/current-time checkout";
+  }
+}
+
+function dateTimeLocalValueForEventTimeZone(value) {
+  const date = toDate(value);
+  if (!date) return "";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+
+  const fields = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  );
+
+  return fields.year + "-" + fields.month + "-" + fields.day +
+    "T" + fields.hour + ":" + fields.minute;
+}
+
+function eventDateTimeForDateTimeLocalValue(value) {
+  const match = String(value || "").match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+  );
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+
+  if (
+    month < 1 || month > 12 ||
+    day < 1 || day > 31 ||
+    hour > 23 || minute > 59
+  ) {
+    return null;
+  }
+
+  const wallClockAsUtc = Date.UTC(
+    year, month - 1, day, hour, minute, 0, 0
+  );
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(wallClockAsUtc));
+
+  const fields = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)])
+  );
+
+  const representedAsUtc = Date.UTC(
+    fields.year, fields.month - 1, fields.day,
+    fields.hour, fields.minute, 0, 0
+  );
+
+  const timezoneOffset = representedAsUtc - wallClockAsUtc;
+  return new Date(wallClockAsUtc - timezoneOffset);
+}
+
+function showAttendanceTimesModal(record, user, actorName) {
+  const root = $("modal-root");
+  if (!root) return;
+  root.textContent = "";
+
+  const existing = record.checkin || {};
+  const fullName = (String(record.firstName || "") + " " +
+    String(record.lastName || "")).trim() || "Volunteer";
+  const modal = modalShell("Edit attendance times · " + fullName);
+  const form = document.createElement("form");
+  form.className = "checkout-time-form";
+
+  const note = document.createElement("p");
+  note.textContent =
+    "Admin override: edit the check-in and check-out timestamps for this volunteer. Times are shown in Eastern Time. Existing records change only when you save.";
+  form.appendChild(note);
+
+  function addField(labelText, id, value) {
+    const wrap = document.createElement("div");
+    wrap.className = "checkout-time-custom";
+
+    const label = document.createElement("label");
+    label.htmlFor = id;
+    label.textContent = labelText;
+
+    const input = document.createElement("input");
+    input.type = "datetime-local";
+    input.id = id;
+    input.value = dateTimeLocalValueForEventTimeZone(value);
+    input.step = "60";
+
+    const hint = document.createElement("small");
+    hint.className = "muted";
+    hint.textContent = "Leave blank to clear this timestamp.";
+
+    wrap.append(label, input, hint);
+    form.appendChild(wrap);
+    return input;
+  }
+
+  const checkedInInput = addField(
+    "Check-in date and time",
+    "edit-checked-in-at",
+    existing.checkedInAt
+  );
+  const checkedOutInput = addField(
+    "Check-out date and time",
+    "edit-checked-out-at",
+    existing.checkedOutAt
+  );
+
+  const methodWrap = document.createElement("div");
+  methodWrap.className = "checkout-time-custom";
+
+  const methodLabel = document.createElement("label");
+  methodLabel.htmlFor = "edit-checkout-method";
+  methodLabel.textContent = "Checkout classification";
+
+  const methodSelect = document.createElement("select");
+  methodSelect.id = "edit-checkout-method";
+  [
+    ["actual_current_time", "Actual checkout (recorded at the booth)"],
+    ["estimated_shift_end", "Estimated shift end (volunteer forgot to check out)"],
+    ["custom", "Custom/admin-adjusted time"]
+  ].forEach(([value, label]) => {
+    methodSelect.append(new Option(label, value));
+  });
+  methodSelect.value = existing.checkoutMethod || "actual_current_time";
+  methodSelect.disabled = !existing.checkedOutAt;
+
+  const methodHint = document.createElement("small");
+  methodHint.className = "muted";
+  methodHint.textContent =
+    "Older checkouts without method metadata are treated as actual/current-time checkouts, matching the old system.";
+
+  methodWrap.append(methodLabel, methodSelect, methodHint);
+  form.appendChild(methodWrap);
+
+  checkedOutInput.addEventListener("input", () => {
+    methodSelect.disabled = !checkedOutInput.value;
+  });
+
+  const error = document.createElement("p");
+  error.className = "error";
+  error.setAttribute("role", "alert");
+
+  const footer = document.createElement("div");
+  footer.className = "checkout-time-footer";
+
+  const cancel = smallButton("Cancel", () => {
+    root.textContent = "";
+  });
+  cancel.className = "secondary";
+
+  const save = document.createElement("button");
+  save.type = "submit";
+  save.className = "primary";
+  save.textContent = "Save Attendance Times";
+  footer.append(cancel, save);
+
+  form.append(error, footer);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    error.textContent = "";
+
+    const checkedInAt = checkedInInput.value
+      ? eventDateTimeForDateTimeLocalValue(checkedInInput.value)
+      : null;
+    const checkedOutAt = checkedOutInput.value
+      ? eventDateTimeForDateTimeLocalValue(checkedOutInput.value)
+      : null;
+
+    if (checkedInInput.value && !checkedInAt) {
+      error.textContent = "Enter a valid check-in date and time.";
+      return;
+    }
+    if (checkedOutInput.value && !checkedOutAt) {
+      error.textContent = "Enter a valid check-out date and time.";
+      return;
+    }
+    if (checkedOutAt && !checkedInAt) {
+      error.textContent = "A check-in timestamp is required when a check-out timestamp is set.";
+      return;
+    }
+    if (checkedInAt && checkedOutAt && checkedOutAt < checkedInAt) {
+      error.textContent = "Check-out cannot be earlier than check-in.";
+      return;
+    }
+
+    const checkoutMethod = checkedOutAt ? methodSelect.value : "";
+    save.disabled = true;
+    save.textContent = "Saving…";
+    cancel.disabled = true;
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const ref = doc(db, CHECKINS_COLLECTION, record.id);
+        const snap = await tx.get(ref);
+        const current = snap.exists() ? snap.data() : {};
+        const currentStatus = current.status || "registered";
+
+        let nextStatus = "registered";
+        if (checkedOutAt) {
+          nextStatus = "completed";
+        } else if (checkedInAt) {
+          nextStatus = "checked_in";
+        } else if (currentStatus === "late") {
+          nextStatus = "late";
+        }
+
+        const patch = {
+          registrationId: record.id,
+          status: nextStatus,
+          checkedInAt: checkedInAt || deleteField(),
+          checkedOutAt: checkedOutAt || deleteField(),
+          checkoutMethod: checkedOutAt ? checkoutMethod : deleteField(),
+          checkedInBy: checkedInAt
+            ? (current.checkedInBy || user.uid)
+            : deleteField(),
+          checkedInByName: checkedInAt
+            ? (current.checkedInByName || actorName)
+            : deleteField(),
+          checkedOutBy: checkedOutAt
+            ? (current.checkedOutBy || user.uid)
+            : deleteField(),
+          checkedOutByName: checkedOutAt
+            ? (current.checkedOutByName || actorName)
+            : deleteField(),
+          lateAt: nextStatus === "late"
+            ? (current.lateAt || serverTimestamp())
+            : deleteField(),
+          updatedAt: serverTimestamp(),
+          updatedBy: user.uid,
+          updatedByName: actorName
+        };
+
+        const activityRef = doc(
+          collection(db, CHECKIN_ACTIVITY_COLLECTION)
+        );
+        tx.set(ref, patch, { merge: true });
+        tx.set(activityRef, {
+          registrationId: record.id,
+          action: "attendance_time_edit",
+          actorUid: user.uid,
+          actorName,
+          occurredAt: serverTimestamp()
+        });
+      });
+
+      root.textContent = "";
+      setText(
+        "checkin-message",
+        "Attendance times saved for " + fullName +
+          ". Other volunteers' records were not changed."
+      );
+    } catch (saveError) {
+      console.error("[Admin Check-In] attendance time edit failed:", {
+        code: saveError?.code || "unknown"
+      });
+      error.textContent =
+        "Could not save these timestamps. Refresh and try again.";
+      save.disabled = false;
+      save.textContent = "Save Attendance Times";
+      cancel.disabled = false;
+    }
+  });
+
+  modal.card.appendChild(form);
+  root.appendChild(modal.overlay);
+}
+
+
 /* =========================================================
    CHECK-IN TRANSACTIONS
 ========================================================= */
