@@ -6780,7 +6780,7 @@ function dayOfStatsPanel(records) {
       { label: "Not arrived", value: stats.notArrived }
     ],
     [
-      "Check-in-only / estimated rate — " + stats.rates.checkin,
+      "Check-in rate (includes shift-end estimates) — " + stats.rates.checkin,
       "Actual/current-time checkout rate — " + stats.rates.checkout,
       "Custom/admin-adjusted checkout rate — " + stats.rates.customCheckout,
       "Valid timed shifts — " + insights.timedShifts,
@@ -6867,8 +6867,9 @@ function shiftOverview(
           <th>Position</th>
           <th>Shift</th>
           <th>Expected</th>
-          <th>Checked In</th>
-          <th>Checked Out</th>
+          <th>Checked In Only / Estimate</th>
+          <th>Actual Checkout</th>
+          <th>Custom Checkout</th>
           <th>Not Arrived</th>
           <th>Timed Shifts</th>
           <th>Logged Hours</th>
@@ -6912,6 +6913,8 @@ function shiftOverview(
         s.checkedIn,
 
         s.checkedOut,
+
+        s.customCheckout,
 
         s.notArrived,
 
