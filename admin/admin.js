@@ -7575,53 +7575,35 @@ function openVolunteerReport(
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
   ).slice(0, 5);
-  const positionFirstRows = positionTableRows.slice(0, 9);
   const positionContent =
     "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The largest roles are shown individually; the rest are grouped.</p>" +
     donut(topMix, String(expected), "registrations") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
     positionBarChart(positionChartItems) + "</div></div>" +
-    "<h3 class='section-title'>Nine roles with the most no-shows</h3>" +
-    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
-    "";
+    "<div class='pagination-table' data-continued-title='Position results · continued' data-continued-subtitle='Remaining roles, sorted by registrations without a recorded check-in.'>" +
+    "<h3 class='section-title'>Roles with the most no-shows</h3>" +
+    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionTableRows, "compact") +
+    "</div>";
   noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
   pages.push(makePage(
     "03 / Volunteer positions", "Role coverage and results",
-    "Role turnout, the nine largest no-show counts, and position-by-position results.",
+    "Role turnout, the largest no-show counts, and position-by-position results.",
     positionContent, "Position performance"
   ));
 
-  chunkRows(positionTableRows.slice(9), 16).forEach((rows, index) => {
-    pages.push(makePage(
-      "03 / Volunteer positions", "Position results · continued",
-      "Remaining roles, sorted by registrations without a recorded check-in.",
-      reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], rows, "compact"),
-      "Position detail " + (index + 1)
-    ));
-  });
-
-  const shiftFirstRows = shiftTableRows.slice(0, 7);
   const shiftContent =
     "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Compare each rate with its booking count; small shifts are less conclusive.</p>" +
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<h3 class='section-title'>Seven shifts with the most no-shows</h3>" +
-    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftFirstRows, "compact") +
-    "";
+    "<div class='pagination-table' data-continued-title='Shift results · continued' data-continued-subtitle='Remaining shifts, sorted by registrations without recorded attendance.'>" +
+    "<h3 class='section-title'>Shifts with the most no-shows</h3>" +
+    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
+    "</div>";
   noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
   pages.push(makePage(
     "04 / Shift performance", "Shift turnout and reliability",
     "Compare turnout across scheduled time slots and identify shifts needing follow-up.",
     shiftContent, "Shift performance"
   ));
-
-  chunkRows(shiftTableRows.slice(7), 15).forEach((rows, index) => {
-    pages.push(makePage(
-      "04 / Shift performance", "Shift results · continued",
-      "Remaining shifts, sorted by registrations without recorded attendance.",
-      reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], rows, "compact"),
-      "Shift detail " + (index + 1)
-    ));
-  });
 
   const checkoutMethodMix = [
     { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
@@ -7655,20 +7637,17 @@ function openVolunteerReport(
     item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
     fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
   ]);
-  const durationChunks = chunkRows(durationRows, 16);
-  if (durationChunks.length) {
-    noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
-    durationChunks.forEach((rows, index) => {
-      pages.push(makePage(
-        "06 / Service time",
-        index === 0 ? "How long volunteers stayed" : "Shift duration · continued",
-        "Average, median and longest recorded duration. Only shifts with valid check-in and checkout timestamps are included.",
-        reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], rows, "compact"),
-        "Duration analysis" + (index ? " " + index : "")
-      ));
-    });
+  noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
+  if (durationRows.length) {
+    pages.push(makePage(
+      "06 / Service time", "How long volunteers stayed",
+      "Average, median and longest recorded duration. Only shifts with valid check-in and checkout timestamps are included.",
+      "<div class='pagination-table' data-continued-title='Shift duration · continued' data-continued-subtitle='Recorded durations for the remaining timed shifts.'>" +
+      reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], durationRows, "compact") +
+      "</div>",
+      "Duration analysis"
+    ));
   } else {
-    noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
     pages.push(makePage(
       "06 / Service time", "How long volunteers stayed",
       "Average, median and longest recorded duration.",
@@ -7679,7 +7658,7 @@ function openVolunteerReport(
 
   const tocContent =
     "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
-    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td>" + esc(item.page) + "</td></tr>").join("") +
+    tocEntries.map((item) => "<tr data-toc-label='" + esc(item.label) + "'><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td class='toc-page-number'>" + esc(item.page) + "</td></tr>").join("") +
     "</tbody></table><div class='toc-note'>Page numbers match the printed page numbers shown at the bottom of each page.</div>";
   pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents").replace("<section class='page report-section'>", "<section class='page toc-page'>");
   pages.forEach((page, index) => {
