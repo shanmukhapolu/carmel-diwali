@@ -426,7 +426,6 @@ function generateDocument(kind) {
   const eventDate = driveDate(CONFIG.eventDate);
   const hourText = hours.toLocaleString("en-US", { maximumFractionDigits: 2 }) + (hours === 1 ? " hour" : " hours");
   const descriptionText = completeServiceDescription(description || personalizedServiceDescription(selected.records));
-  const shiftSummary = volunteerShiftSummary(selected.records);
   const signoff = "<div class='signature'><div class='signature-name'>" + esc(signer) +
     "</div><div class='signature-rule'></div><strong>" + esc(signer) +
     "</strong><span>" + esc(signerTitle) + "</span></div>";
@@ -454,8 +453,7 @@ function generateDocument(kind) {
       "</strong> volunteered with the <strong>" + esc(CONFIG.eventName) + "</strong>, held on <strong>" +
       esc(eventDate) + "</strong> at " + esc(CONFIG.location) + ".</p><p>Based on the event's attendance records and organizer review, " +
       esc(name) + " contributed <strong>" + esc(hourText) + "</strong> of service in the role" +
-      (role.includes(",") ? "s" : "") + " of <strong>" + esc(role || "Volunteer") + "</strong>.</p><p><strong>Recorded shift assignment(s):</strong> " +
-      esc(shiftSummary) + ".</p><p>" +
+      (role.includes(",") ? "s" : "") + " of <strong>" + esc(role || "Volunteer") + "</strong>.</p><p>" +
       esc(descriptionText.replace(/[.!?]+$/, "")) + ".</p><p>This letter is provided at the volunteer's request for service-hour documentation. Please contact the event organizers with any questions about this verification.</p>" +
       "<div class='letter-signoff'><p>Sincerely,</p>" + signoff + "</div><div class='letter-footer'><span>" +
       esc(eventDate) + "</span><span>" + esc(CONFIG.location) + "</span></div></main>";
@@ -472,28 +470,32 @@ function generateDocument(kind) {
     "@media screen and (max-width:900px){.letter,.certificate{width:100%;min-height:100vh;margin:10px auto;height:auto}.letter{padding:34px 26px}.certificate{padding:18px}.certificate-inner{height:auto;min-height:900px;padding:30px 18px}.recipient{min-width:0;width:100%;font-size:25pt}.certificate-bottom{grid-template-columns:1fr 70px 1fr;gap:6px}}",
     ".certificate{width:11in;height:auto;min-height:8.5in;padding:.22in .28in;background:radial-gradient(ellipse at top,#fffdf6 0%,#fff 60%,#faf5ff 100%);overflow:visible}.certificate .frame{inset:.17in;border:2px solid #cba85c;box-shadow:inset 0 0 0 5px #fff,inset 0 0 0 6px #e3d2f7;z-index:0}.certificate .frame:before{inset:7px;border:1px solid #8e63b5}.certificate .mandala{position:absolute;z-index:1;top:2.4in;color:#c9a454;font-size:55pt;line-height:1;opacity:.64}.certificate .mandala-left{left:.43in}.certificate .mandala-right{right:.43in}.certificate-inner{height:auto;min-height:8.06in;padding:.25in .55in .22in;border:0;overflow:visible;justify-content:flex-start;background:radial-gradient(ellipse at 50% 0%,#faf3ff 0%,#fff 54%)}.festival-lockup{width:100%;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:12px;text-align:left}.festival-monogram{display:grid;place-items:center;width:44px;height:44px;border:1px solid #c59c43;border-radius:50%;box-shadow:inset 0 0 0 3px #f8edcf;background:#4c1d68;color:#f9e8b2;font:15pt Georgia,serif}.brand-kicker{color:#532564;letter-spacing:.2em;font-size:11pt;font-weight:850}.festival-subline{font-size:7.5pt;color:#86728f;letter-spacing:.13em;margin-top:2px}.festival-year{display:grid;place-items:center;width:42px;height:42px;border:1px solid #ddc58d;border-radius:50%;color:#946c22;font:13pt Georgia,serif}.certificate-ornament{color:#b38b39;letter-spacing:.32em;font-size:14pt;line-height:1;margin-top:7px}.overline{margin-top:6px;color:#8b6d9a;letter-spacing:.18em;font-size:7pt;font-weight:800}.certificate h1{font:26pt/1.12 Georgia,serif;color:#3b1b65;margin:9px 0 4px;letter-spacing:-.015em}.certificate h1 span{color:#6d28d9}.certificate .intro{margin:0;color:#746a81;font-size:9pt}.certificate .recipient{font:27pt/1.08 Georgia,serif;color:#4c1d95;border-bottom:1px solid #d8c7f5;min-width:0;width:min(7.8in,100%);max-width:100%;padding:0 12px 6px;margin:5px 0 5px;overflow-wrap:anywhere}.certificate .short-rule{width:56px;height:2px;background:#bc943f;margin:0 auto 7px}.certificate .main-copy{max-width:9.1in;margin:0 auto;color:#4d4559;font-size:10pt;line-height:1.4}.certificate .main-copy strong{color:#38224e}.certificate-note{max-width:9.1in;margin:6px auto 0;padding:0;border:0;font-size:8.3pt;line-height:1.35;color:#655772}.certificate-shifts{max-width:9.2in;margin:6px auto 0;font-size:7.7pt;line-height:1.3;color:#6c5b7c}.certificate-shifts span{display:block;color:#986f25;font-size:6.5pt;font-weight:850;letter-spacing:.14em;margin-bottom:2px}.certificate .event-line{margin:6px 0 0;color:#746a81;font-size:8pt}.certificate .event-line span{color:#b38b39;padding:0 7px}.certificate-bottom{width:86%;display:grid;grid-template-columns:1fr 110px 1fr;gap:14px;align-items:end;margin: auto auto 0;padding-top:9px}.certificate-bottom .signature{text-align:center;min-width:0}.certificate-bottom .signature-rule{width:auto;max-width:2in;border-color:#c3a961;margin:5px auto 5px}.certificate-bottom .signature-name{font-size:12pt;min-height:18px;overflow-wrap:anywhere}.certificate-bottom .signature strong{font-size:8pt;color:#3f3152}.certificate-bottom .signature span{font-size:7pt;line-height:1.3}.diya-seal{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0}.diya-seal svg{width:95px;height:40px}.diya-seal span{font-size:5.5pt;letter-spacing:.1em;color:#8b6a32;font-weight:800}@media screen and (max-width:900px){.certificate{width:100%;height:auto;min-height:0;padding:18px}.certificate-inner{height:auto;min-height:700px;padding:28px 20px}.certificate .mandala{display:none}.certificate-bottom{width:100%;grid-template-columns:1fr 80px 1fr}.certificate .recipient{width:100%;font-size:25pt}}@media print{.letter{height:auto;min-height:11in;overflow:visible}.certificate{width:11in;height:auto;min-height:8.5in;padding:.22in .28in;overflow:visible}.certificate-inner{height:auto;min-height:8.06in}}"
   ].join("\n");
-  const certificateCss = "@page{size:Letter landscape;margin:0}" +
-    ".certificate{width:11in;height:auto;min-height:8.5in;padding:.34in .42in;background:#fff;color:#282331;box-shadow:none;overflow:visible}" +
-    ".certificate .frame{inset:.22in;border:1.5px solid #6b3a80;box-shadow:none}" +
-    ".certificate .frame:before{display:none}" +
-    ".certificate-inner{width:100%;height:auto;min-height:7.78in;padding:.25in .42in .28in;justify-content:space-between;background:#fff;border:0;overflow:visible}" +
-    ".festival-lockup{display:block;width:100%;padding:0 0 12px;border-bottom:2px solid #c5a35b;text-align:center}" +
-    ".brand-kicker{color:#51245f;letter-spacing:.13em;font:700 14pt Arial,sans-serif}" +
-    ".festival-subline{margin-top:3px;font-size:9pt;letter-spacing:.04em;color:#665d6b}" +
-    ".certificate .overline{margin:12px 0 0;color:#765f7b;letter-spacing:.1em;font-size:8pt;font-weight:700}" +
-    ".certificate h1{font:28pt/1.15 Georgia,serif;color:#3b1b65;margin:8px 0 5px;letter-spacing:0}" +
-    ".certificate .intro{margin:0;color:#655d6c;font-size:11pt}" +
-    ".certificate .recipient{font:29pt/1.12 Georgia,serif;color:#41214f;border-bottom:1px solid #c8b8d0;width:90%;max-width:100%;padding:8px 10px 12px;margin:8px 0;overflow-wrap:anywhere}" +
-    ".certificate .main-copy{max-width:9.4in;margin:8px auto;color:#38313d;font-size:12.5pt;line-height:1.5}" +
-    ".certificate-roles{margin:6px auto 0;font-size:11pt;line-height:1.45;color:#3f3546}" +
-    ".certificate-note{max-width:9.45in;margin:10px auto 0;padding:0;border:0;font-size:10.5pt;line-height:1.5;color:#4b4351}" +
-    ".certificate .event-line{margin:10px 0 0;font-size:9.5pt;color:#655d6c}" +
-    ".certificate-bottom{width:85%;display:grid;grid-template-columns:1fr 1fr;gap:1in;align-items:end;margin:auto auto 0;padding-top:24px}" +
-    ".certificate-bottom .signature{text-align:center;min-width:0}.certificate-bottom .signature-rule{width:auto;max-width:2.7in;margin:6px auto 7px;border-color:#806a8e}" +
-    ".certificate-bottom .signature-name{display:none}.certificate-bottom .signature strong{font-size:10pt;color:#35273d}" +
-    ".certificate-bottom .signature span{font-size:8.5pt;line-height:1.4;color:#5f5567}.certificate-bottom .certificate-date strong,.certificate-bottom .certificate-date span{display:block}" +
-    "@media screen and (max-width:900px){.certificate{width:100%;min-height:0;padding:28px}.certificate-inner{min-height:0;padding:24px 16px}.certificate-bottom{width:100%;gap:25px}.certificate .recipient{width:100%;font-size:24pt}}" +
-    "@media print{.certificate{width:11in;min-height:8.5in;padding:.34in .42in;box-shadow:none;overflow:visible;break-after:avoid;page-break-after:avoid}.certificate-inner{min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}";
+  const certificateCss = `
+    @page{size:Letter landscape;margin:0}
+    .certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;background:#fff;color:#242033;box-shadow:none;overflow:hidden;break-after:avoid;page-break-after:avoid}
+    .certificate .frame{position:absolute;inset:.22in;border:1.5px solid #6b3a80;box-shadow:none}
+    .certificate .frame:before{display:none}
+    .certificate-inner{position:relative;width:100%;height:7.78in;min-height:7.78in;padding:.24in .48in .3in;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;background:#fff;border:0;overflow:visible}
+    .festival-lockup{display:block;width:100%;padding:0 0 10px;border-bottom:1.5px solid #c5a35b;text-align:center}
+    .brand-kicker{color:#51245f;letter-spacing:.12em;font:700 13pt Arial,sans-serif}
+    .festival-subline{margin-top:3px;font-size:9pt;letter-spacing:.03em;color:#665d6b}
+    .certificate .overline{margin:12px 0 0;color:#665d6b;letter-spacing:.1em;font-size:8pt;font-weight:700}
+    .certificate h1{font:700 25pt/1.15 Arial,sans-serif;color:#30223a;margin:8px 0 6px;letter-spacing:0}
+    .certificate .intro{margin:0;color:#655d6c;font-size:11pt}
+    .certificate .recipient{font:700 27pt/1.12 Arial,sans-serif;color:#41214f;border-bottom:1px solid #c8b8d0;width:88%;max-width:100%;padding:8px 10px 10px;margin:7px 0;overflow-wrap:anywhere}
+    .certificate .main-copy{max-width:9.4in;margin:8px auto 0;color:#38313d;font-size:12pt;line-height:1.45}
+    .certificate-roles{margin:7px auto 0;font-size:10.5pt;line-height:1.4;color:#3f3546}
+    .certificate-note{max-width:9.35in;margin:10px auto 0;padding:0;border:0;font-size:10pt;line-height:1.45;color:#4b4351}
+    .certificate .event-line{margin:9px 0 0;font-size:9.5pt;color:#655d6c}
+    .certificate-bottom{width:82%;display:grid;grid-template-columns:1fr 1fr;gap:1.2in;align-items:end;margin-top:auto;padding-top:22px}
+    .certificate-bottom .signature{text-align:center;min-width:0}
+    .certificate-bottom .signature-rule{width:auto;max-width:2.8in;margin:6px auto 7px;border-color:#806a8e}
+    .certificate-bottom .signature-name{display:none}
+    .certificate-bottom .signature strong{font-size:10pt;color:#35273d}
+    .certificate-bottom .signature span{font-size:8.5pt;line-height:1.4;color:#5f5567}
+    @media screen and (max-width:900px){.certificate{width:100%;height:auto;min-height:0;padding:24px}.certificate-inner{height:auto;min-height:0;padding:20px 12px}.certificate-bottom{width:100%;gap:24px}.certificate .recipient{width:100%;font-size:23pt}}
+    @media print{.certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;overflow:hidden}.certificate-inner{height:7.78in;min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}
+  `;
   const html = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>" +
     esc(CONFIG.eventName) + " · " + (isCertificate ? "Volunteer Certificate" : "Hours Verification Letter") +
     "</title><link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>" +
