@@ -7446,7 +7446,7 @@ function openVolunteerReport(
     "body{margin:0;background:#f2eff7;color:var(--ink);font:10.5pt/1.52 Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
     ".toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 22px;background:#fff;border-bottom:1px solid var(--line)}",
     ".toolbar span{font-size:10pt;color:var(--muted)}.print-button{background:var(--purple);color:white;border:0;border-radius:999px;padding:10px 17px;font:inherit;font-weight:700;cursor:pointer}",
-    ".page{width:8.5in;height:11in;min-height:11in;margin:22px auto;padding:.52in .6in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;display:flex;flex-direction:column;overflow:hidden}",
+    ".page{width:8.5in;min-height:11in;height:auto;margin:22px auto;padding:.48in .58in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;display:flex;flex-direction:column;overflow:visible}",
     ".page:last-child{page-break-after:auto;break-after:auto}",
     ".cover{padding:.72in .7in;display:flex;flex-direction:column;justify-content:space-between;height:11in;min-height:11in;background:linear-gradient(145deg,#fff 0%,#fff 68%,#f8f5ff 100%)}",
     ".cover-rule{height:7px;width:74px;background:var(--purple);border-radius:10px;margin-bottom:25px}",
@@ -7473,7 +7473,7 @@ function openVolunteerReport(
     ".note-box{border-left:3px solid var(--purple);background:#faf8ff;padding:12px 14px;font-size:8.5pt;color:#514b5d;margin:14px 0}.note-box strong{color:var(--purple-dark)}",
     ".empty{padding:20px 0;color:var(--muted);font-size:9pt}.page-foot{position:static;bottom:auto;left:auto;right:auto;border-top:1px solid var(--line);padding-top:8px;margin-top:auto;display:flex;justify-content:space-between;gap:12px;font-size:7.4pt;color:#938b9e;flex-shrink:0}",
     ".tag{display:inline-block;border-radius:999px;background:var(--purple-soft);color:var(--purple-dark);padding:4px 8px;font-size:7.7pt;font-weight:700}",
-    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:8.5in;height:11in;min-height:11in;padding:.52in .6in;box-shadow:none;overflow:hidden;break-after:page;page-break-after:always}.cover{padding:.72in .7in;height:11in;min-height:11in}.page-content{flex:1;min-height:0;overflow:hidden}.page:last-child{page-break-after:auto;break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}} @media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}} ",
+    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:8.5in;height:auto;min-height:11in;padding:.48in .58in;box-shadow:none;overflow:visible;break-after:page;page-break-after:always}.cover{padding:.72in .7in;height:11in;min-height:11in}.page-content{flex:0 0 auto;min-height:0;overflow:visible}.page:last-child{page-break-after:auto;break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}} @media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}} ",
     "@media screen and (max-width:800px){.page{width:100%;margin:10px auto;padding:26px 22px;min-height:auto}.cover{min-height:760px}.cover h1{font-size:31pt}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.page-foot{position:static;margin-top:30px}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}"
   ];
 
@@ -7536,7 +7536,7 @@ function openVolunteerReport(
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
   ).slice(0, 5);
-  const positionFirstRows = positionTableRows.slice(0, 5);
+  const positionFirstRows = [];
   const positionContent =
     "<div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The six largest roles are shown individually; remaining roles are combined.</p>" +
     donut(topMix, String(expected), "registrations") + "</div>" +
@@ -7551,7 +7551,7 @@ function openVolunteerReport(
     positionContent, "Position performance"
   ));
 
-  chunkRows(positionTableRows.slice(5), 13).forEach((rows, index) => {
+  chunkRows(positionTableRows, 7).forEach((rows, index) => {
     pages.push(makePage(
       "02 / Volunteer positions", "Position results · continued",
       "Additional roles, sorted by registrations without a recorded check-in.",
@@ -7572,7 +7572,7 @@ function openVolunteerReport(
     shiftContent, "Shift performance"
   ));
 
-  chunkRows(shiftTableRows.slice(7), 13).forEach((rows, index) => {
+  chunkRows(shiftTableRows, 7).forEach((rows, index) => {
     pages.push(makePage(
       "03 / Shift performance", "Shift results · continued",
       "Remaining shifts, sorted by the number of registrations without recorded attendance.",
@@ -7619,7 +7619,7 @@ function openVolunteerReport(
     item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
     fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
   ]);
-  const durationChunks = chunkRows(durationRows, 13);
+  const durationChunks = chunkRows(durationRows, 8);
   if (durationChunks.length) {
     durationChunks.forEach((rows, index) => {
       pages.push(makePage(
