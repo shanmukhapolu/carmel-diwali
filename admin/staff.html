@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Staff | Carmel Diwali Festival</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-auth-checking">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="brand-title">Carmel Diwali Festival of Lights</div>
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <nav class="nav">
+      <a href="/admin/">Dashboard</a>
+      <a href="/admin/registrations.html">Volunteers</a>
+      <a href="/admin/city-volunteers.html">City Import</a>
+      <a href="/admin/whatsapp.html">WhatsApp</a>
+      <a href="/admin/checkin.html">Check-In</a>
+      <a href="/admin/statistics.html">Statistics</a>
+      <a href="/admin/verification.html">Verification</a>
+      <a class="active" href="/admin/staff.html">Staff</a>
+    </nav>
+
+    <section class="panel">
+      <div class="summary-line staff-heading">
+        <div>
+          <p class="eyebrow">Access Management</p>
+          <h1>Staff</h1>
+          <p class="muted">View administrator and check-in accounts with access to the volunteer system. Add a check-in account without leaving this page.</p>
+        </div>
+        <div class="header-actions">
+          <button id="staff-refresh" class="secondary" type="button">Refresh</button>
+          <button id="staff-add" class="primary" type="button">Add Check-In Staff</button>
+        </div>
+      </div>
+
+      <div class="toolbar staff-toolbar">
+        <div class="staff-search-field">
+          <label for="staff-search">Search staff</label>
+          <input id="staff-search" type="search" autocomplete="off" placeholder="Search by name, email, role, or status">
+        </div>
+        <p id="staff-count" class="muted" aria-live="polite">Loading staff accounts…</p>
+      </div>
+
+      <p id="staff-success" class="success" role="status" aria-live="polite"></p>
+      <p id="staff-error" class="error" role="alert"></p>
+      <div id="staff-list" class="staff-list" aria-live="polite">
+        <p class="muted">Loading staff accounts…</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="staff-modal" class="modal hidden" aria-hidden="true">
+    <section class="modal-card staff-modal-card" role="dialog" aria-modal="true" aria-labelledby="staff-modal-title">
+      <div class="summary-line staff-modal-heading">
+        <div>
+          <p class="eyebrow">Staff access</p>
+          <h2 id="staff-modal-title">Add Check-In Staff</h2>
+          <p class="muted">Create a sign-in and grant access only to the Check-In page.</p>
+        </div>
+        <button id="staff-modal-close" class="secondary" type="button" aria-label="Close dialog">Close</button>
+      </div>
+
+      <form id="staff-create-form">
+        <div class="staff-form-grid">
+          <div class="staff-form-field staff-form-wide">
+            <label for="staff-display-name">Display name</label>
+            <input id="staff-display-name" name="displayName" type="text" autocomplete="off" maxlength="80" required>
+          </div>
+          <div class="staff-form-field staff-form-wide">
+            <label for="staff-email-input">Email address</label>
+            <input id="staff-email-input" name="email" type="email" autocomplete="off" required>
+          </div>
+          <div class="staff-form-field">
+            <label for="staff-password">Temporary password</label>
+            <input id="staff-password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+          </div>
+          <div class="staff-form-field">
+            <label for="staff-confirm-password">Confirm password</label>
+            <input id="staff-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
+          </div>
+        </div>
+        <p class="muted staff-modal-note">Share the credentials securely with the person being added. They can use the same administrator sign-in page to access Check-In.</p>
+        <p id="staff-modal-error" class="error" role="alert"></p>
+        <div class="header-actions staff-modal-actions">
+          <button id="staff-cancel" class="secondary" type="button">Cancel</button>
+          <button id="staff-submit" class="primary" type="submit">Create Check-In Account</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script type="module" src="staff.js"></script>
+</body>
+</html>
