@@ -137,12 +137,30 @@ function inferCheckoutMethod(record, end) {
       String(item.startTime) === String(record.shiftStartTime) &&
       String(item.endTime) === String(record.shiftEndTime));
   if (!shift?.endTime) return "actual_current_time";
-  const raw = String(shift.endTime).padStart(4, "0");
-  const hh = Number(raw.slice(0, 2));
-  const mm = Number(raw.slice(2, 4));
-  const expected = new Date((CONFIG.eventDate || "2026-10-10") + "T00:00:00");
-  expected.setHours(hh, mm, 0, 0);
-  return expected.getTime() === end.getTime() ? "estimated_shift_end" : "actual_current_time";
+
+  const raw = String(shift.endTime).replace(/\D/g, "").padStart(4, "0").slice(-4);
+  if (!/^\d{4}$/.test(raw)) return "actual_current_time";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(end);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const localDate = values.year + "-" + values.month + "-" + values.day;
+  const localTime = values.hour + values.minute;
+
+  return localDate === CONFIG.eventDate &&
+    localTime === raw &&
+    values.second === "00" &&
+    end.getMilliseconds() === 0
+    ? "estimated_shift_end"
+    : "actual_current_time";
 }
 
 function hoursSummary(items) {
@@ -217,11 +235,19 @@ function renderResults() {
   const queryText = $("verification-search")?.value.trim() || "";
   if (!queryText) {
     root.innerHTML = "<section class='panel verification-empty'><div class='verification-empty-icon'>⌕</div><h2>Find a volunteer</h2><p>Search by volunteer name, email, phone number, or registration ID. Results are grouped by name, with all matching shifts together.</p></section>";
+    if (selected) {
+      selected = null;
+      renderDetail();
+    }
     return;
   }
   const found = groups.filter((group) => matches(group, queryText));
   if (!found.length) {
     root.innerHTML = "<section class='panel verification-empty'><h2>No matching volunteers</h2><p>Check the spelling or try another name, email, or phone number.</p></section>";
+    if (selected) {
+      selected = null;
+      renderDetail();
+    }
     return;
   }
   root.innerHTML = "<section class='panel verification-results-panel'><div class='verification-results-heading'><div><p class='eyebrow'>Matching volunteers</p><h2>" +
