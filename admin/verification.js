@@ -325,7 +325,7 @@ function renderDetail() {
       "<div class='verification-clear-note'><strong>Attendance timestamps are complete.</strong> Review the totals and document details before issuing.</div>") +
     "<h3 class='verification-subheading'>Attendance by shift</h3><div class='verification-shift-list'>" + shiftMarkup + "</div></section>" +
     "<section class='panel verification-editor'><p class='eyebrow'>Document details</p><h2>Prepare a letter or certificate</h2>" +
-    "<p class='muted'>Edits apply to the generated document only; the registration and attendance records remain unchanged.</p>" +
+    "<p class='muted'>Edits apply to the generated document only; the registration and attendance records remain unchanged. Correct attendance timestamps first through Check-In → EDIT TIMES when needed.</p>" +
     "<div class='verification-form-grid'><div class='verification-field'><label for='verification-name'>Name as it should appear</label><input id='verification-name' value='" +
     esc(selected.name) + "' autocomplete='off'></div><div class='verification-field'><label for='verification-hours'>Service hours to certify</label><input id='verification-hours' type='number' min='0' step='0.01' value='" +
     (sum.all / 60).toFixed(2) + "'><small>Calculated from valid check-in and checkout timestamps. Adjust only after reviewing exceptions.</small></div>" +
@@ -347,9 +347,12 @@ function renderDetail() {
 function driveDate(value) {
   const parts = String(value || "").split("-").map(Number);
   if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return "";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long", day: "numeric", year: "numeric", timeZone: TIME_ZONE
-  }).format(new Date(parts[0], parts[1] - 1, parts[2]));
+  const monthName = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ][parts[1] - 1];
+  if (!monthName) return "";
+  return monthName + " " + parts[2] + ", " + parts[0];
 }
 
 function generateDocument(kind) {
