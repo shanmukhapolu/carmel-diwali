@@ -143,7 +143,7 @@ function renderNavigation(profile) {
           ["Check-In", "/admin/checkin.html"],
           ["Statistics", "/admin/statistics.html"],
           ["Verification", "/admin/verification.html"],
-          ["Create Check-In Account", "/admin/signup.html"]
+          ["Staff", "/admin/staff.html"]
         ];
 
     let current =
