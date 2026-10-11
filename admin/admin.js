@@ -7446,9 +7446,9 @@ function openVolunteerReport(
     "body{margin:0;background:#f2eff7;color:var(--ink);font:10.5pt/1.52 Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
     ".toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 22px;background:#fff;border-bottom:1px solid var(--line)}",
     ".toolbar span{font-size:10pt;color:var(--muted)}.print-button{background:var(--purple);color:white;border:0;border-radius:999px;padding:10px 17px;font:inherit;font-weight:700;cursor:pointer}",
-    ".page{width:8.5in;min-height:10.4in;margin:22px auto;padding:.58in .62in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;overflow:hidden}",
+    ".page{width:8.5in;height:11in;min-height:11in;margin:22px auto;padding:.52in .6in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;display:flex;flex-direction:column;overflow:hidden}",
     ".page:last-child{page-break-after:auto;break-after:auto}",
-    ".cover{padding:.8in .72in;display:flex;flex-direction:column;justify-content:space-between;min-height:10.4in;background:linear-gradient(145deg,#fff 0%,#fff 68%,#f8f5ff 100%)}",
+    ".cover{padding:.72in .7in;display:flex;flex-direction:column;justify-content:space-between;height:11in;min-height:11in;background:linear-gradient(145deg,#fff 0%,#fff 68%,#f8f5ff 100%)}",
     ".cover-rule{height:7px;width:74px;background:var(--purple);border-radius:10px;margin-bottom:25px}",
     ".eyebrow{font-size:9pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}",
     ".cover h1{font-size:39pt;line-height:1.05;letter-spacing:-.045em;max-width:6.1in;margin:20px 0 18px;font-weight:750}",
@@ -7458,7 +7458,7 @@ function openVolunteerReport(
     ".cover-bottom{border-top:1px solid var(--line);padding-top:22px;display:flex;justify-content:space-between;gap:20px;align-items:end}.byline{font-size:11pt;font-weight:700}.small-muted{font-size:8.5pt;color:var(--muted)}",
     ".cover-mark{position:absolute;right:-95px;top:2.1in;width:3.6in;height:3.6in;border:1px solid #e9e2fa;border-radius:50%;box-shadow:0 0 0 26px #f9f7ff,0 0 0 54px #fcfbff}",
     ".cover-mark:before,.cover-mark:after{content:'';position:absolute;inset:22%;border:1px solid #e5dafa;border-radius:50%}.cover-mark:after{inset:40%;background:#7c3aed;border:0;box-shadow:0 0 0 12px #eee6ff}",
-    ".page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:23px}",
+    ".page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:15px;flex-shrink:0}",
     ".page-title{margin:4px 0 0;font-size:23pt;line-height:1.15;letter-spacing:-.03em;font-weight:750}.page-subtitle{font-size:9pt;color:var(--muted);margin-top:7px;max-width:5.8in}.section-number{font-size:8pt;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);font-weight:800;white-space:nowrap;padding-top:5px}",
     ".kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0 22px}",
     ".kpi{border:1px solid var(--line);padding:14px 15px;border-radius:12px;min-height:94px;background:#fff;break-inside:avoid}.kpi-label{font-size:8pt;color:var(--muted);font-weight:700}.kpi-value{font-size:25pt;line-height:1.2;font-weight:750;letter-spacing:-.035em;margin:3px 0 2px;color:var(--purple-dark)}.kpi-note{font-size:8pt;color:var(--muted)}",
@@ -7471,73 +7471,116 @@ function openVolunteerReport(
     ".chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin:9px 0 0;font-size:8pt;color:var(--muted)}.chart-legend span{display:flex;align-items:center;gap:6px}.chart-legend i{display:inline-block;width:9px;height:9px;border-radius:2px}",
     "table{border-collapse:collapse;width:100%;font-size:8.2pt;margin:10px 0 14px;line-height:1.35}thead{display:table-header-group}th{font-size:7.3pt;text-transform:uppercase;letter-spacing:.04em;text-align:left;color:#5e556b;background:#f5f2fa;font-weight:800}th,td{border-bottom:1px solid var(--line);padding:8px 7px;vertical-align:top;overflow-wrap:anywhere}tbody tr:nth-child(even){background:#fcfbfe}td:first-child{font-weight:650}table.compact th,table.compact td{padding:6px 5px;font-size:7.7pt}",
     ".note-box{border-left:3px solid var(--purple);background:#faf8ff;padding:12px 14px;font-size:8.5pt;color:#514b5d;margin:14px 0}.note-box strong{color:var(--purple-dark)}",
-    ".empty{padding:20px 0;color:var(--muted);font-size:9pt}.page-foot{position:absolute;bottom:.28in;left:.62in;right:.62in;border-top:1px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;gap:12px;font-size:7.4pt;color:#938b9e}",
+    ".empty{padding:20px 0;color:var(--muted);font-size:9pt}.page-foot{position:static;bottom:auto;left:auto;right:auto;border-top:1px solid var(--line);padding-top:8px;margin-top:auto;display:flex;justify-content:space-between;gap:12px;font-size:7.4pt;color:#938b9e;flex-shrink:0}",
     ".tag{display:inline-block;border-radius:999px;background:var(--purple-soft);color:var(--purple-dark);padding:4px 8px;font-size:7.7pt;font-weight:700}",
-    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:auto;min-height:10.5in;padding:.55in .6in;box-shadow:none;overflow:visible}.cover{padding:.78in .7in;min-height:10.5in}.page-foot{left:.6in;right:.6in}.page:last-child{page-break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}}",
+    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:8.5in;height:11in;min-height:11in;padding:.52in .6in;box-shadow:none;overflow:hidden;break-after:page;page-break-after:always}.cover{padding:.72in .7in;height:11in;min-height:11in}.page-content{flex:1;min-height:0;overflow:hidden}.page:last-child{page-break-after:auto;break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}} @media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}} ",
     "@media screen and (max-width:800px){.page{width:100%;margin:10px auto;padding:26px 22px;min-height:auto}.cover{min-height:760px}.cover h1{font-size:31pt}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.page-foot{position:static;margin-top:30px}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}"
   ];
 
+  styleLines.push(".page-content{flex:1;min-height:0;overflow:hidden}.page-content > .section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px}");
+  styleLines[styleLines.findIndex((rule) => rule.startsWith("@media screen and (max-width:800px)"))] =
+    "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
+
+  function chunkRows(items, size) {
+    const groups = [];
+    for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
+    return groups;
+  }
+
+  function makePage(section, title, subtitle, pageContent, footerLabel) {
+    return "<section class='page'><div class='page-head'><div><div class='eyebrow'>" +
+      esc(section) + "</div><h2 class='page-title'>" + esc(title) +
+      "</h2><div class='page-subtitle'>" + esc(subtitle) +
+      "</div></div><div class='section-number'>" + esc(footerLabel) +
+      "</div></div><div class='page-content'>" + pageContent +
+      "</div><div class='page-foot'><span>" + esc(CONFIG.eventName) +
+      " · Volunteer Operations</span><span>" + esc(footerLabel) +
+      "</span></div></section>";
+  }
+
   const attendanceCards = [
     kpi("Booked shift registrations", expected.toLocaleString("en-US"), "One registration represents one shift"),
-    kpi("Distinct volunteers", people.size.toLocaleString("en-US"), "Deduplicated by normalized first and last name"),
+    kpi("Distinct volunteers", people.size.toLocaleString("en-US"), "Grouped by normalized first and last name"),
     kpi("Check-in / estimated rate", checkinEstimatedRate, checkinEstimatedCount + " check-in-only or estimated-end registrations"),
     kpi("No check-in recorded", noShowCount.toLocaleString("en-US"), fmtRate(noShowCount, expected) + " of booked shifts"),
     kpi("Actual booth checkouts", checkoutCounts.actual.toLocaleString("en-US"), actualRate + " of all booked shifts"),
-    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " sessions with valid start and end timestamps")
+    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " timed sessions")
   ];
 
-  const executiveInsights = insights.slice(0, 4).join("");
-  const remainingInsights = insights.slice(4).join("");
   const pages = [];
-
   pages.push(
     "<section class='page cover'><div class='cover-mark'></div><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
     "<h1>" + esc(CONFIG.eventName) + "<br>Volunteer Report</h1>" +
     "<p class='cover-subtitle'>Attendance, shift coverage and volunteer time. A data-led review of how the volunteer operation performed.</p>" +
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
-    esc(fmtLongDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
+    esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
     esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div><div><span class='meta-label'>Report generated</span><span class='meta-value'>" +
     esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><div class='eyebrow'>Internal report</div></div></section>"
   );
 
-  pages.push(
-    "<section class='page'><div class='page-head'><div><div class='eyebrow'>01 / Executive summary</div><h2 class='page-title'>At a glance</h2><div class='page-subtitle'>A summary of booked shifts, recorded attendance and end-of-shift documentation for " +
-    esc(CONFIG.eventName) + ".</div></div><div class='section-number'>Snapshot</div></div>" +
+  const executiveContent =
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
-    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Each registration is counted once. Attendance recorded for " + attendedCount + " of " + expected + " registrations (" + showRate + ").</p>" +
-    donut(attendanceMix, String(expected), "booked shifts") + "</div><div class='panel'><h3 class='panel-title'>What stands out</h3><p class='panel-note'>Findings are generated from the current registration and check-in records.</p>" +
-    (executiveInsights || "<p class='empty'>Not enough attendance data to generate role-level findings.</p>") + "</div></div>" +
-    "<h3 class='section-title'>How to read the numbers</h3><div class='note-box'><strong>Attendance is counted per shift registration.</strong> A volunteer who signed up for two shifts contributes two booked registrations to shift-level attendance, but one person to the distinct-volunteer count. A no-show means no check-in or checkout was recorded for that registration. A shift-end placeholder is reported separately from an actual booth checkout.</div>" +
-    "<div class='small-muted'>Event time zone: " + esc(EVENT_TIME_ZONE_LABEL) + ". Source: volunteer registrations and recorded check-in/check-out timestamps.</div>" +
-    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Executive summary</span></div></section>"
-  );
+    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Attendance is recorded for " +
+    attendedCount + " of " + expected + " shift registrations (" + showRate + "). The chart separates actual, estimated and incomplete checkouts.</p>" +
+    donut(attendanceMix, String(expected), "booked shifts") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Key findings</h3><p class='panel-note'>Highlights based on recorded attendance.</p><div class='insight-grid'>" +
+    (insights.slice(0, 4).join("") || "<p class='empty'>Not enough attendance data to generate role-level findings.</p>") +
+    "</div></div></div>" +
+    "<div class='note-box'><strong>How to read this report:</strong> counts are per shift registration. Distinct volunteers are deduplicated by normalized first and last name. A no-show means there is no recorded check-in or checkout. Estimated shift-end times are not counted as actual booth checkouts.</div>";
+  pages.push(makePage(
+    "01 / Executive summary", "At a glance",
+    "A concise view of booked shifts, attendance outcomes, and checkout documentation for " + CONFIG.eventName + ".",
+    executiveContent, "Executive summary"
+  ));
 
-  pages.push(
-    "<section class='page'><div class='page-head'><div><div class='eyebrow'>02 / Volunteer positions</div><h2 class='page-title'>Where coverage landed</h2><div class='page-subtitle'>Compare the size of each volunteer role with its recorded attendance outcomes.</div></div><div class='section-number'>By role</div></div>" +
-    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Booked shifts by position</h3><p class='panel-note'>The six largest roles are shown individually; smaller roles are combined as Other positions.</p>" +
-    donut(topMix, String(expected), "registrations") + "</div><div class='panel'><h3 class='panel-title'>Show rate by position</h3><p class='panel-note'>Purple represents registrations with attendance recorded; lavender represents registrations without a recorded check-in.</p>" +
-    "<div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
-    positionBarChart(positionStats.slice().sort((a, b) => b.noShows - a.noShows || b.expected - a.expected)) + "</div></div>" +
-    "<h3 class='section-title'>Position-level results</h3><p class='section-note'>Sorted by the number of registrations without a recorded check-in, then by total bookings. This makes roles with the largest uncovered share easier to identify.</p>" +
-    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionTableRows, "compact") +
-    "<div class='note-box'><strong>Interpretation:</strong> A position with the highest number of no-shows is not necessarily the one with the worst percentage. Read the no-show count alongside the show rate and the number of bookings.</div>" +
-    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Position performance</span></div></section>"
-  );
+  const positionChartItems = positionStats.slice().sort((x, y) =>
+    y.noShows - x.noShows || y.expected - x.expected
+  ).slice(0, 6);
+  const positionFirstRows = positionTableRows.slice(0, 6);
+  const positionContent =
+    "<div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The six largest roles are shown individually; remaining roles are combined.</p>" +
+    donut(topMix, String(expected), "registrations") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
+    positionBarChart(positionChartItems) + "</div>" +
+    "<h3 class='section-title'>Position-level results</h3>" +
+    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
+    "<div class='note-box'><strong>Interpretation:</strong> the role with the most no-shows may differ from the role with the lowest show rate. Use both the count and percentage when planning staffing.</div>";
+  pages.push(makePage(
+    "02 / Volunteer positions", "Where coverage landed",
+    "Role-level turnout, distribution of volunteer registrations, and recorded no-shows.",
+    positionContent, "Position performance"
+  ));
 
-  pages.push(
-    "<section class='page'><div class='page-head'><div><div class='eyebrow'>03 / Shift performance</div><h2 class='page-title'>Reliability by shift</h2><div class='page-subtitle'>Shift-level turnout and duration metrics help identify time slots that were well covered and slots that may need a different recruitment approach.</div></div><div class='section-number'>By shift</div></div>" +
-    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Up to 12 shifts are displayed, starting with the lowest recorded show rate. The complete shift table follows.</p>" +
-    shiftRateChart(worstShifts) + "</div>" +
-    "<h3 class='section-title'>All shifts</h3><p class='section-note'>Average and longest session duration are calculated only from records with both a check-in timestamp and a checkout timestamp. Estimated checkout entries are included and should be treated as estimates.</p>" +
-    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
-    "<div class='note-box'><strong>Planning use:</strong> Review low show-rate shifts before opening the next volunteer form. Larger no-show counts may justify extra reminders or a waitlist; low show rates on small shifts should be read in context.</div>" +
-    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Shift performance</span></div></section>"
-  );
+  chunkRows(positionTableRows.slice(6), 13).forEach((rows, index) => {
+    pages.push(makePage(
+      "02 / Volunteer positions", "Position results · continued",
+      "Additional roles, sorted by registrations without a recorded check-in.",
+      reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], rows, "compact"),
+      "Position detail " + (index + 1)
+    ));
+  });
 
-  const durationRows = durationShifts.map((item) => [
-    item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
-    fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
-  ]);
+  const shiftContent =
+    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Small booking counts are less conclusive, so compare rate with the number of bookings.</p>" +
+    shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
+    "<h3 class='section-title'>Shift results</h3>" +
+    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows.slice(0, 7), "compact") +
+    "<div class='note-box'><strong>Planning use:</strong> review low-turnout shifts before the next registration cycle. Larger no-show counts may warrant reminders or a waitlist.</div>";
+  pages.push(makePage(
+    "03 / Shift performance", "Reliability by shift",
+    "Compare turnout and coverage across individual scheduled time slots.",
+    shiftContent, "Shift performance"
+  ));
+
+  chunkRows(shiftTableRows.slice(7), 13).forEach((rows, index) => {
+    pages.push(makePage(
+      "03 / Shift performance", "Shift results · continued",
+      "Remaining shifts, sorted by the number of registrations without recorded attendance.",
+      reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], rows, "compact"),
+      "Shift detail " + (index + 1)
+    ));
+  });
+
   const checkoutMethodMix = [
     { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
     { label: "Estimated shift end", value: checkoutCounts.estimated, color: mutedColors.estimated },
@@ -7545,37 +7588,70 @@ function openVolunteerReport(
     { label: "Still checked in / incomplete", value: checkoutCounts.open, color: mutedColors.open }
   ];
 
-  pages.push(
-    "<section class='page'><div class='page-head'><div><div class='eyebrow'>04 / Volunteer time &amp; closeout</div><h2 class='page-title'>Time recorded and checkout quality</h2><div class='page-subtitle'>Recorded session length is useful for planning, but the checkout method matters when interpreting the totals.</div></div><div class='section-number'>Hours &amp; records</div></div>" +
+  const closeoutContent =
     "<div class='kpi-grid'>" +
-    kpi("Total recorded time", fmtHours(totalMinutes / 60), "Includes actual, estimated and custom checkout times") +
+    kpi("Total recorded time", fmtHours(totalMinutes / 60), "Actual, estimated and custom timed sessions") +
     kpi("Actual-checkout time", fmtHours(actualMinutes / 60), "Only sessions ending with actual booth checkout") +
-    kpi("Average recorded session", allDurations.length ? fmtMinutes(avgMinutes) : "—", allDurations.length + " timed sessions") +
-    kpi("Median recorded session", allDurations.length ? fmtMinutes(medianMinutes) : "—", "Less sensitive to very long sessions") +
-    kpi("Estimated shift-end checkouts", String(checkoutCounts.estimated), fmtRate(checkoutCounts.estimated, completedCount) + " of completed records with checkout times") +
-    kpi("Custom/admin checkout times", String(checkoutCounts.custom), "Reported separately from actual booth checkout") +
-    "</div><div class='two-col'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>How completed or open attendance records were closed out.</p>" +
-    donut(checkoutMethodMix, String(completedCount), "checkout times") + "</div><div class='panel'><h3 class='panel-title'>Volunteer age response</h3><p class='panel-note'>Based on the age confirmation collected during registration; this is a registration response breakdown.</p>" +
+    kpi("Check-in / estimated rate", checkinEstimatedRate, checkinEstimatedCount + " registrations") +
+    kpi("Actual booth checkout rate", actualRate, checkoutCounts.actual + " registrations") +
+    kpi("Estimated shift-end checkouts", String(checkoutCounts.estimated), "Kept separate from actual checkout") +
+    kpi("Custom/admin checkout times", String(checkoutCounts.custom), "Kept separate from actual checkout") +
+    "</div><div class='two-col'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations categorized by their recorded closeout state.</p>" +
+    donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
+    "</div><div class='panel'><h3 class='panel-title'>Age response at registration</h3><p class='panel-note'>Based on age confirmation collected at signup; counts represent registrations.</p>" +
     donut(ageMix, String(expected), "registrations") + "</div></div>" +
-    "<h3 class='section-title'>Shifts with the longest average sessions</h3><p class='section-note'>Only shifts with at least one valid start/end pair are included. The average and median can differ when a few sessions are much longer than the rest.</p>" +
-    reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], durationRows, "compact") +
-    (remainingInsights ? "<h3 class='section-title'>Additional findings</h3><div class='insight-grid'>" + remainingInsights + "</div>" : "") +
-    "<div class='note-box'><strong>Data-quality note:</strong> " +
+    "<div class='note-box'><strong>Data quality:</strong> " +
     (checkoutCounts.estimated
-      ? checkoutCounts.estimated + " checkout time" + (checkoutCounts.estimated === 1 ? " was" : "s were") + " entered as an estimated shift end. " +
-        Math.round(estimatedRateOfCompleted * 100) + "% of completed records with checkout timestamps use an estimated end time. Totals that include these sessions are recorded durations, not fully verified volunteer hours."
-      : "No checkouts are currently classified as estimated shift-end placeholders. Recorded session durations still depend on the timestamps available.") +
-    (checkoutCounts.custom ? " Custom/admin-entered checkout times are also separate from actual booth checkouts." : "") +
-    (lateNoCheckin ? " " + lateNoCheckin + " registration" + (lateNoCheckin === 1 ? " was" : "s were") + " marked late but had no check-in timestamp." : "") +
-    "</div><div class='small-muted'>Prepared by Shanmukha Polu &amp; Sonal Sanghani · Generated " + esc(generatedAt) + ".</div>" +
-    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Volunteer time &amp; closeout</span></div></section>"
-  );
+      ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
+      : "No checkout records are currently classified as estimated shift-end placeholders.") +
+    (checkoutCounts.custom ? " " + checkoutCounts.custom + " custom/admin checkout record(s) are also reported separately." : "") +
+    (lateNoCheckin ? " " + lateNoCheckin + " registration(s) were marked late but have no check-in timestamp." : "") +
+    "</div>";
+  pages.push(makePage(
+    "04 / Checkout quality", "Recorded hours and closeout",
+    "Recorded duration depends on attendance timestamps and the method used to record checkout.",
+    closeoutContent, "Hours & closeout"
+  ));
+
+  const durationRows = allDurationShifts.map((item) => [
+    item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
+    fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
+  ]);
+  const durationChunks = chunkRows(durationRows, 13);
+  if (durationChunks.length) {
+    durationChunks.forEach((rows, index) => {
+      pages.push(makePage(
+        "05 / Shift duration",
+        index === 0 ? "How long volunteers stayed" : "Shift duration · continued",
+        "Average, median and longest recorded duration. Only shifts with valid check-in and checkout timestamps are included.",
+        reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], rows, "compact"),
+        "Duration analysis" + (index ? " " + index : "")
+      ));
+    });
+  } else {
+    pages.push(makePage(
+      "05 / Shift duration", "How long volunteers stayed",
+      "Average, median and longest recorded duration.",
+      "<p class='empty'>No shift currently has valid check-in and checkout timestamps for duration analysis.</p>",
+      "Duration analysis"
+    ));
+  }
+
+  const insightPageContent =
+    "<div class='insight-grid'>" +
+    (insights.join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
+    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate based on one registration is a smaller sample than a 100% show rate across a full shift. Duration findings use recorded timestamps, and estimated checkout times remain identified as estimates.</div>" +
+    "<p class='small-muted'>Prepared by Shanmukha Polu &amp; Sonal Sanghani · Generated " + esc(generatedAt) + " · Event time zone: " + esc(EVENT_TIME_ZONE_LABEL) + ".</p>";
+  pages.push(makePage(
+    "06 / Findings", "What the records suggest",
+    "Automatically generated highlights to support staffing decisions and improve future volunteer operations.",
+    insightPageContent, "Findings"
+  ));
 
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
     pages.join("") + "</body></html>";
-
   win.document.open();
   win.document.write(html);
   win.document.close();
