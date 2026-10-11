@@ -6979,6 +6979,7 @@ function openVolunteerReport(
   const durationEntries = [];
   const checkoutCounts = { actual: 0, estimated: 0, custom: 0, open: 0, noCheckin: 0 };
   let attendedCount = 0;
+  let checkinEstimatedCount = 0;
   let lateNoCheckin = 0;
   let adultCount = 0;
   let minorCount = 0;
@@ -7015,10 +7016,7 @@ function openVolunteerReport(
   }
 
   function fmtLongDate(value) {
-    const date = toDate(value);
-    return date ? date.toLocaleDateString("en-US", {
-      month: "long", day: "numeric", year: "numeric", timeZone: EVENT_TIME_ZONE
-    }) : "Event date not set";
+    return formatDriveDate(value) || "Event date not set";
   }
 
   function attended(record) {
@@ -7087,6 +7085,16 @@ function openVolunteerReport(
 
   reportRecords.forEach((record) => {
     people.add(nameKey(record));
+
+    const currentStatus = record.checkin?.status || "registered";
+    if (
+      currentStatus === "checked_in" ||
+      (currentStatus === "completed" &&
+        toDate(record.checkin?.checkedOutAt) &&
+        effectiveCheckoutMethod(record) === "estimated_shift_end")
+    ) {
+      checkinEstimatedCount += 1;
+    }
 
     if (record.is18OrOlder === true) adultCount += 1;
     else if (record.is18OrOlder === false) minorCount += 1;
@@ -7172,6 +7180,7 @@ function openVolunteerReport(
 
   const noShowCount = reportRecords.filter((record) => !attended(record)).length;
   const actualRate = fmtRate(checkoutCounts.actual, expected);
+  const checkinEstimatedRate = fmtRate(checkinEstimatedCount, expected);
   const showRate = fmtRate(attendedCount, expected);
   const allDurations = durationEntries.map((item) => item.minutes).sort((a, b) => a - b);
   const totalMinutes = allDurations.reduce((sum, n) => sum + n, 0);
@@ -7464,7 +7473,7 @@ function openVolunteerReport(
   const attendanceCards = [
     kpi("Booked shift registrations", expected.toLocaleString("en-US"), "One registration represents one shift"),
     kpi("Distinct volunteers", people.size.toLocaleString("en-US"), "Deduplicated by normalized first and last name"),
-    kpi("Recorded show rate", showRate, attendedCount + " shift registrations with attendance recorded"),
+    kpi("Check-in / estimated rate", checkinEstimatedRate, checkinEstimatedCount + " check-in-only or estimated-end registrations"),
     kpi("No check-in recorded", noShowCount.toLocaleString("en-US"), fmtRate(noShowCount, expected) + " of booked shifts"),
     kpi("Actual booth checkouts", checkoutCounts.actual.toLocaleString("en-US"), actualRate + " of all booked shifts"),
     kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " sessions with valid start and end timestamps")
@@ -7488,7 +7497,7 @@ function openVolunteerReport(
     "<section class='page'><div class='page-head'><div><div class='eyebrow'>01 / Executive summary</div><h2 class='page-title'>At a glance</h2><div class='page-subtitle'>A summary of booked shifts, recorded attendance and end-of-shift documentation for " +
     esc(CONFIG.eventName) + ".</div></div><div class='section-number'>Snapshot</div></div>" +
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
-    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Each registration is counted once, by its recorded attendance/checkout state.</p>" +
+    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Each registration is counted once. Attendance recorded for " + attendedCount + " of " + expected + " registrations (" + showRate + ").</p>" +
     donut(attendanceMix, String(expected), "booked shifts") + "</div><div class='panel'><h3 class='panel-title'>What stands out</h3><p class='panel-note'>Findings are generated from the current registration and check-in records.</p>" +
     (executiveInsights || "<p class='empty'>Not enough attendance data to generate role-level findings.</p>") + "</div></div>" +
     "<h3 class='section-title'>How to read the numbers</h3><div class='note-box'><strong>Attendance is counted per shift registration.</strong> A volunteer who signed up for two shifts contributes two booked registrations to shift-level attendance, but one person to the distinct-volunteer count. A no-show means no check-in or checkout was recorded for that registration. A shift-end placeholder is reported separately from an actual booth checkout.</div>" +
@@ -7564,6 +7573,7 @@ function openVolunteerReport(
   win.document.write(html);
   win.document.close();
   win.focus();
+  win.print();
 }
 
 
