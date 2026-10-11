@@ -7568,11 +7568,11 @@ function openVolunteerReport(
     positionBarChart(positionChartItems) + "</div></div>" +
     "<h3 class='section-title'>Nine roles with the most no-shows</h3>" +
     reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
-    "<p class='section-note'>Remaining position results continue on the next page.</p>";
+    (positionTableRows.length > 9 ? "<p class='section-note'>Remaining position results continue on the next page.</p>" : "");
   noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
   pages.push(makePage(
     "03 / Volunteer positions", "Role coverage and results",
-    "Role turnout, the five largest no-show counts, and position-by-position results.",
+    "Role turnout, the nine largest no-show counts, and position-by-position results.",
     positionContent, "Position performance"
   ));
 
@@ -7591,7 +7591,7 @@ function openVolunteerReport(
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
     "<h3 class='section-title'>Seven shifts with the most no-shows</h3>" +
     reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftFirstRows, "compact") +
-    "<p class='section-note'>Remaining shift results continue on the next page.</p>";
+    (shiftTableRows.length > 7 ? "<p class='section-note'>Remaining shift results continue on the next page.</p>" : "");
   noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
   pages.push(makePage(
     "04 / Shift performance", "Shift turnout and reliability",
