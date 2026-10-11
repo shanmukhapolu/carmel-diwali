@@ -432,8 +432,8 @@ function generateDocument(kind) {
   const certificateSignoff = "<div class='signature certificate-signature'><div class='signature-handwriting'>" +
     esc(signer) + "</div><div class='signature-rule'></div><strong class='signature-printed-name'>" +
     esc(signer) + "</strong><span>" + esc(signerTitle) + "</span></div>";
-  const certificateDate = "<div class='signature certificate-date'><div class='signature-rule'></div><strong>Issued " +
-    esc(issueDate) + "</strong><span>Volunteer service record</span></div>";
+  const certificateDate = "<div class='signature certificate-date'><strong class='date-issued-value'>" +
+    esc(issueDate) + "</strong><div class='signature-rule'></div><span>Date issued</span></div>";
 
   let page = "";
   if (isCertificate) {
@@ -482,28 +482,31 @@ function generateDocument(kind) {
     .brand-kicker{color:#51245f;letter-spacing:.12em;font:700 13pt Arial,sans-serif}
     .festival-subline{margin-top:3px;font-size:9pt;letter-spacing:.03em;color:#665d6b}
     .certificate .overline{margin:17px 0 0;color:#665d6c;letter-spacing:.1em;font-size:8pt;font-weight:700}
-    .certificate h1{font:700 26pt/1.15 Arial,sans-serif;color:#30223a;margin:13px 0 9px;letter-spacing:0}
+    .certificate h1{font:700 26pt/1.15 Inter,Arial,sans-serif;color:#30223a;margin:13px 0 9px;letter-spacing:0}
     .certificate .intro{margin:0;color:#655d6c;font-size:11pt}
     .certificate .recipient{font:700 28pt/1.12 Arial,sans-serif;color:#41214f;border-bottom:1px solid #c8b8d0;width:88%;max-width:100%;padding:10px 10px 12px;margin:10px 0 12px;overflow-wrap:anywhere}
-    .certificate .main-copy{max-width:9.4in;margin:12px auto 0;color:#38313d;font-size:12pt;line-height:1.5}
+    .certificate .main-copy{max-width:9.4in;margin:12px auto 0;color:#38313d;font-family:Inter,Arial,sans-serif;font-size:13pt;line-height:1.5}
     .certificate-roles{margin:11px auto 0;font-size:10.5pt;line-height:1.45;color:#3f3546}
-    .certificate-note{max-width:9.35in;margin:13px auto 0;padding:0;border:0;font-size:10.5pt;line-height:1.5;color:#4b4351}
-    .certificate .event-line{margin:13px 0 0;font-size:9.5pt;color:#655d6c}
+    .certificate-note{max-width:9.35in;margin:13px auto 0;padding:0;border:0;font-family:Inter,Arial,sans-serif;font-size:11.5pt;line-height:1.5;color:#4b4351}
+    .certificate .event-line{margin:13px 0 0;font-family:Inter,Arial,sans-serif;font-size:11pt;line-height:1.4;color:#655d6c}
     .certificate-bottom{width:82%;display:grid;grid-template-columns:1fr 1fr;gap:1.2in;align-items:end;margin-top:0;padding-top:18px;padding-bottom:.06in;min-height:1.15in}
     .certificate-bottom .signature{text-align:center;min-width:0}
-    .certificate-bottom .signature-rule{width:auto;max-width:2.8in;margin:1px auto 5px;border-color:#806a8e}
+    .certificate-bottom .signature-rule{position:relative;z-index:0;width:auto;max-width:2.8in;margin:0 auto 5px;border-color:#806a8e}
     .certificate-bottom .signature-name{display:none}
-    .certificate-bottom .signature-handwriting{font-family:'Dancing Script','Segoe Script',cursive;font-size:25pt;line-height:1.1;font-weight:600;color:#34213d;white-space:nowrap;margin:0 auto -1px;transform:rotate(-3deg)}
-    .certificate-bottom .signature .signature-printed-name{font-family:Arial,sans-serif;font-size:10pt;font-weight:700;color:#35273d;margin-top:0}
+    .certificate-bottom .signature-handwriting{font-family:'Allura','Dancing Script','Segoe Script',cursive;font-size:30pt;line-height:.9;font-weight:400;color:#34213d;white-space:nowrap;position:relative;z-index:1;margin:0 auto -8px;transform:none}
+    .certificate-bottom .signature .signature-printed-name{font-family:Inter,Arial,sans-serif;font-size:10pt;font-weight:700;color:#35273d;margin-top:0}
     .certificate-bottom .signature strong{font-size:10pt;color:#35273d}
-    .certificate-bottom .signature span{font-size:8.5pt;line-height:1.4;color:#5f5567}
+    .certificate-bottom .signature span{font-family:Inter,Arial,sans-serif;font-size:8.5pt;line-height:1.4;color:#5f5567}
+    .certificate-date .date-issued-value{display:block;font-family:Inter,Arial,sans-serif;font-size:11pt;line-height:1.2;color:#35273d;margin:0 auto -1px;font-weight:700}
+    .certificate-date .signature-rule{margin:0 auto 5px}
+    .certificate-date span{display:block;font-size:9pt;letter-spacing:.03em}
     @media screen and (max-width:900px){.certificate{width:11in;height:8.5in;min-height:8.5in;margin:20px auto;padding:.3in .42in}.certificate-inner{height:7.78in;min-height:7.78in;padding:.36in .48in .22in}.certificate-bottom{width:82%;gap:1.2in}.certificate .recipient{width:88%;font-size:28pt}}
     @media print{.certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;overflow:hidden}.certificate-inner{height:7.78in;min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}
   `;
   const html = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>" +
     esc(CONFIG.eventName) + " · " + (isCertificate ? "Volunteer Certificate" : "Hours Verification Letter") +
     "</title><link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>" +
-    "<link href='https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'><style>" +
+    "<link href='https://fonts.googleapis.com/css2?family=Allura&family=Dancing+Script:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'><style>" +
     css + (isCertificate ? certificateCss : "") + "</style></head><body><div class='toolbar'><span>" +
     (isCertificate ? "Volunteer service certificate" : "Volunteer service verification letter") +
     " · Review, then print or save as PDF</span><button onclick='window.print()'>Print / Save PDF</button></div>" +
