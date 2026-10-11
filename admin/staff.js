@@ -3,7 +3,8 @@ import "./signup.js";
 
 import { CONFIG } from "../config.js";
 import { db } from "../firebase-init.js";
-import { requireAdmin, isEnabledAdmin } from "./auth.js";
+import { auth, getAdminProfile, isEnabledAdmin, isEnabledCheckinStaff } from "./auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import {
   collection,
   getDocs
@@ -211,12 +212,24 @@ window.addEventListener("diwali:staff-account-created", async (event) => {
   await loadStaffAccounts();
 });
 
-requireAdmin({
-  onReady: (user, profile) => {
-    if (!isEnabledAdmin(profile)) {
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.replace("/admin/login.html?returnTo=%2Fadmin%2Fstaff.html");
+    return;
+  }
+
+  try {
+    const profile = await getAdminProfile(user);
+    if (isEnabledCheckinStaff(profile)) {
       window.location.replace("/admin/checkin.html");
       return;
     }
+    if (!isEnabledAdmin(profile)) {
+      setText("staff-error", "Only an enabled administrator can view and manage staff accounts.");
+      $("staff-add").disabled = true;
+      return;
+    }
+
     setText("admin-email", user.email || profile.displayName || user.uid);
     setText(
       "event-meta",
@@ -225,9 +238,11 @@ requireAdmin({
         .join(" • ")
     );
     loadStaffAccounts();
-  },
-  onDenied: (message) => {
-    setText("staff-error", message);
+  } catch (error) {
+    console.error("[Diwali Staff] administrator access check failed:", {
+      code: error?.code || "unknown"
+    });
+    setText("staff-error", "Could not verify administrator access. Reload the page and try again.");
     $("staff-add").disabled = true;
   }
 });
