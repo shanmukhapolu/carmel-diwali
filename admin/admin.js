@@ -7610,7 +7610,7 @@ function openVolunteerReport(
     "</div><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations categorized by their recorded closeout state.</p>" +
     donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
     "</div>" +
-    "<div class='note-box'><strong>Data quality:</strong> "
+    "<div class='note-box'><strong>Data quality:</strong> " +
     (checkoutCounts.estimated
       ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
       : "No checkout records are currently classified as estimated shift-end placeholders.") +
