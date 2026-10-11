@@ -280,6 +280,13 @@ function renderResults() {
   });
 }
 
+function completeServiceDescription(value) {
+  const text = String(value || "").trim().replace(/\s+/g, " ").replace(/[.!?]+$/, "");
+  if (!text) return "Their time and effort helped make " + CONFIG.eventName + " a success.";
+  if (/helped make .+ a success$/i.test(text)) return text + ".";
+  return text + ". Their time and effort helped make " + CONFIG.eventName + " a success.";
+}
+
 function personalizedServiceDescription(items) {
   const taskByName = {
     "event set-up": "helped prepare the festival grounds and activity areas before the event opened",
@@ -296,19 +303,13 @@ function personalizedServiceDescription(items) {
     "parking assistants": "directed attendees and volunteers to parking and helped keep traffic organized",
     "tear down & clean up": "helped dismantle event areas and restore the grounds after the festival"
   };
-  const byRole = new Map();
-  items.forEach((record) => {
+  const tasks = Array.from(new Set((items || []).map((record) => {
     const role = positionName(record);
-    if (!byRole.has(role)) byRole.set(role, { role, shifts: new Set() });
-    byRole.get(role).shifts.add(shiftName(record));
-  });
-  return Array.from(byRole.values()).map((item) => {
-    const task = taskByName[norm(item.role)] ||
-      "contributed to the work and responsibilities of the " + item.role + " team";
-    const shiftList = Array.from(item.shifts).join(", ");
-    return "For " + item.role + (shiftList ? " (" + shiftList + ")" : "") +
-      ", the volunteer " + task + ".";
-  }).join(" ");
+    return taskByName[norm(role)] ||
+      "contributed to the work and responsibilities of the " + role + " team";
+  })));
+  const taskSentences = tasks.map((task) => task.charAt(0).toUpperCase() + task.slice(1) + ".");
+  return completeServiceDescription(taskSentences.join(" "));
 }
 
 function volunteerShiftSummary(items) {
@@ -424,7 +425,7 @@ function generateDocument(kind) {
   }).format(new Date());
   const eventDate = driveDate(CONFIG.eventDate);
   const hourText = hours.toLocaleString("en-US", { maximumFractionDigits: 2 }) + (hours === 1 ? " hour" : " hours");
-  const descriptionText = description || personalizedServiceDescription(selected.records);
+  const descriptionText = completeServiceDescription(description || personalizedServiceDescription(selected.records));
   const shiftSummary = volunteerShiftSummary(selected.records);
   const signoff = "<div class='signature'><div class='signature-name'>" + esc(signer) +
     "</div><div class='signature-rule'></div><strong>" + esc(signer) +
