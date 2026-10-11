@@ -419,6 +419,7 @@ export async function initVerificationPage() {
     records = await loadRecords();
     groups = groupPeople(records);
     renderResults();
+    renderDetail();
   } catch (error) {
     console.error("[Verification] Could not load volunteer records", { code: error?.code || "unknown" });
     if (results) results.innerHTML = "<section class='panel'><h2>Could not load volunteer records</h2><p class='muted'>Refresh the page or check your administrator access.</p></section>";
