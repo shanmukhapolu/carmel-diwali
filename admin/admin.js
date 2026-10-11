@@ -7482,6 +7482,34 @@ function openVolunteerReport(
     "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.position-chart-layout{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
   styleLines.push(".toc-table{font-size:10pt;margin:18px 0 20px}.toc-table th{font-size:8pt}.toc-table td{padding:13px 10px}.toc-table td:first-child{font-weight:750}.toc-table td:last-child{text-align:right;font-weight:800;color:var(--purple-dark);white-space:nowrap}.toc-note{font-size:9pt;line-height:1.55;color:var(--muted);margin-top:18px;padding:12px 14px;background:var(--wash);border-left:3px solid var(--purple)}.position-chart-layout{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch}.position-chart-layout .panel{margin:7px 0 10px;padding:11px}.position-chart-layout .panel-title{font-size:10pt}.position-chart-layout .panel-note{font-size:7.5pt;margin-bottom:6px}.position-chart-layout .donut-layout{grid-template-columns:105px minmax(0,1fr);gap:8px}.checkout-profile-layout .panel{margin:8px 0 12px}.section-note{font-size:8pt;color:var(--muted);margin:7px 0 12px}.page-foot span:last-child{white-space:nowrap}@media print{.position-chart-layout{grid-template-columns:1fr}.checkout-profile-layout{grid-template-columns:1fr 1fr}}");
 
+  styleLines.push([
+    "@page{size:Letter portrait;margin:0}",
+    "html,body{margin:0;padding:0;background:#f2eff7;color:var(--ink)}",
+    ".page{box-sizing:border-box;width:8.5in;height:11in;min-height:11in;max-height:11in;margin:0 auto 18px;padding:.42in .58in .38in;background:#fff;box-shadow:0 3px 18px rgba(30,20,50,.09);position:relative;display:flex;flex-direction:column;overflow:visible;break-inside:avoid;page-break-inside:avoid}",
+    ".cover{box-sizing:border-box;width:8.5in;height:11in;min-height:11in;max-height:11in;margin:0 auto 18px;padding:.72in .7in;display:flex;flex-direction:column;justify-content:space-between;background:#fff;box-shadow:0 3px 18px rgba(30,20,50,.09);break-after:page;page-break-after:always}",
+    ".report-section{box-sizing:border-box;width:8.5in;height:11in;min-height:11in;max-height:11in;margin:0 auto 18px;padding:.42in .58in .38in;border:0;display:flex;flex-direction:column;break-before:page;page-break-before:always;break-after:page;page-break-after:always}",
+    ".toc-page{break-before:page;page-break-before:always;break-after:page;page-break-after:always}",
+    ".page:last-of-type{margin-bottom:0;break-after:auto;page-break-after:auto}",
+    ".page-head{display:block;flex:0 0 auto;margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid var(--line)}",
+    ".page-head>div{width:100%}",
+    ".page-title{margin:4px 0 0;font-size:23pt;line-height:1.12}",
+    ".page-subtitle{max-width:100%;font-size:9pt;margin-top:6px}",
+    ".section-number,.cover-mark{display:none!important}",
+    ".page-content{flex:1 1 auto;min-height:0;overflow:visible}",
+    ".page-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto;margin-top:auto;padding-top:9px;border-top:1px solid var(--line);font-size:7.4pt;color:#938b9e}",
+    ".page-number{white-space:nowrap;font-weight:700;color:var(--muted)}",
+    ".cover-bottom .eyebrow{display:none}",
+    ".toc-table{width:100%;border-collapse:collapse;table-layout:fixed}",
+    ".toc-table th:nth-child(1){width:33%}.toc-table th:nth-child(2){width:auto}.toc-table th:nth-child(3){width:52px;text-align:right}",
+    ".toc-table td:last-child{text-align:right;font-weight:800;color:var(--purple-dark);white-space:nowrap}",
+    ".toc-table td{vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}",
+    ".toc-table thead{display:table-header-group}",
+    ".report-section .panel,.report-section .insight,.report-section .kpi,.report-section tr{break-inside:avoid;page-break-inside:avoid}",
+    ".page-content>.section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px}",
+    "@media print{html,body{width:8.5in;margin:0!important;padding:0!important;background:#fff}.toolbar{display:none!important}.page,.cover,.report-section,.toc-page{width:8.5in!important;height:11in!important;min-height:11in!important;max-height:11in!important;margin:0!important;box-shadow:none!important}.page{padding:.42in .58in .38in!important}.cover{padding:.72in .7in!important;break-after:page;page-break-after:always}.report-section,.toc-page{break-after:page;page-break-after:always}.page:last-of-type{break-after:auto;page-break-after:auto}}",
+    "@media screen{.page+.page{margin-top:18px}.page{margin-bottom:18px}}"
+  ].join("\\n"));
+
   function chunkRows(items, size) {
     const groups = [];
     for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
@@ -7492,11 +7520,9 @@ function openVolunteerReport(
     return "<section class='page report-section'><div class='page-head'><div><div class='eyebrow'>" +
       esc(section) + "</div><h2 class='page-title'>" + esc(title) +
       "</h2><div class='page-subtitle'>" + esc(subtitle) +
-      "</div></div><div class='section-number'>" + esc(footerLabel) +
-      "</div></div><div class='page-content'>" + pageContent +
+      "</div></div></div><div class='page-content'>" + pageContent +
       "</div><div class='page-foot'><span>" + esc(CONFIG.eventName) +
-      " · Volunteer Operations</span><span>" + esc(footerLabel) +
-      "</span></div></section>";
+      " · Volunteer Operations</span><span class='page-number'>Page {{PAGE_NUMBER}}</span></div></section>";
   }
 
   const attendanceCards = [
@@ -7510,13 +7536,13 @@ function openVolunteerReport(
 
   const pages = [];
   pages.push(
-    "<section class='page cover'><div class='cover-mark'></div><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
+    "<section class='page cover'><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
     "<h1>" + esc(CONFIG.eventName) + "<br>Volunteer Report</h1>" +
     "<p class='cover-subtitle'>Attendance, shift coverage and volunteer time. A data-led review of how the volunteer operation performed.</p>" +
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
     esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
     esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div><div><span class='meta-label'>Report generated</span><span class='meta-value'>" +
-    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><div class='eyebrow'>Internal report</div></div></section>"
+    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div></div></section>"
   );
 
   const tocEntries = [];
@@ -7568,7 +7594,7 @@ function openVolunteerReport(
     positionBarChart(positionChartItems) + "</div></div>" +
     "<h3 class='section-title'>Nine roles with the most no-shows</h3>" +
     reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
-    (positionTableRows.length > 9 ? "<p class='section-note'>Remaining position results continue on the next page.</p>" : "");
+    "";
   noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
   pages.push(makePage(
     "03 / Volunteer positions", "Role coverage and results",
@@ -7591,7 +7617,7 @@ function openVolunteerReport(
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
     "<h3 class='section-title'>Seven shifts with the most no-shows</h3>" +
     reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftFirstRows, "compact") +
-    (shiftTableRows.length > 7 ? "<p class='section-note'>Remaining shift results continue on the next page.</p>" : "");
+    "";
   noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
   pages.push(makePage(
     "04 / Shift performance", "Shift turnout and reliability",
@@ -7663,10 +7689,15 @@ function openVolunteerReport(
   }
 
   const tocContent =
-    "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th></tr></thead><tbody>" +
-    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td></tr>").join("") +
-    "</tbody></table><div class='toc-note'>The report begins with overall outcomes, then reviews key findings, volunteer positions, shift performance, checkout documentation, and recorded service time. Sections follow in this order; page breaks occur where needed for readability.</div>";
+    "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
+    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td>" + esc(item.page) + "</td></tr>").join("") +
+    "</tbody></table><div class='toc-note'>Page numbers match the printed page numbers shown at the bottom of each page.</div>";
   pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents").replace("<section class='page report-section'>", "<section class='page toc-page'>");
+  pages.forEach((page, index) => {
+    if (typeof page === "string" && page.includes("{{PAGE_NUMBER}}")) {
+      pages[index] = page.replace("{{PAGE_NUMBER}}", String(index + 1));
+    }
+  });
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
