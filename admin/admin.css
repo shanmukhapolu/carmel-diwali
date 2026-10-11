@@ -2283,3 +2283,15 @@ tbody tr:last-child td {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+
+.checkin-time-detail {
+  color: var(--admin-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.checkin-actions .big-action {
+  white-space: nowrap;
+}
