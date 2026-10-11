@@ -7508,7 +7508,7 @@ function openVolunteerReport(
     ".page-content>.section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px}",
     "@media print{html,body{width:8.5in;margin:0!important;padding:0!important;background:#fff}.toolbar{display:none!important}.page,.cover,.report-section,.toc-page{width:8.5in!important;height:11in!important;min-height:11in!important;max-height:11in!important;margin:0!important;box-shadow:none!important}.page{padding:.42in .58in .38in!important}.cover{padding:.72in .7in!important;break-after:page;page-break-after:always}.report-section,.toc-page{break-after:page;page-break-after:always}.page:last-of-type{break-after:auto;page-break-after:auto}}",
     "@media screen{.page+.page{margin-top:18px}.page{margin-bottom:18px}}"
-  ].join("\\n"));
+  ].join("\n"));
 
   function chunkRows(items, size) {
     const groups = [];
