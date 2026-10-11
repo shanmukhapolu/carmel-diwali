@@ -280,6 +280,43 @@ function renderResults() {
   });
 }
 
+function personalizedServiceDescription(items) {
+  const taskByName = {
+    "event set-up": "helped prepare the festival grounds and activity areas before the event opened",
+    "vendor assistant": "supported festival vendors with setup and event-day needs",
+    "event runner / general support": "provided hands-on operational support to event staff as needs arose",
+    "swagat committee": "welcomed attendees and helped direct guests through the festival",
+    "laddoo distribution": "helped organize and distribute laddoos to festival attendees",
+    "diya distribution": "helped distribute diyas to attendees throughout the festival",
+    "flower bracelet making": "supported the flower-bracelet activity for festival attendees",
+    "rangoli crew": "helped prepare and support the rangoli area and its activities",
+    "back stage": "supported backstage coordination for festival performances",
+    "guest services": "answered guest questions and provided directions and event information at the main booth",
+    "block printing": "guided children through a hands-on block-printing activity",
+    "parking assistants": "directed attendees and volunteers to parking and helped keep traffic organized",
+    "tear down & clean up": "helped dismantle event areas and restore the grounds after the festival"
+  };
+  const byRole = new Map();
+  items.forEach((record) => {
+    const role = positionName(record);
+    if (!byRole.has(role)) byRole.set(role, { role, shifts: new Set() });
+    byRole.get(role).shifts.add(shiftName(record));
+  });
+  return Array.from(byRole.values()).map((item) => {
+    const task = taskByName[norm(item.role)] ||
+      "contributed to the work and responsibilities of the " + item.role + " team";
+    const shiftList = Array.from(item.shifts).join(", ");
+    return "For " + item.role + (shiftList ? " (" + shiftList + ")" : "") +
+      ", the volunteer " + task + ".";
+  }).join(" ");
+}
+
+function volunteerShiftSummary(items) {
+  return Array.from(new Set(items.map((record) =>
+    positionName(record) + " · " + shiftName(record)
+  ))).join("; ");
+}
+
 function renderDetail() {
   const root = $("verification-detail");
   if (!root) return;
@@ -290,6 +327,7 @@ function renderDetail() {
 
   const sum = hoursSummary(selected.records);
   const roleText = Array.from(new Set(selected.records.map(positionName))).join(", ");
+  const serviceDescription = personalizedServiceDescription(selected.records);
   const estimated = sum.estimated > 0;
   const custom = sum.custom > 0;
   const warning = sum.incomplete > 0 || estimated || custom;
@@ -333,7 +371,7 @@ function renderDetail() {
     esc(selected.name) + "' autocomplete='off'></div><div class='verification-field'><label for='verification-hours'>Service hours to certify</label><input id='verification-hours' type='number' min='0' step='0.01' value='" +
     (sum.all / 60).toFixed(2) + "'><small>Calculated from valid check-in and checkout timestamps. Adjust only after reviewing exceptions.</small></div>" +
     "<div class='verification-field verification-field-wide'><label for='verification-roles'>Role(s) / contribution</label><input id='verification-roles' value='" +
-    esc(roleText) + "'></div><div class='verification-field verification-field-wide'><label for='verification-description'>Service description</label><textarea id='verification-description' rows='3'>contributed time and service to support the Carmel Diwali Festival of Lights.</textarea></div>" +
+    esc(roleText) + "'></div><div class='verification-field verification-field-wide'><label for='verification-description'>Service description</label><textarea id='verification-description' rows='3'>" + esc(serviceDescription) + "</textarea></div>" +
     "<div class='verification-field'><label for='verification-signer'>Authorized signer's name</label><input id='verification-signer' placeholder='Enter the organizer signing this document' autocomplete='off'></div>" +
     "<div class='verification-field'><label for='verification-title'>Signer's title</label><input id='verification-title' value='Volunteer Coordinator, Carmel Diwali Festival'></div></div>" +
     "<p id='verification-document-error' class='error' role='alert'></p><div class='verification-actions'><button id='verification-generate-letter' type='button' class='secondary'>Generate verification letter</button><button id='verification-generate-certificate' type='button' class='primary'>Generate certificate</button></div></section>";
@@ -386,7 +424,8 @@ function generateDocument(kind) {
   }).format(new Date());
   const eventDate = driveDate(CONFIG.eventDate);
   const hourText = hours.toLocaleString("en-US", { maximumFractionDigits: 2 }) + (hours === 1 ? " hour" : " hours");
-  const descriptionText = description || "Contributed time and service to support the Carmel Diwali Festival of Lights.";
+  const descriptionText = description || personalizedServiceDescription(selected.records);
+  const shiftSummary = volunteerShiftSummary(selected.records);
   const signoff = "<div class='signature'><div class='signature-name'>" + esc(signer) +
     "</div><div class='signature-rule'></div><strong>" + esc(signer) +
     "</strong><span>" + esc(signerTitle) + "</span></div>";
@@ -399,8 +438,8 @@ function generateDocument(kind) {
       "<div class='recipient'>" + esc(name) + "</div><div class='short-rule'></div>" +
       "<p class='main-copy'>In recognition of <strong>" + esc(hourText) + "</strong> of service as <strong>" +
       esc(role || "Volunteer") + "</strong> in support of the <strong>" + esc(CONFIG.eventName) +
-      "</strong>. Your contribution helped make the event possible.</p><p class='event-line'>" +
-      esc(eventDate) + " <span>·</span> " + esc(CONFIG.location) + "</p>" +
+      "</strong>.</p><p class='certificate-shifts'><span>ROLE &amp; SHIFT ASSIGNMENTS</span>" + esc(shiftSummary) + "</p>" +
+      "<p class='event-line'>" + esc(eventDate) + " <span>·</span> " + esc(CONFIG.location) + "</p>" +
       "<div class='certificate-bottom'>" + signoff + "<div class='seal'><strong>CD</strong><span>COMMUNITY<br>SERVICE</span></div>" +
       "<div class='signature'><div class='signature-name'>" + esc(issueDate) + "</div><div class='signature-rule'></div><strong>Date issued</strong><span>" +
       esc(issueDate) + "</span></div></div><div class='certificate-note'>" + esc(descriptionText) + "</div></div></main>";
@@ -412,7 +451,8 @@ function generateDocument(kind) {
       "</strong> volunteered with the <strong>" + esc(CONFIG.eventName) + "</strong>, held on <strong>" +
       esc(eventDate) + "</strong> at " + esc(CONFIG.location) + ".</p><p>Based on the event's attendance records and organizer review, " +
       esc(name) + " contributed <strong>" + esc(hourText) + "</strong> of service in the role" +
-      (role.includes(",") ? "s" : "") + " of <strong>" + esc(role || "Volunteer") + "</strong>.</p><p>" +
+      (role.includes(",") ? "s" : "") + " of <strong>" + esc(role || "Volunteer") + "</strong>.</p><p><strong>Recorded shift assignment(s):</strong> " +
+      esc(shiftSummary) + ".</p><p>" +
       esc(descriptionText.replace(/[.!?]+$/, "")) + ".</p><p>This letter is provided at the volunteer's request for service-hour documentation. Please contact the event organizers with any questions about this verification.</p>" +
       "<div class='letter-signoff'><p>Sincerely,</p>" + signoff + "</div><div class='letter-footer'><span>" +
       esc(eventDate) + "</span><span>" + esc(CONFIG.location) + "</span></div></main>";
