@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Volunteer Verification | Carmel Diwali Festival</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-auth-checking">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="brand-title">Carmel Diwali Festival of Lights</div>
+        <div id="event-meta" class="brand-sub"></div>
+      </div>
+      <div class="admin-meta">
+        <span id="admin-email"></span>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout verification-layout">
+    <nav class="nav"></nav>
+
+    <section class="panel verification-hero">
+      <p class="eyebrow">Admin tools · Service records</p>
+      <h1>Volunteer Verification</h1>
+      <p class="verification-intro">Prepare a one-page service-hours letter or an appreciation certificate when a volunteer requests one. Attendance details are loaded from the event records, and exceptions can be reviewed before you generate the PDF.</p>
+      <div class="verification-search-wrap">
+        <label for="verification-search">Find a volunteer</label>
+        <input id="verification-search" type="search" autocomplete="off" placeholder="Search by volunteer name, email, phone, or registration ID">
+        <p class="muted verification-search-note">Results are grouped by volunteer name, not phone number or email. If a shared contact matches multiple people, choose the correct volunteer.</p>
+      </div>
+    </section>
+
+    <div class="verification-workspace">
+      <section class="verification-left">
+        <div id="verification-results"></div>
+      </section>
+      <section class="verification-right">
+        <div id="verification-detail">
+          <section class="panel verification-empty verification-detail-placeholder">
+            <div class="verification-empty-icon">▤</div>
+            <h2>Volunteer attendance</h2>
+            <p>Select a volunteer to review their shifts, attendance timestamps, and document details.</p>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <p id="error" class="error"></p>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
