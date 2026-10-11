@@ -5139,7 +5139,9 @@ async function transitionCheckin(
                 "completed",
 
               checkedOutAt:
-                checkoutAt,
+                checkoutMethod === "actual_current_time"
+                  ? serverTimestamp()
+                  : checkoutAt,
 
               checkoutMethod,
 
