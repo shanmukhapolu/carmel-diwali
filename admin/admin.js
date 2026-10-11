@@ -7480,7 +7480,7 @@ function openVolunteerReport(
   styleLines.push(".page-content{flex:0 0 auto;min-height:0;overflow:visible}.page-content > .section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px} @media screen and (max-width:800px){.page-content{overflow:visible}}");
   styleLines[styleLines.findIndex((rule) => rule.startsWith("@media screen and (max-width:800px)"))] =
     "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.position-chart-layout{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
-  styleLines.push(".toc-table{font-size:10pt;margin:18px 0 20px}.toc-table th{font-size:8pt}.toc-table td{padding:13px 10px}.toc-table td:first-child{font-weight:750}.toc-table td:last-child{text-align:right;font-weight:800;color:var(--purple-dark);white-space:nowrap}.toc-note{font-size:9pt;line-height:1.55;color:var(--muted);margin-top:18px;padding:12px 14px;background:var(--wash);border-left:3px solid var(--purple)}.position-chart-layout{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.4fr);gap:10px;align-items:stretch}.position-chart-layout .panel{margin:7px 0 10px;padding:11px}.position-chart-layout .panel-title{font-size:10pt}.position-chart-layout .panel-note{font-size:7.5pt;margin-bottom:6px}.position-chart-layout .donut-layout{grid-template-columns:105px minmax(0,1fr);gap:8px}.checkout-profile-layout .panel{margin:8px 0 12px}.section-note{font-size:8pt;color:var(--muted);margin:7px 0 12px}.page-foot span:last-child{white-space:nowrap}@media print{.position-chart-layout{grid-template-columns:minmax(0,.72fr) minmax(0,1.4fr)}.checkout-profile-layout{grid-template-columns:1fr 1fr}}");
+  styleLines.push(".toc-table{font-size:10pt;margin:18px 0 20px}.toc-table th{font-size:8pt}.toc-table td{padding:13px 10px}.toc-table td:first-child{font-weight:750}.toc-table td:last-child{text-align:right;font-weight:800;color:var(--purple-dark);white-space:nowrap}.toc-note{font-size:9pt;line-height:1.55;color:var(--muted);margin-top:18px;padding:12px 14px;background:var(--wash);border-left:3px solid var(--purple)}.position-chart-layout{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch}.position-chart-layout .panel{margin:7px 0 10px;padding:11px}.position-chart-layout .panel-title{font-size:10pt}.position-chart-layout .panel-note{font-size:7.5pt;margin-bottom:6px}.position-chart-layout .donut-layout{grid-template-columns:105px minmax(0,1fr);gap:8px}.checkout-profile-layout .panel{margin:8px 0 12px}.section-note{font-size:8pt;color:var(--muted);margin:7px 0 12px}.page-foot span:last-child{white-space:nowrap}@media print{.position-chart-layout{grid-template-columns:1fr}.checkout-profile-layout{grid-template-columns:1fr 1fr}}");
 
   function chunkRows(items, size) {
     const groups = [];
@@ -7560,13 +7560,13 @@ function openVolunteerReport(
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
   ).slice(0, 5);
-  const positionFirstRows = positionTableRows.slice(0, 5);
+  const positionFirstRows = positionTableRows.slice(0, 9);
   const positionContent =
     "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The largest roles are shown individually; the rest are grouped.</p>" +
     donut(topMix, String(expected), "registrations") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
     positionBarChart(positionChartItems) + "</div></div>" +
-    "<h3 class='section-title'>Five roles with the most no-shows</h3>" +
+    "<h3 class='section-title'>Nine roles with the most no-shows</h3>" +
     reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
     "<p class='section-note'>Remaining position results continue on the next page.</p>";
   noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
@@ -7576,7 +7576,7 @@ function openVolunteerReport(
     positionContent, "Position performance"
   ));
 
-  chunkRows(positionTableRows.slice(5), 12).forEach((rows, index) => {
+  chunkRows(positionTableRows.slice(9), 16).forEach((rows, index) => {
     pages.push(makePage(
       "03 / Volunteer positions", "Position results · continued",
       "Remaining roles, sorted by registrations without a recorded check-in.",
@@ -7585,11 +7585,11 @@ function openVolunteerReport(
     ));
   });
 
-  const shiftFirstRows = shiftTableRows.slice(0, 5);
+  const shiftFirstRows = shiftTableRows.slice(0, 7);
   const shiftContent =
     "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Compare each rate with its booking count; small shifts are less conclusive.</p>" +
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<h3 class='section-title'>Five shifts with the most no-shows</h3>" +
+    "<h3 class='section-title'>Seven shifts with the most no-shows</h3>" +
     reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftFirstRows, "compact") +
     "<p class='section-note'>Remaining shift results continue on the next page.</p>";
   noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
@@ -7599,7 +7599,7 @@ function openVolunteerReport(
     shiftContent, "Shift performance"
   ));
 
-  chunkRows(shiftTableRows.slice(5), 11).forEach((rows, index) => {
+  chunkRows(shiftTableRows.slice(7), 15).forEach((rows, index) => {
     pages.push(makePage(
       "04 / Shift performance", "Shift results · continued",
       "Remaining shifts, sorted by registrations without recorded attendance.",
@@ -7640,7 +7640,7 @@ function openVolunteerReport(
     item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
     fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
   ]);
-  const durationChunks = chunkRows(durationRows, 14);
+  const durationChunks = chunkRows(durationRows, 16);
   if (durationChunks.length) {
     noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
     durationChunks.forEach((rows, index) => {
