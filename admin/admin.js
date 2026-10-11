@@ -7510,6 +7510,9 @@ function openVolunteerReport(
     "@media screen{.page+.page{margin-top:18px}.page{margin-bottom:18px}}"
   ].join("\n"));
 
+  // Keep the two role-coverage charts side by side so this section fits on one Letter page.
+  styleLines.push(".position-chart-layout{grid-template-columns:1fr 1fr;align-items:start;gap:10px}.position-chart-layout .panel{margin:7px 0 10px;padding:10px}.position-chart-layout .donut-layout{grid-template-columns:84px minmax(0,1fr);gap:7px}@media screen and (max-width:800px){.position-chart-layout{grid-template-columns:1fr}}");
+
   function chunkRows(items, size) {
     const groups = [];
     for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
