@@ -5547,7 +5547,10 @@ function renderActivity(
           "Checked out",
 
         late:
-          "Marked late"
+          "Marked late",
+
+        attendance_time_edit:
+          "Attendance times edited"
       };
 
       const action =
@@ -6016,6 +6019,12 @@ function renderStats(
         records
       ),
       dayOfStatsPanel(
+        records
+      ),
+      dayOfCheckoutMethodPanel(
+        records
+      ),
+      dayOfDurationPanel(
         records
       ),
       shiftOverview(
@@ -6684,119 +6693,197 @@ function positionLeaderboardRows(
    DAY-OF STATISTICS
 ========================================================= */
 
-function dayOfOverview(
-  records
-) {
-  const stats =
-    computeOpsStats(
-      records,
-      new Map(
-        records.map(
-          (r) => [
-            r.id,
-            r.checkin || {
-              status:
-                "registered"
-            }
-          ]
-        )
-      )
-    );
+function formatDurationMinutes(minutes) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "N/A";
+  const rounded = Math.round(minutes);
+  const hours = Math.floor(rounded / 60);
+  const remainingMinutes = rounded % 60;
+  if (hours === 0) return remainingMinutes + " min";
+  if (remainingMinutes === 0) return hours + " hr";
+  return hours + " hr " + remainingMinutes + " min";
+}
+
+function computeAttendanceInsights(records) {
+  let actualCheckoutCount = 0;
+  let estimatedCheckoutCount = 0;
+  let customCheckoutCount = 0;
+  let completedWithCheckoutTime = 0;
+  let missingTimestampCount = 0;
+
+  const durations = [];
+  let actualMinutes = 0;
+  let estimatedMinutes = 0;
+  let customMinutes = 0;
+  let actualTimedShifts = 0;
+  let estimatedTimedShifts = 0;
+  let customTimedShifts = 0;
+
+  records.forEach((record) => {
+    const attendance = record.checkin || {};
+    const checkInDate = toDate(attendance.checkedInAt);
+    const checkOutDate = toDate(attendance.checkedOutAt);
+    const method = attendance.checkoutMethod || "actual_current_time";
+
+    if (attendance.status === "completed" && checkOutDate) {
+      completedWithCheckoutTime += 1;
+      if (method === "estimated_shift_end") {
+        estimatedCheckoutCount += 1;
+      } else if (method === "custom") {
+        customCheckoutCount += 1;
+      } else {
+        // Legacy records are actual checkouts: the old code saved server time.
+        actualCheckoutCount += 1;
+      }
+    }
+
+    if (
+      attendance.status === "completed" &&
+      checkInDate &&
+      checkOutDate &&
+      checkOutDate >= checkInDate
+    ) {
+      const minutes = (checkOutDate.getTime() - checkInDate.getTime()) / 60000;
+      durations.push(minutes);
+
+      if (method === "estimated_shift_end") {
+        estimatedMinutes += minutes;
+        estimatedTimedShifts += 1;
+      } else if (method === "custom") {
+        customMinutes += minutes;
+        customTimedShifts += 1;
+      } else {
+        actualMinutes += minutes;
+        actualTimedShifts += 1;
+      }
+    } else if (
+      attendance.status === "checked_in" ||
+      (attendance.status === "completed" && (!checkInDate || !checkOutDate))
+    ) {
+      missingTimestampCount += 1;
+    }
+  });
+
+  durations.sort((a, b) => a - b);
+  const totalMinutes = durations.reduce((sum, value) => sum + value, 0);
+  const midpoint = Math.floor(durations.length / 2);
+  const medianMinutes = durations.length
+    ? (durations.length % 2
+      ? durations[midpoint]
+      : (durations[midpoint - 1] + durations[midpoint]) / 2)
+    : 0;
+
+  return {
+    actualCheckoutCount,
+    estimatedCheckoutCount,
+    customCheckoutCount,
+    completedWithCheckoutTime,
+    timedShifts: durations.length,
+    missingTimestampCount,
+    totalHours: totalMinutes / 60,
+    averageMinutes: durations.length ? totalMinutes / durations.length : 0,
+    medianMinutes,
+    longestMinutes: durations.length ? durations[durations.length - 1] : 0,
+    actualHours: actualMinutes / 60,
+    estimatedHours: estimatedMinutes / 60,
+    customHours: customMinutes / 60,
+    actualTimedShifts,
+    estimatedTimedShifts,
+    customTimedShifts
+  };
+}
+
+
+function dayOfOverview(records) {
+  const stats = computeOpsStats(
+    records,
+    new Map(records.map((record) => [
+      record.id,
+      record.checkin || { status: "registered" }
+    ]))
+  );
+  const insights = computeAttendanceInsights(records);
 
   return statGrid([
-    [
-      "Not checked in yet",
-      stats.notArrived
-    ],
-
-    [
-      "Currently checked in",
-      stats.checkedIn
-    ],
-
-    [
-      "Checked out / done",
-      stats.checkedOut
-    ],
-
-    [
-      "Late",
-      stats.late
-    ],
-
-    [
-      "Total expected",
-      stats.expected
-    ]
+    ["Expected shift assignments", stats.expected, "Registrations, not deduplicated people"],
+    ["Checked in / active", stats.checkedIn, "Volunteers currently checked in"],
+    ["Checked out", stats.checkedOut, stats.rates.checkout + " of expected registrations"],
+    ["Not arrived / incomplete", stats.notArrived, stats.rates.notArrived + " of expected registrations"],
+    ["Total logged volunteering hours", insights.totalHours.toFixed(1), "Includes estimated shift-end placeholders"],
+    ["Average completed shift", formatDurationMinutes(insights.averageMinutes), insights.timedShifts + " shifts with valid timestamps"],
+    ["Actual/current-time checkouts", insights.actualCheckoutCount, "Includes legacy checkouts from the old system"],
+    ["Estimated shift-end checkouts", insights.estimatedCheckoutCount, "Admin placeholder for volunteers who forgot to check out"],
+    ["Custom/admin-adjusted checkouts", insights.customCheckoutCount, "Manually specified checkout time"]
   ]);
 }
 
 
-function dayOfStatsPanel(
-  records
-) {
-  const stats =
-    computeOpsStats(
-      records,
-      new Map(
-        records.map(
-          (r) => [
-            r.id,
-            r.checkin || {
-              status:
-                "registered"
-            }
-          ]
-        )
-      )
-    );
+function dayOfStatsPanel(records) {
+  const stats = computeOpsStats(
+    records,
+    new Map(records.map((record) => [
+      record.id,
+      record.checkin || { status: "registered" }
+    ]))
+  );
+  const insights = computeAttendanceInsights(records);
 
   return chartPanel(
-    "Day-of volunteer operations",
-    "Real-time attendance statistics from check-in and check-out records.",
-
+    "Attendance completion",
+    "Compares expected shift assignments with arrival and checkout completion.",
     [
-      {
-        label:
-          "Expected",
-
-        value:
-          stats.expected
-      },
-
-      {
-        label:
-          "Checked In",
-
-        value:
-          stats.checkedIn
-      },
-
-      {
-        label:
-          "Checked Out",
-
-        value:
-          stats.checkedOut
-      },
-
-      {
-        label:
-          "Late",
-
-        value:
-          stats.late
-      }
+      { label: "Expected", value: stats.expected },
+      { label: "Checked in", value: stats.checkedIn },
+      { label: "Checked out", value: stats.checkedOut },
+      { label: "Not arrived", value: stats.notArrived }
     ],
-
     [
-      `Expected — ${stats.expected}`,
+      "Check-in rate — " + stats.rates.checkin,
+      "Checkout completion rate — " + stats.rates.checkout,
+      "Valid timed shifts — " + insights.timedShifts,
+      "Incomplete/missing timestamps — " + insights.missingTimestampCount
+    ]
+  );
+}
 
-      `Not arrived — ${stats.notArrived} (${stats.rates.notArrived})`,
 
-      `Check-in rate — ${stats.rates.checkin}`,
+function dayOfCheckoutMethodPanel(records) {
+  const insights = computeAttendanceInsights(records);
+  return chartPanel(
+    "Checkout method split",
+    "Actual/current-time means staff processed checkout at the booth. Estimated shift end means an administrator used the scheduled shift end as a placeholder. Custom indicates an explicitly adjusted time.",
+    [
+      { label: "Actual / current", value: insights.actualCheckoutCount },
+      { label: "Estimated shift end", value: insights.estimatedCheckoutCount },
+      { label: "Custom / adjusted", value: insights.customCheckoutCount }
+    ],
+    [
+      "Completed with checkout timestamps — " + insights.completedWithCheckoutTime,
+      "Legacy completed records without checkoutMethod are counted as actual/current-time.",
+      "Estimates remain separately identified in individual volunteer records."
+    ]
+  );
+}
 
-      `Checkout rate — ${stats.rates.checkout}`
+
+function dayOfDurationPanel(records) {
+  const insights = computeAttendanceInsights(records);
+  return chartPanel(
+    "Volunteer hours and shift duration",
+    "Calculated from recorded check-in and check-out timestamps. Estimated shift-end checkouts are included, so total hours may include estimated rather than verified time.",
+    [
+      { label: "Total hours", value: Number(insights.totalHours.toFixed(1)) },
+      { label: "Actual hours", value: Number(insights.actualHours.toFixed(1)) },
+      { label: "Estimated hours", value: Number(insights.estimatedHours.toFixed(1)) },
+      { label: "Custom-time hours", value: Number(insights.customHours.toFixed(1)) }
+    ],
+    [
+      "Completed shifts with valid timestamp pairs — " + insights.timedShifts,
+      "Average — " + formatDurationMinutes(insights.averageMinutes),
+      "Median — " + formatDurationMinutes(insights.medianMinutes),
+      "Longest — " + formatDurationMinutes(insights.longestMinutes),
+      "Actual-time shifts — " + insights.actualTimedShifts +
+        " · Estimated — " + insights.estimatedTimedShifts +
+        " · Custom — " + insights.customTimedShifts
     ]
   );
 }
@@ -6839,6 +6926,9 @@ function shiftOverview(
           <th>Checked In</th>
           <th>Checked Out</th>
           <th>Not Arrived</th>
+          <th>Timed Shifts</th>
+          <th>Logged Hours</th>
+          <th>Avg. Duration</th>
         </tr>
       </thead>
     `;
@@ -6862,6 +6952,10 @@ function shiftOverview(
           "tr"
         );
 
+      const shiftRecords = mergedRecords(regs, checkins)
+        .filter((record) => record.shiftId === shift.id);
+      const durationStats = computeAttendanceInsights(shiftRecords);
+
       [
         shift.positionName,
 
@@ -6875,7 +6969,13 @@ function shiftOverview(
 
         s.checkedOut,
 
-        s.notArrived
+        s.notArrived,
+
+        durationStats.timedShifts,
+
+        durationStats.totalHours.toFixed(1),
+
+        formatDurationMinutes(durationStats.averageMinutes)
       ].forEach(
         (value) => {
           const td =
