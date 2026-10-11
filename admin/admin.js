@@ -7446,9 +7446,9 @@ function openVolunteerReport(
     "body{margin:0;background:#f2eff7;color:var(--ink);font:10.5pt/1.52 Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
     ".toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 22px;background:#fff;border-bottom:1px solid var(--line)}",
     ".toolbar span{font-size:10pt;color:var(--muted)}.print-button{background:var(--purple);color:white;border:0;border-radius:999px;padding:10px 17px;font:inherit;font-weight:700;cursor:pointer}",
-    ".page{width:8.5in;min-height:11in;height:auto;margin:22px auto;padding:.48in .58in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;display:flex;flex-direction:column;overflow:visible}",
-    ".page:last-child{page-break-after:auto;break-after:auto}",
-    ".cover{padding:.72in .7in;display:flex;flex-direction:column;justify-content:space-between;height:11in;min-height:11in;background:linear-gradient(145deg,#fff 0%,#fff 68%,#f8f5ff 100%)}",
+    ".page{width:8.5in;min-height:0;height:auto;margin:0 auto;padding:.28in .58in;background:white;box-shadow:none;page-break-after:auto;break-after:auto;position:relative;display:block;overflow:visible}",
+    ".page:last-child{page-break-after:auto;break-after:auto}.cover{page-break-after:always;break-after:page}.toc-page{page-break-after:always;break-after:page}.report-section{border-bottom:1px solid var(--line);padding-bottom:.22in;margin-bottom:.12in;break-inside:auto}.report-section .page-head{break-after:avoid}.report-section .page-foot{margin-top:14px}",
+    ".cover{width:8.5in;padding:.72in .7in;display:flex;flex-direction:column;justify-content:space-between;height:11in;min-height:11in;background:#fff;box-shadow:none}",
     ".cover-rule{height:7px;width:74px;background:var(--purple);border-radius:10px;margin-bottom:25px}",
     ".eyebrow{font-size:9pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}",
     ".cover h1{font-size:39pt;line-height:1.05;letter-spacing:-.045em;max-width:6.1in;margin:20px 0 18px;font-weight:750}",
@@ -7473,7 +7473,7 @@ function openVolunteerReport(
     ".note-box{border-left:3px solid var(--purple);background:#faf8ff;padding:12px 14px;font-size:8.5pt;color:#514b5d;margin:14px 0}.note-box strong{color:var(--purple-dark)}",
     ".empty{padding:20px 0;color:var(--muted);font-size:9pt}.page-foot{position:static;bottom:auto;left:auto;right:auto;border-top:1px solid var(--line);padding-top:8px;margin-top:auto;display:flex;justify-content:space-between;gap:12px;font-size:7.4pt;color:#938b9e;flex-shrink:0}",
     ".tag{display:inline-block;border-radius:999px;background:var(--purple-soft);color:var(--purple-dark);padding:4px 8px;font-size:7.7pt;font-weight:700}",
-    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:8.5in;height:auto;min-height:11in;padding:.48in .58in;box-shadow:none;overflow:visible;break-after:page;page-break-after:always}.cover{padding:.72in .7in;height:11in;min-height:11in}.page-content{flex:0 0 auto;min-height:0;overflow:visible}.page:last-child{page-break-after:auto;break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}} @media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}} ",
+    "@page{size:Letter portrait;margin:.35in} @media print{html,body{width:auto;margin:0;background:#fff}.toolbar{display:none}.page{margin:0 auto;width:8.5in;height:auto;min-height:0;padding:.22in .58in;box-shadow:none;overflow:visible;break-after:auto;page-break-after:auto}.cover{width:8.5in;padding:.72in .7in;height:10.3in;min-height:10.3in;break-after:page;page-break-after:always}.toc-page{break-after:page;page-break-after:always}.page-content{min-height:0;overflow:visible}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{display:none}.report-section{break-inside:auto}} @media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:20px}}",
     "@media screen and (max-width:800px){.page{width:100%;margin:10px auto;padding:26px 22px;min-height:auto}.cover{min-height:760px}.cover h1{font-size:31pt}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.page-foot{position:static;margin-top:30px}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}"
   ];
 
@@ -7489,7 +7489,7 @@ function openVolunteerReport(
   }
 
   function makePage(section, title, subtitle, pageContent, footerLabel) {
-    return "<section class='page'><div class='page-head'><div><div class='eyebrow'>" +
+    return "<section class='page report-section'><div class='page-head'><div><div class='eyebrow'>" +
       esc(section) + "</div><h2 class='page-title'>" + esc(title) +
       "</h2><div class='page-subtitle'>" + esc(subtitle) +
       "</div></div><div class='section-number'>" + esc(footerLabel) +
@@ -7663,25 +7663,10 @@ function openVolunteerReport(
   }
 
   const tocContent =
-    "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
-    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td>" + item.page + "</td></tr>").join("") +
-    "</tbody></table><div class='toc-note'>The report starts with overall outcomes, then moves into findings, role and shift detail, checkout documentation, and recorded service time. Counts and rates are based on the records described in each section.</div>";
-  pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents");
-  const totalPages = pages.length;
-  pages[0] = pages[0].replace("<div class='eyebrow'>Internal report</div>", "<div class='eyebrow'>Internal report · Page 1 of " + totalPages + "</div>");
-  for (let index = 0; index < pages.length; index++) {
-    const page = pages[index];
-    const footStart = page.indexOf("<div class='page-foot'>");
-    if (footStart >= 0) {
-      const firstClose = page.indexOf("</span>", footStart);
-      const secondStart = page.indexOf("<span>", firstClose + 7);
-      const secondClose = page.indexOf("</span>", secondStart + 6);
-      if (firstClose >= 0 && secondStart >= 0 && secondClose >= 0) {
-        const label = page.slice(secondStart + 6, secondClose);
-        pages[index] = page.slice(0, secondStart + 6) + "Page " + (index + 1) + " of " + totalPages + " · " + label + page.slice(secondClose);
-      }
-    }
-  }
+    "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th></tr></thead><tbody>" +
+    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td></tr>").join("") +
+    "</tbody></table><div class='toc-note'>The report begins with overall outcomes, then reviews key findings, volunteer positions, shift performance, checkout documentation, and recorded service time. Sections follow in this order; page breaks occur where needed for readability.</div>";
+  pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents").replace("<section class='page report-section'>", "<section class='page toc-page'>");
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
