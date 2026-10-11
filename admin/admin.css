@@ -584,6 +584,7 @@ body.admin-auth-checking .shell {
 
 .nav {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
 
   max-width: 100%;
@@ -2473,6 +2474,14 @@ tbody tr:last-child td {
   overflow-wrap: anywhere;
   margin: 6px 0 0;
   font-size: .82rem;
+}
+
+.verification-contact-detail {
+  margin: 7px 0 0;
+  color: var(--admin-muted);
+  font-size: .76rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .verification-stat-grid {
