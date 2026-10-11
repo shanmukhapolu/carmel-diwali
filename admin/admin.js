@@ -4457,7 +4457,7 @@ function showCheckoutTimeModal(record, onConfirm) {
     shiftEndHHMM
       ? `${formatDriveDate(CONFIG.eventDate)} at ${formatTime(configuredShift.endTime)} (${EVENT_TIME_ZONE_LABEL})`
       : "No configured shift end time was found for this registration.",
-    Boolean(shiftEndHHMM),
+    false,
     !shiftEndHHMM
   );
 
@@ -4469,7 +4469,7 @@ function showCheckoutTimeModal(record, onConfirm) {
       timeStyle: "short",
       timeZone: EVENT_TIME_ZONE
     })} (${EVENT_TIME_ZONE_LABEL}).`,
-    !shiftEndHHMM
+    true
   );
 
   const customRadio = addChoice(
