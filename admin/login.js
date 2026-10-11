@@ -52,9 +52,9 @@ form.addEventListener("submit", async (event) => {
 
     if (
       profile.role === "admin" &&
-      requestedReturnTo === "/admin/signup.html"
+      requestedReturnTo === "/admin/staff.html"
     ) {
-      window.location.replace("/admin/signup.html");
+      window.location.replace("/admin/staff.html");
       return;
     }
 
