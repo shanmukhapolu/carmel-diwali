@@ -262,8 +262,9 @@ function renderResults() {
         (selected?.key === group.key ? "selected" : "") + "' data-verification-key='" + esc(group.key) + "'>" +
         "<span class='verification-avatar'>" + esc((group.name[0] || "?").toUpperCase()) + "</span>" +
         "<span class='verification-candidate-main'><strong>" + esc(group.name) + "</strong><span>" +
-        esc(roles.join(" · ")) + "</span><small>" + group.records.length + " shift record(s) · " +
-        group.emails.length + " email(s) · " + group.phones.length + " phone number(s)</small></span>" +
+        esc(roles.join(" · ")) + "</span><small>Email: " + esc(group.emails.join(", ") || "Not provided") +
+        "</small><small>Phone: " + esc(group.phones.join(", ") || "Not provided") +
+        "</small><small>" + group.records.length + " shift record(s)</small></span>" +
         "<span class='verification-candidate-hours'><strong>" + esc(showHours(summary.all)) +
         "</strong><small>recorded duration</small></span><span class='verification-candidate-arrow'>›</span></button>";
     }).join("") + "</div>" +
@@ -310,7 +311,9 @@ function renderDetail() {
 
   root.innerHTML = "<section class='panel verification-volunteer-summary'><div class='verification-profile-head'><div><p class='eyebrow'>Selected volunteer</p><h2>" +
     esc(selected.name) + "</h2><p class='muted'>" + selected.records.length + " shift record(s) · " +
-    esc(roleText) + "</p></div><button id='verification-change-person' type='button' class='secondary'>Choose another</button></div>" +
+    esc(roleText) + "</p><p class='verification-contact-detail'>Email: " + esc(selected.emails.join(", ") || "Not provided") +
+    " · Phone: " + esc(selected.phones.join(", ") || "Not provided") +
+    "</p></div><button id='verification-change-person' type='button' class='secondary'>Choose another</button></div>" +
     "<div class='verification-stat-grid'><div class='verification-stat'><span>Recorded time</span><strong>" +
     esc(showHours(sum.all)) + "</strong><small>" + sum.timed + " timed shifts</small></div><div class='verification-stat'><span>Actual checkout time</span><strong>" +
     esc(showHours(sum.actual)) + "</strong><small>Not estimated</small></div><div class='verification-stat'><span>Estimated duration</span><strong>" +
