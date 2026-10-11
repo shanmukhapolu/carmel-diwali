@@ -6964,242 +6964,608 @@ function shiftOverview(
 function openVolunteerReport(
   records
 ) {
-  const win =
-    window.open(
-      "",
-      "_blank"
-    );
-
+  const win = window.open("", "_blank");
   if (!win) return;
 
-  const stats =
-    computeOpsStats(
-      records,
-      new Map(
-        records.map(
-          (r) => [
-            r.id,
-            r.checkin || {
-              status:
-                "registered"
-            }
-          ]
-        )
-      )
-    );
+  const reportRecords = (records || []).map((record) => ({
+    ...record,
+    checkin: record.checkin || { status: "registered" }
+  }));
 
-  const rows =
-    exportRows(records);
+  const expected = reportRecords.length;
+  const people = new Set();
+  const positionMap = new Map();
+  const shiftMap = new Map();
+  const durationEntries = [];
+  const checkoutCounts = { actual: 0, estimated: 0, custom: 0, open: 0, noCheckin: 0 };
+  let attendedCount = 0;
+  let lateNoCheckin = 0;
+  let adultCount = 0;
+  let minorCount = 0;
+  let ageUnknownCount = 0;
+  let actualMinutes = 0;
+  let estimatedMinutes = 0;
+  let customMinutes = 0;
 
-  win.document.write(
-    `
-      <title>
-        ${escapeHtml(
-          CONFIG.eventName
-        )} Report
-      </title>
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    })[char]);
+  }
 
-      <style>
-        body {
-          font-family: Inter, Arial, sans-serif;
-          margin: 28px;
-          color: #131a24;
-        }
+  function fmtRate(value, total) {
+    return total ? Math.round((value / total) * 100) + "%" : "—";
+  }
 
-        .hero {
-          border: 1px solid #dde3ec;
-          border-radius: 20px;
-          padding: 22px;
-          background: #f8fafc;
-        }
+  function fmtMinutes(value) {
+    if (!Number.isFinite(value) || value < 0) return "—";
+    const rounded = Math.round(value);
+    const hours = Math.floor(rounded / 60);
+    const minutes = rounded % 60;
+    if (hours && minutes) return hours + "h " + minutes + "m";
+    if (hours) return hours + "h";
+    return minutes + "m";
+  }
 
-        h1 {
-          margin: 0 0 8px;
-        }
+  function fmtHours(value) {
+    return (Number.isFinite(value) ? value : 0).toLocaleString("en-US", {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0
+    }) + " h";
+  }
 
-        .grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          margin: 18px 0;
-        }
+  function fmtLongDate(value) {
+    const date = toDate(value);
+    return date ? date.toLocaleDateString("en-US", {
+      month: "long", day: "numeric", year: "numeric", timeZone: EVENT_TIME_ZONE
+    }) : "Event date not set";
+  }
 
-        .card {
-          border: 1px solid #dde3ec;
-          border-radius: 14px;
-          padding: 12px;
-        }
+  function attended(record) {
+    const status = record.checkin?.status || "registered";
+    return status === "checked_in" ||
+      status === "completed" ||
+      Boolean(toDate(record.checkin?.checkedInAt)) ||
+      Boolean(toDate(record.checkin?.checkedOutAt));
+  }
 
-        .num {
-          font-size: 28px;
-          font-weight: 800;
-          color: #07345e;
-        }
+  function checkoutType(record) {
+    const status = record.checkin?.status || "registered";
+    const checkInAt = toDate(record.checkin?.checkedInAt);
+    const checkOutAt = toDate(record.checkin?.checkedOutAt);
+    const method = effectiveCheckoutMethod(record);
 
-        table {
-          border-collapse: collapse;
-          width: 100%;
-          font-size: 10px;
-          table-layout: fixed;
-        }
+    if (status === "completed" && checkOutAt) {
+      if (method === "estimated_shift_end") return "estimated";
+      if (method === "custom") return "custom";
+      return "actual";
+    }
+    if (status === "checked_in" || (checkInAt && !checkOutAt)) return "open";
+    if (status === "completed" || checkInAt || checkOutAt) return "open";
+    return "noCheckin";
+  }
 
-        th,
-        td {
-          border: 1px solid #d8dee8;
-          padding: 5px;
-          word-break: break-word;
-        }
+  function nameKey(record) {
+    const name = [record.firstName, record.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .normalize("NFKC")
+      .toLocaleLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+    if (name) return "name:" + name;
+    const email = String(record.email || "").trim().toLocaleLowerCase();
+    return email ? "email:" + email : "registration:" + record.id;
+  }
 
-        th {
-          background: #eef2f7;
-        }
+  function addDuration(record, positionGroup, shiftGroup) {
+    const checkInAt = toDate(record.checkin?.checkedInAt);
+    const checkOutAt = toDate(record.checkin?.checkedOutAt);
+    if (!checkInAt || !checkOutAt || checkOutAt < checkInAt) return;
 
-        @media print {
-          @page {
-            size: landscape;
-            margin: .35in;
-          }
-        }
-      </style>
+    const minutes = (checkOutAt.getTime() - checkInAt.getTime()) / 60000;
+    const method = effectiveCheckoutMethod(record);
+    durationEntries.push({
+      minutes,
+      method,
+      shiftLabel: shiftGroup.label,
+      positionLabel: positionGroup.label
+    });
+    positionGroup.durations.push(minutes);
+    shiftGroup.durations.push(minutes);
 
-      <section class="hero">
-        <h1>
-          ${escapeHtml(
-            CONFIG.eventName
-          )}
-          Volunteer Registration Report
-        </h1>
+    if (minutes > shiftGroup.longestMinutes) {
+      shiftGroup.longestMinutes = minutes;
+      shiftGroup.longestMethod = method;
+    }
+    if (minutes > positionGroup.longestMinutes) positionGroup.longestMinutes = minutes;
 
-        <p>
-          ${escapeHtml(
-            formatDriveDate(
-              CONFIG.eventDate
-            )
-          )}
-          ·
-          ${escapeHtml(
-            CONFIG.location
-          )}
-          ·
-          Times shown in
-          ${escapeHtml(
-            EVENT_TIME_ZONE_LABEL
-          )}
-        </p>
-      </section>
+    if (method === "estimated_shift_end") estimatedMinutes += minutes;
+    else if (method === "custom") customMinutes += minutes;
+    else actualMinutes += minutes;
+  }
 
-      <div class="grid">
-        ${[
-          [
-            "Expected",
-            stats.expected
-          ],
+  reportRecords.forEach((record) => {
+    people.add(nameKey(record));
 
-          [
-            "Checked In",
-            stats.checkedIn
-          ],
+    if (record.is18OrOlder === true) adultCount += 1;
+    else if (record.is18OrOlder === false) minorCount += 1;
+    else ageUnknownCount += 1;
 
-          [
-            "Checked Out",
-            stats.checkedOut
-          ],
+    const positionId = String(record.positionId || "unassigned");
+    const positionName = positionLabel(
+      record.positionId,
+      record.positionName || record.position || "Unassigned"
+    ) || "Unassigned";
+    if (!positionMap.has(positionId)) {
+      positionMap.set(positionId, {
+        id: positionId, label: positionName, expected: 0, showed: 0,
+        noShows: 0, late: 0, durations: [], longestMinutes: 0
+      });
+    }
+    const positionGroup = positionMap.get(positionId);
+    positionGroup.expected += 1;
 
-          [
-            "Late",
-            stats.late
-          ],
+    const shiftId = String(record.shiftId || record.shiftLabel || "unscheduled");
+    const shiftKey = positionId + "::" + shiftId;
+    const shiftName = shiftLabel(record.shiftId, record.shiftLabel || "Shift not specified") || "Shift not specified";
+    if (!shiftMap.has(shiftKey)) {
+      shiftMap.set(shiftKey, {
+        id: shiftKey,
+        label: positionName + " · " + shiftName,
+        position: positionName,
+        expected: 0,
+        showed: 0,
+        noShows: 0,
+        durations: [],
+        longestMinutes: 0,
+        longestMethod: "actual_current_time"
+      });
+    }
+    const shiftGroup = shiftMap.get(shiftKey);
+    shiftGroup.expected += 1;
 
-          [
-            "Not Arrived",
-            stats.notArrived
-          ]
-        ]
-          .map(
-            ([label, value]) =>
-              `
-                <div class="card">
-                  <div>
-                    ${escapeHtml(
-                      label
-                    )}
-                  </div>
+    if (attended(record)) {
+      attendedCount += 1;
+      positionGroup.showed += 1;
+      shiftGroup.showed += 1;
+    } else {
+      positionGroup.noShows += 1;
+      shiftGroup.noShows += 1;
+      if ((record.checkin?.status || "") === "late") {
+        positionGroup.late += 1;
+        lateNoCheckin += 1;
+      }
+    }
 
-                  <div class="num">
-                    ${escapeHtml(
-                      value
-                    )}
-                  </div>
-                </div>
-              `
-          )
-          .join("")}
-      </div>
+    checkoutCounts[checkoutType(record)] += 1;
+    addDuration(record, positionGroup, shiftGroup);
+  });
 
-      <h2>Attendance rates</h2>
+  const positionStats = Array.from(positionMap.values()).map((item) => {
+    const durations = item.durations.slice().sort((a, b) => a - b);
+    const total = durations.reduce((sum, n) => sum + n, 0);
+    item.showRate = item.expected ? item.showed / item.expected : 0;
+    item.avgMinutes = durations.length ? total / durations.length : 0;
+    item.medianMinutes = durations.length
+      ? (durations.length % 2
+        ? durations[Math.floor(durations.length / 2)]
+        : (durations[durations.length / 2 - 1] + durations[durations.length / 2]) / 2)
+      : 0;
+    item.timedCount = durations.length;
+    return item;
+  });
 
-      <p>
-        Check-in
-        ${stats.rates.checkin}
-        · Checkout
-        ${stats.rates.checkout}
-        · Not arrived
-        ${stats.rates.notArrived}
-      </p>
+  const shiftStats = Array.from(shiftMap.values()).map((item) => {
+    const durations = item.durations.slice().sort((a, b) => a - b);
+    const total = durations.reduce((sum, n) => sum + n, 0);
+    item.showRate = item.expected ? item.showed / item.expected : 0;
+    item.avgMinutes = durations.length ? total / durations.length : 0;
+    item.medianMinutes = durations.length
+      ? (durations.length % 2
+        ? durations[Math.floor(durations.length / 2)]
+        : (durations[durations.length / 2 - 1] + durations[durations.length / 2]) / 2)
+      : 0;
+    item.timedCount = durations.length;
+    return item;
+  });
 
-      <h2>All registrations</h2>
+  const noShowCount = reportRecords.filter((record) => !attended(record)).length;
+  const actualRate = fmtRate(checkoutCounts.actual, expected);
+  const showRate = fmtRate(attendedCount, expected);
+  const allDurations = durationEntries.map((item) => item.minutes).sort((a, b) => a - b);
+  const totalMinutes = allDurations.reduce((sum, n) => sum + n, 0);
+  const avgMinutes = allDurations.length ? totalMinutes / allDurations.length : 0;
+  const medianMinutes = allDurations.length
+    ? (allDurations.length % 2
+      ? allDurations[Math.floor(allDurations.length / 2)]
+      : (allDurations[allDurations.length / 2 - 1] + allDurations[allDurations.length / 2]) / 2)
+    : 0;
+  const longestSession = durationEntries.slice().sort((a, b) => b.minutes - a.minutes)[0] || null;
+  const worstNoShowPosition = positionStats.slice().sort((a, b) =>
+    b.noShows - a.noShows || b.expected - a.expected
+  )[0] || null;
+  const bestPosition = positionStats.filter((item) => item.expected >= 2)
+    .sort((a, b) => b.showRate - a.showRate || b.expected - a.expected)[0] ||
+    positionStats.slice().sort((a, b) => b.showRate - a.showRate || b.expected - a.expected)[0] ||
+    null;
+  const fullestPosition = positionStats.slice().sort((a, b) =>
+    b.expected - a.expected || b.showed - a.showed
+  )[0] || null;
+  const longestAverageShift = shiftStats.filter((item) => item.timedCount > 0)
+    .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount)[0] || null;
+  const zeroNoShowShifts = shiftStats.filter((item) =>
+    item.expected >= 2 && item.showed === item.expected
+  );
+  const singleBookingPerfectShifts = shiftStats.filter((item) =>
+    item.expected === 1 && item.showed === 1
+  );
+  const completedCount = checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom;
+  const estimatedRateOfCompleted = completedCount ? checkoutCounts.estimated / completedCount : 0;
 
-      <table>
-        <thead>
-          <tr>
-            ${
-              Object.keys(
-                rows[0] || {}
-              )
-                .map(
-                  (h) =>
-                    `<th>${escapeHtml(
-                      h
-                    )}</th>`
-                )
-                .join("")
-            }
-          </tr>
-        </thead>
+  const palette = ["#6d28d9", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#4c1d95", "#ede9fe", "#b8a5d8"];
+  const mutedColors = {
+    actual: "#6d28d9",
+    estimated: "#a78bfa",
+    custom: "#c4b5fd",
+    open: "#6b7280",
+    noCheckin: "#e5e7eb"
+  };
 
-        <tbody>
-          ${
-            rows
-              .map(
-                (row) =>
-                  `
-                    <tr>
-                      ${
-                        Object.values(
-                          row
-                        )
-                          .map(
-                            (v) =>
-                              `<td>${escapeHtml(
-                                v
-                              )}</td>`
-                          )
-                          .join("")
-                      }
-                    </tr>
-                  `
-              )
-              .join("")
-          }
-        </tbody>
-      </table>
-    `
+  function donut(items, centerNumber, centerLabel) {
+    const nonzero = items.filter((item) => item.value > 0);
+    const total = items.reduce((sum, item) => sum + item.value, 0);
+    const circumference = 2 * Math.PI * 62;
+    let offset = 0;
+    const segments = nonzero.map((item, index) => {
+      const length = total ? circumference * item.value / total : 0;
+      const color = item.color || palette[index % palette.length];
+      const segment = "<circle cx='100' cy='100' r='62' fill='none' stroke='" + color +
+        "' stroke-width='23' stroke-dasharray='" + length.toFixed(3) + " " +
+        (circumference - length).toFixed(3) + "' stroke-dashoffset='" + (-offset).toFixed(3) +
+        "' transform='rotate(-90 100 100)'/>";
+      offset += length;
+      return segment;
+    }).join("");
+
+    const legend = items.map((item, index) => {
+      const color = item.color || palette[index % palette.length];
+      return "<div class='legend-row'><span class='legend-swatch' style='background:" + color +
+        "'></span><span class='legend-label'>" + esc(item.label) +
+        "</span><strong>" + item.value + "</strong><span class='legend-percent'>" +
+        fmtRate(item.value, total) + "</span></div>";
+    }).join("");
+
+    return "<div class='donut-layout'><div class='donut-graphic'><svg viewBox='0 0 200 200' role='img' aria-label='" +
+      esc(centerLabel) + "'><circle cx='100' cy='100' r='62' fill='none' stroke='#f0edf5' stroke-width='23'/>" +
+      segments + "<circle cx='100' cy='100' r='45' fill='#fff'/>" +
+      "<text x='100' y='96' text-anchor='middle' class='donut-number'>" + esc(centerNumber) +
+      "</text><text x='100' y='116' text-anchor='middle' class='donut-caption'>" + esc(centerLabel) +
+      "</text></svg></div><div class='legend'>" + legend + "</div></div>";
+  }
+
+  function positionBarChart(items) {
+    if (!items.length) return "<p class='empty'>No position registrations were found.</p>";
+    const maxExpected = Math.max(1, ...items.map((item) => item.expected));
+    const barX = 236;
+    const plotWidth = 420;
+    const rateX = 768;
+    const rowHeight = 38;
+    const height = items.length * rowHeight + 22;
+    const rows = items.map((item, index) => {
+      const y = 25 + index * rowHeight;
+      const totalWidth = plotWidth * item.expected / maxExpected;
+      const showedWidth = totalWidth * item.showed / item.expected;
+      const noShowWidth = Math.max(0, totalWidth - showedWidth);
+      return "<text x='8' y='" + (y + 14) + "' class='svg-label'>" + esc(item.label) +
+        "</text><rect x='" + barX + "' y='" + y + "' width='" + showedWidth.toFixed(2) +
+        "' height='17' rx='4' fill='#7c3aed'/><rect x='" + (barX + showedWidth).toFixed(2) +
+        "' y='" + y + "' width='" + noShowWidth.toFixed(2) +
+        "' height='17' rx='2' fill='#e9d5ff'/><text x='" + (barX + totalWidth + 8).toFixed(2) +
+        "' y='" + (y + 13) + "' class='svg-small'>" + item.showed + "/" + item.expected +
+        "</text><text x='" + rateX + "' y='" + (y + 14) +
+        "' class='svg-rate'>" + fmtRate(item.showed, item.expected) + "</text>";
+    }).join("");
+    return "<svg class='report-chart' viewBox='0 0 790 " + height +
+      "' role='img' aria-label='Attendance counts by volunteer position'>" + rows + "</svg>";
+  }
+
+  function shiftRateChart(items) {
+    if (!items.length) return "<p class='empty'>No shifts with registrations were found.</p>";
+    const barX = 280;
+    const plotWidth = 380;
+    const rateX = 744;
+    const rowHeight = 35;
+    const height = items.length * rowHeight + 20;
+    const rows = items.map((item, index) => {
+      const y = 18 + index * rowHeight;
+      const width = plotWidth * item.showRate;
+      return "<text x='6' y='" + (y + 14) + "' class='svg-label'>" + esc(item.label) +
+        "</text><rect x='" + barX + "' y='" + y + "' width='" + plotWidth +
+        "' height='15' rx='4' fill='#f3f0f7'/><rect x='" + barX + "' y='" + y +
+        "' width='" + width.toFixed(2) + "' height='15' rx='4' fill='#7c3aed'/>" +
+        "<text x='" + rateX + "' y='" + (y + 13) + "' class='svg-rate'>" +
+        fmtRate(item.showed, item.expected) + " · " + item.showed + "/" + item.expected + "</text>";
+    }).join("");
+    return "<svg class='report-chart' viewBox='0 0 800 " + height +
+      "' role='img' aria-label='Show rates for selected volunteer shifts'>" + rows + "</svg>";
+  }
+
+  function reportTable(headers, rows, tableClass) {
+    if (!rows.length) return "<p class='empty'>No records are available for this section.</p>";
+    return "<table class='" + (tableClass || "") + "'><thead><tr>" +
+      headers.map((item) => "<th>" + esc(item) + "</th>").join("") +
+      "</tr></thead><tbody>" +
+      rows.map((row) => "<tr>" + row.map((item) => "<td>" + esc(item) + "</td>").join("") + "</tr>").join("") +
+      "</tbody></table>";
+  }
+
+  function insight(title, body, value) {
+    return "<article class='insight'><div class='insight-kicker'>" + esc(title) +
+      "</div><p>" + body + "</p>" +
+      (value ? "<div class='insight-value'>" + esc(value) + "</div>" : "") + "</article>";
+  }
+
+  function kpi(label, value, note) {
+    return "<article class='kpi'><div class='kpi-label'>" + esc(label) +
+      "</div><div class='kpi-value'>" + esc(value) +
+      "</div><div class='kpi-note'>" + esc(note || "") + "</div></article>";
+  }
+
+  const attendanceMix = [
+    { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
+    { label: "Estimated shift-end checkout", value: checkoutCounts.estimated, color: mutedColors.estimated },
+    { label: "Custom/admin checkout", value: checkoutCounts.custom, color: mutedColors.custom },
+    { label: "Checked in, no checkout", value: checkoutCounts.open, color: mutedColors.open },
+    { label: "No check-in recorded", value: checkoutCounts.noCheckin, color: mutedColors.noCheckin }
+  ];
+
+  const positionMix = positionStats.slice().sort((a, b) => b.expected - a.expected);
+  const topMix = positionMix.slice(0, 6).map((item, index) => ({
+    label: item.label, value: item.expected, color: palette[index % palette.length]
+  }));
+  const otherPositions = positionMix.slice(6).reduce((sum, item) => sum + item.expected, 0);
+  if (otherPositions) topMix.push({ label: "Other positions", value: otherPositions, color: "#d1d5db" });
+
+  const positionTableRows = positionStats.slice().sort((a, b) =>
+    b.noShows - a.noShows || b.expected - a.expected
+  ).map((item) => [
+    item.label, String(item.expected), String(item.showed), String(item.noShows),
+    fmtRate(item.showed, item.expected), item.timedCount ? fmtMinutes(item.avgMinutes) : "No timed records"
+  ]);
+
+  const sortedShiftStats = shiftStats.slice().sort((a, b) =>
+    b.noShows - a.noShows || b.expected - a.expected || a.showRate - b.showRate
+  );
+  const shiftTableRows = sortedShiftStats.map((item) => [
+    item.label, String(item.expected), String(item.showed), String(item.noShows),
+    fmtRate(item.showed, item.expected),
+    item.timedCount ? fmtMinutes(item.avgMinutes) : "—",
+    item.timedCount ? fmtMinutes(item.longestMinutes) : "—"
+  ]);
+
+  const worstShifts = shiftStats.filter((item) => item.expected > 0)
+    .sort((a, b) => a.showRate - b.showRate || b.noShows - a.noShows || b.expected - a.expected)
+    .slice(0, 12);
+  const durationShifts = shiftStats.filter((item) => item.timedCount > 0)
+    .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount)
+    .slice(0, 8);
+  const ageMix = [
+    { label: "18 or older", value: adultCount, color: "#6d28d9" },
+    { label: "Under 18", value: minorCount, color: "#a78bfa" },
+    { label: "Not provided", value: ageUnknownCount, color: "#e5e7eb" }
+  ];
+
+  const insights = [];
+  if (worstNoShowPosition && worstNoShowPosition.noShows > 0) {
+    insights.push(insight(
+      "No-show concentration",
+      "<strong>" + esc(worstNoShowPosition.label) + "</strong> had the highest number of registrations without a recorded check-in.",
+      worstNoShowPosition.noShows + " of " + worstNoShowPosition.expected + " · " +
+        fmtRate(worstNoShowPosition.noShows, worstNoShowPosition.expected) + " no-shows"
+    ));
+  }
+  if (bestPosition) {
+    insights.push(insight(
+      "Strongest attendance rate",
+      "<strong>" + esc(bestPosition.label) + "</strong> had the highest observed show rate among positions with " +
+        (bestPosition.expected >= 2 ? "at least two registrations." : "available registrations."),
+      bestPosition.showed + " of " + bestPosition.expected + " · " + fmtRate(bestPosition.showed, bestPosition.expected) + " showed"
+    ));
+  }
+  if (fullestPosition) {
+    insights.push(insight(
+      "Largest volunteer role",
+      "<strong>" + esc(fullestPosition.label) + "</strong> accounted for the most booked volunteer shifts.",
+      fullestPosition.expected + " registrations"
+    ));
+  }
+  if (zeroNoShowShifts.length) {
+    insights.push(insight(
+      "Full-attendance shifts",
+      zeroNoShowShifts.length + " shift" + (zeroNoShowShifts.length === 1 ? "" : "s") +
+        " with at least two bookings had no recorded no-shows.",
+      zeroNoShowShifts.slice(0, 3).map((item) =>
+        item.label + " (" + item.expected + "/" + item.expected + ")"
+      ).join(" · ")
+    ));
+  } else if (singleBookingPerfectShifts.length) {
+    insights.push(insight(
+      "Full attendance on smaller shifts",
+      singleBookingPerfectShifts.length + " shift" + (singleBookingPerfectShifts.length === 1 ? "" : "s") +
+        " had one booking and a recorded check-in. These small samples are less conclusive.",
+      singleBookingPerfectShifts.slice(0, 3).map((item) => item.label).join(" · ")
+    ));
+  }
+  if (longestAverageShift) {
+    insights.push(insight(
+      "Longest average recorded duration",
+      "<strong>" + esc(longestAverageShift.label) + "</strong> had the longest average recorded session among shifts with usable check-in and checkout timestamps.",
+      fmtMinutes(longestAverageShift.avgMinutes) + " average · " + longestAverageShift.timedCount + " timed records"
+    ));
+  }
+  if (longestSession) {
+    const methodLabels = {
+      actual_current_time: "actual booth checkout",
+      estimated_shift_end: "estimated shift end",
+      custom: "custom/admin time"
+    };
+    insights.push(insight(
+      "Longest individual recorded session",
+      "The longest recorded session was in <strong>" + esc(longestSession.shiftLabel) +
+        "</strong>. Its end time was classified as " + esc(methodLabels[longestSession.method] || "a recorded checkout") + ".",
+      fmtMinutes(longestSession.minutes)
+    ));
+  }
+
+  const generatedAt = new Date().toLocaleString("en-US", {
+    month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+    timeZone: EVENT_TIME_ZONE
+  }) + " " + EVENT_TIME_ZONE_LABEL;
+
+  const styleLines = [
+    ":root{color-scheme:light;--purple:#6d28d9;--purple-dark:#4c1d95;--purple-soft:#f5f3ff;--lavender:#ddd6fe;--ink:#242033;--muted:#716b7d;--line:#e8e4ed;--paper:#fff;--wash:#faf9fc}",
+    "*{box-sizing:border-box}",
+    "html{background:#f2eff7}",
+    "body{margin:0;background:#f2eff7;color:var(--ink);font:10.5pt/1.52 Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
+    ".toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 22px;background:#fff;border-bottom:1px solid var(--line)}",
+    ".toolbar span{font-size:10pt;color:var(--muted)}.print-button{background:var(--purple);color:white;border:0;border-radius:999px;padding:10px 17px;font:inherit;font-weight:700;cursor:pointer}",
+    ".page{width:8.5in;min-height:10.4in;margin:22px auto;padding:.58in .62in;background:white;box-shadow:0 8px 34px rgba(40,25,70,.08);page-break-after:always;break-after:page;position:relative;overflow:hidden}",
+    ".page:last-child{page-break-after:auto;break-after:auto}",
+    ".cover{padding:.8in .72in;display:flex;flex-direction:column;justify-content:space-between;min-height:10.4in;background:linear-gradient(145deg,#fff 0%,#fff 68%,#f8f5ff 100%)}",
+    ".cover-rule{height:7px;width:74px;background:var(--purple);border-radius:10px;margin-bottom:25px}",
+    ".eyebrow{font-size:9pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}",
+    ".cover h1{font-size:39pt;line-height:1.05;letter-spacing:-.045em;max-width:6.1in;margin:20px 0 18px;font-weight:750}",
+    ".cover-subtitle{font-size:16pt;line-height:1.35;color:#5d526d;max-width:5.7in}",
+    ".cover-meta{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:5.8in}",
+    ".meta-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:8pt;color:var(--muted);font-weight:700;margin-bottom:4px}.meta-value{font-size:11pt;font-weight:650}",
+    ".cover-bottom{border-top:1px solid var(--line);padding-top:22px;display:flex;justify-content:space-between;gap:20px;align-items:end}.byline{font-size:11pt;font-weight:700}.small-muted{font-size:8.5pt;color:var(--muted)}",
+    ".cover-mark{position:absolute;right:-95px;top:2.1in;width:3.6in;height:3.6in;border:1px solid #e9e2fa;border-radius:50%;box-shadow:0 0 0 26px #f9f7ff,0 0 0 54px #fcfbff}",
+    ".cover-mark:before,.cover-mark:after{content:'';position:absolute;inset:22%;border:1px solid #e5dafa;border-radius:50%}.cover-mark:after{inset:40%;background:#7c3aed;border:0;box-shadow:0 0 0 12px #eee6ff}",
+    ".page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:23px}",
+    ".page-title{margin:4px 0 0;font-size:23pt;line-height:1.15;letter-spacing:-.03em;font-weight:750}.page-subtitle{font-size:9pt;color:var(--muted);margin-top:7px;max-width:5.8in}.section-number{font-size:8pt;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);font-weight:800;white-space:nowrap;padding-top:5px}",
+    ".kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0 22px}",
+    ".kpi{border:1px solid var(--line);padding:14px 15px;border-radius:12px;min-height:94px;background:#fff;break-inside:avoid}.kpi-label{font-size:8pt;color:var(--muted);font-weight:700}.kpi-value{font-size:25pt;line-height:1.2;font-weight:750;letter-spacing:-.035em;margin:3px 0 2px;color:var(--purple-dark)}.kpi-note{font-size:8pt;color:var(--muted)}",
+    ".section-title{font-size:14pt;line-height:1.2;margin:21px 0 5px;letter-spacing:-.015em}.section-note{font-size:8.5pt;color:var(--muted);margin:0 0 12px;max-width:7in}",
+    ".panel{border:1px solid var(--line);border-radius:13px;padding:16px 17px;margin:12px 0 16px;break-inside:avoid}.panel-title{font-size:11pt;font-weight:750;margin:0 0 5px}.panel-note{font-size:8pt;color:var(--muted);margin:0 0 11px}",
+    ".two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.donut-layout{display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;gap:12px}.donut-graphic svg{width:100%;height:auto;display:block}.donut-number{font-size:23px;font-weight:750;fill:var(--ink)}.donut-caption{font-size:9px;fill:var(--muted)}",
+    ".legend{min-width:0}.legend-row{display:grid;grid-template-columns:9px minmax(0,1fr) 27px 34px;gap:7px;align-items:center;margin:7px 0;font-size:8pt}.legend-swatch{width:8px;height:8px;border-radius:2px}.legend-label{color:#514b5d}.legend-row strong{text-align:right;font-weight:750}.legend-percent{text-align:right;color:var(--muted);font-size:7.5pt}",
+    ".insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.insight{border-top:2px solid #b9a2ee;background:var(--wash);padding:12px 14px;break-inside:avoid}.insight-kicker{font-size:8pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--purple)}.insight p{margin:7px 0 0;font-size:9pt}.insight-value{font-size:9pt;font-weight:750;margin-top:7px;color:var(--purple-dark)}",
+    ".report-chart{display:block;width:100%;height:auto;max-height:none;overflow:visible}.svg-label{font:10px Inter,Arial,sans-serif;fill:#42394f}.svg-small{font:9px Inter,Arial,sans-serif;fill:#716b7d}.svg-rate{font:10px Inter,Arial,sans-serif;fill:#4c1d95;font-weight:700}",
+    ".chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin:9px 0 0;font-size:8pt;color:var(--muted)}.chart-legend span{display:flex;align-items:center;gap:6px}.chart-legend i{display:inline-block;width:9px;height:9px;border-radius:2px}",
+    "table{border-collapse:collapse;width:100%;font-size:8.2pt;margin:10px 0 14px;line-height:1.35}thead{display:table-header-group}th{font-size:7.3pt;text-transform:uppercase;letter-spacing:.04em;text-align:left;color:#5e556b;background:#f5f2fa;font-weight:800}th,td{border-bottom:1px solid var(--line);padding:8px 7px;vertical-align:top;overflow-wrap:anywhere}tbody tr:nth-child(even){background:#fcfbfe}td:first-child{font-weight:650}table.compact th,table.compact td{padding:6px 5px;font-size:7.7pt}",
+    ".note-box{border-left:3px solid var(--purple);background:#faf8ff;padding:12px 14px;font-size:8.5pt;color:#514b5d;margin:14px 0}.note-box strong{color:var(--purple-dark)}",
+    ".empty{padding:20px 0;color:var(--muted);font-size:9pt}.page-foot{position:absolute;bottom:.28in;left:.62in;right:.62in;border-top:1px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;gap:12px;font-size:7.4pt;color:#938b9e}",
+    ".tag{display:inline-block;border-radius:999px;background:var(--purple-soft);color:var(--purple-dark);padding:4px 8px;font-size:7.7pt;font-weight:700}",
+    "@page{size:Letter portrait;margin:0} @media print{html,body{background:#fff}.toolbar{display:none}.page{margin:0;width:auto;min-height:10.5in;padding:.55in .6in;box-shadow:none;overflow:visible}.cover{padding:.78in .7in;min-height:10.5in}.page-foot{left:.6in;right:.6in}.page:last-child{page-break-after:auto}.panel,.insight,.kpi{break-inside:avoid}table tr{break-inside:avoid}.cover-mark{opacity:.75}}",
+    "@media screen and (max-width:800px){.page{width:100%;margin:10px auto;padding:26px 22px;min-height:auto}.cover{min-height:760px}.cover h1{font-size:31pt}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.page-foot{position:static;margin-top:30px}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}"
+  ];
+
+  const attendanceCards = [
+    kpi("Booked shift registrations", expected.toLocaleString("en-US"), "One registration represents one shift"),
+    kpi("Distinct volunteers", people.size.toLocaleString("en-US"), "Deduplicated by normalized first and last name"),
+    kpi("Recorded show rate", showRate, attendedCount + " shift registrations with attendance recorded"),
+    kpi("No check-in recorded", noShowCount.toLocaleString("en-US"), fmtRate(noShowCount, expected) + " of booked shifts"),
+    kpi("Actual booth checkouts", checkoutCounts.actual.toLocaleString("en-US"), actualRate + " of all booked shifts"),
+    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " sessions with valid start and end timestamps")
+  ];
+
+  const executiveInsights = insights.slice(0, 4).join("");
+  const remainingInsights = insights.slice(4).join("");
+  const pages = [];
+
+  pages.push(
+    "<section class='page cover'><div class='cover-mark'></div><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
+    "<h1>" + esc(CONFIG.eventName) + "<br>Volunteer Report</h1>" +
+    "<p class='cover-subtitle'>Attendance, shift coverage and volunteer time. A data-led review of how the volunteer operation performed.</p>" +
+    "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
+    esc(fmtLongDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
+    esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div><div><span class='meta-label'>Report generated</span><span class='meta-value'>" +
+    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><div class='eyebrow'>Internal report</div></div></section>"
   );
 
-  win.document.close();
+  pages.push(
+    "<section class='page'><div class='page-head'><div><div class='eyebrow'>01 / Executive summary</div><h2 class='page-title'>At a glance</h2><div class='page-subtitle'>A summary of booked shifts, recorded attendance and end-of-shift documentation for " +
+    esc(CONFIG.eventName) + ".</div></div><div class='section-number'>Snapshot</div></div>" +
+    "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
+    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Each registration is counted once, by its recorded attendance/checkout state.</p>" +
+    donut(attendanceMix, String(expected), "booked shifts") + "</div><div class='panel'><h3 class='panel-title'>What stands out</h3><p class='panel-note'>Findings are generated from the current registration and check-in records.</p>" +
+    (executiveInsights || "<p class='empty'>Not enough attendance data to generate role-level findings.</p>") + "</div></div>" +
+    "<h3 class='section-title'>How to read the numbers</h3><div class='note-box'><strong>Attendance is counted per shift registration.</strong> A volunteer who signed up for two shifts contributes two booked registrations to shift-level attendance, but one person to the distinct-volunteer count. A no-show means no check-in or checkout was recorded for that registration. A shift-end placeholder is reported separately from an actual booth checkout.</div>" +
+    "<div class='small-muted'>Event time zone: " + esc(EVENT_TIME_ZONE_LABEL) + ". Source: volunteer registrations and recorded check-in/check-out timestamps.</div>" +
+    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Executive summary</span></div></section>"
+  );
 
-  win.print();
+  pages.push(
+    "<section class='page'><div class='page-head'><div><div class='eyebrow'>02 / Volunteer positions</div><h2 class='page-title'>Where coverage landed</h2><div class='page-subtitle'>Compare the size of each volunteer role with its recorded attendance outcomes.</div></div><div class='section-number'>By role</div></div>" +
+    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Booked shifts by position</h3><p class='panel-note'>The six largest roles are shown individually; smaller roles are combined as Other positions.</p>" +
+    donut(topMix, String(expected), "registrations") + "</div><div class='panel'><h3 class='panel-title'>Show rate by position</h3><p class='panel-note'>Purple represents registrations with attendance recorded; lavender represents registrations without a recorded check-in.</p>" +
+    "<div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
+    positionBarChart(positionStats.slice().sort((a, b) => b.noShows - a.noShows || b.expected - a.expected)) + "</div></div>" +
+    "<h3 class='section-title'>Position-level results</h3><p class='section-note'>Sorted by the number of registrations without a recorded check-in, then by total bookings. This makes roles with the largest uncovered share easier to identify.</p>" +
+    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionTableRows, "compact") +
+    "<div class='note-box'><strong>Interpretation:</strong> A position with the highest number of no-shows is not necessarily the one with the worst percentage. Read the no-show count alongside the show rate and the number of bookings.</div>" +
+    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Position performance</span></div></section>"
+  );
+
+  pages.push(
+    "<section class='page'><div class='page-head'><div><div class='eyebrow'>03 / Shift performance</div><h2 class='page-title'>Reliability by shift</h2><div class='page-subtitle'>Shift-level turnout and duration metrics help identify time slots that were well covered and slots that may need a different recruitment approach.</div></div><div class='section-number'>By shift</div></div>" +
+    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Up to 12 shifts are displayed, starting with the lowest recorded show rate. The complete shift table follows.</p>" +
+    shiftRateChart(worstShifts) + "</div>" +
+    "<h3 class='section-title'>All shifts</h3><p class='section-note'>Average and longest session duration are calculated only from records with both a check-in timestamp and a checkout timestamp. Estimated checkout entries are included and should be treated as estimates.</p>" +
+    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
+    "<div class='note-box'><strong>Planning use:</strong> Review low show-rate shifts before opening the next volunteer form. Larger no-show counts may justify extra reminders or a waitlist; low show rates on small shifts should be read in context.</div>" +
+    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Shift performance</span></div></section>"
+  );
+
+  const durationRows = durationShifts.map((item) => [
+    item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
+    fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
+  ]);
+  const checkoutMethodMix = [
+    { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
+    { label: "Estimated shift end", value: checkoutCounts.estimated, color: mutedColors.estimated },
+    { label: "Custom/admin time", value: checkoutCounts.custom, color: mutedColors.custom },
+    { label: "Still checked in / incomplete", value: checkoutCounts.open, color: mutedColors.open }
+  ];
+
+  pages.push(
+    "<section class='page'><div class='page-head'><div><div class='eyebrow'>04 / Volunteer time &amp; closeout</div><h2 class='page-title'>Time recorded and checkout quality</h2><div class='page-subtitle'>Recorded session length is useful for planning, but the checkout method matters when interpreting the totals.</div></div><div class='section-number'>Hours &amp; records</div></div>" +
+    "<div class='kpi-grid'>" +
+    kpi("Total recorded time", fmtHours(totalMinutes / 60), "Includes actual, estimated and custom checkout times") +
+    kpi("Actual-checkout time", fmtHours(actualMinutes / 60), "Only sessions ending with actual booth checkout") +
+    kpi("Average recorded session", allDurations.length ? fmtMinutes(avgMinutes) : "—", allDurations.length + " timed sessions") +
+    kpi("Median recorded session", allDurations.length ? fmtMinutes(medianMinutes) : "—", "Less sensitive to very long sessions") +
+    kpi("Estimated shift-end checkouts", String(checkoutCounts.estimated), fmtRate(checkoutCounts.estimated, completedCount) + " of completed records with checkout times") +
+    kpi("Custom/admin checkout times", String(checkoutCounts.custom), "Reported separately from actual booth checkout") +
+    "</div><div class='two-col'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>How completed or open attendance records were closed out.</p>" +
+    donut(checkoutMethodMix, String(completedCount), "checkout times") + "</div><div class='panel'><h3 class='panel-title'>Volunteer age response</h3><p class='panel-note'>Based on the age confirmation collected during registration; this is a registration response breakdown.</p>" +
+    donut(ageMix, String(expected), "registrations") + "</div></div>" +
+    "<h3 class='section-title'>Shifts with the longest average sessions</h3><p class='section-note'>Only shifts with at least one valid start/end pair are included. The average and median can differ when a few sessions are much longer than the rest.</p>" +
+    reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], durationRows, "compact") +
+    (remainingInsights ? "<h3 class='section-title'>Additional findings</h3><div class='insight-grid'>" + remainingInsights + "</div>" : "") +
+    "<div class='note-box'><strong>Data-quality note:</strong> " +
+    (checkoutCounts.estimated
+      ? checkoutCounts.estimated + " checkout time" + (checkoutCounts.estimated === 1 ? " was" : "s were") + " entered as an estimated shift end. " +
+        Math.round(estimatedRateOfCompleted * 100) + "% of completed records with checkout timestamps use an estimated end time. Totals that include these sessions are recorded durations, not fully verified volunteer hours."
+      : "No checkouts are currently classified as estimated shift-end placeholders. Recorded session durations still depend on the timestamps available.") +
+    (checkoutCounts.custom ? " Custom/admin-entered checkout times are also separate from actual booth checkouts." : "") +
+    (lateNoCheckin ? " " + lateNoCheckin + " registration" + (lateNoCheckin === 1 ? " was" : "s were") + " marked late but had no check-in timestamp." : "") +
+    "</div><div class='small-muted'>Prepared by Shanmukha Polu &amp; Sonal Sanghani · Generated " + esc(generatedAt) + ".</div>" +
+    "<div class='page-foot'><span>" + esc(CONFIG.eventName) + " · Volunteer Operations</span><span>Volunteer time &amp; closeout</span></div></section>"
+  );
+
+  const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
+    "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
+    "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
+    pages.join("") + "</body></html>";
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
 }
+
 
 
 /* =========================================================
