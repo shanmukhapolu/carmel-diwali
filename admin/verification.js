@@ -505,7 +505,7 @@ function generateDocument(kind) {
     css + (isCertificate ? certificateCss : "") + "</style></head><body><div class='toolbar'><span>" +
     (isCertificate ? "Volunteer service certificate" : "Volunteer service verification letter") +
     " · Review, then print or save as PDF</span><button onclick='window.print()'>Print / Save PDF</button></div>" +
-    page + "<script>window.addEventListener('load',()=>{setTimeout(()=>{window.focus();window.print();},350)});<\/script></body></html>";
+    page + "<script>window.addEventListener('load',()=>{const printWhenReady=()=>setTimeout(()=>{window.focus();window.print();},100);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(printWhenReady).catch(printWhenReady)}else{printWhenReady()}});<\/script></body></html>";
 
   win.document.open();
   win.document.write(html);
