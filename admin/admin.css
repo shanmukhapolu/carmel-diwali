@@ -2261,11 +2261,14 @@ tbody tr:last-child td {
 }
 
 
-.checkin-time-detail {
+.checkin-time-detail,
+.checkout-time-detail {
   color: var(--admin-muted);
   font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 0;
+  margin-bottom: 4px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .checkin-actions .big-action {
