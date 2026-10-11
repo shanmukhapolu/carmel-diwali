@@ -7535,8 +7535,8 @@ function openVolunteerReport(
 
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
-  ).slice(0, 6);
-  const positionFirstRows = positionTableRows.slice(0, 6);
+  ).slice(0, 5);
+  const positionFirstRows = positionTableRows.slice(0, 5);
   const positionContent =
     "<div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The six largest roles are shown individually; remaining roles are combined.</p>" +
     donut(topMix, String(expected), "registrations") + "</div>" +
@@ -7551,7 +7551,7 @@ function openVolunteerReport(
     positionContent, "Position performance"
   ));
 
-  chunkRows(positionTableRows.slice(6), 13).forEach((rows, index) => {
+  chunkRows(positionTableRows.slice(5), 13).forEach((rows, index) => {
     pages.push(makePage(
       "02 / Volunteer positions", "Position results · continued",
       "Additional roles, sorted by registrations without a recorded check-in.",
