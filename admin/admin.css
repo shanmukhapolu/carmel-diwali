@@ -916,127 +916,103 @@ tbody tr:last-child td {
 .chart {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-
-  min-height: 300px;
-  height: 300px;
-
+  gap: 14px;
+  min-height: 350px;
+  height: 350px;
+  min-width: 0;
   overflow-x: auto;
-  overflow-y: visible;
-
-  margin: 22px 0 34px;
-  padding: 34px 18px 70px;
-
+  overflow-y: hidden;
+  margin: 22px 0 24px;
+  padding: 30px 18px 108px;
   border: 1px solid var(--admin-border);
   border-radius: 16px;
-
-  /* Solid background — no gradient */
   background: #ffffff;
-
   box-shadow: var(--admin-shadow);
 }
 
 .bar {
   position: relative;
-
   display: flex;
   justify-content: center;
-
-  min-width: 46px;
-
+  flex: 0 0 76px;
+  width: 76px;
+  min-width: 76px;
   border-radius: 8px 8px 4px 4px;
-
-  /* Solid graph bars */
   background: var(--admin-maroon);
-
-  box-shadow:
-    0 8px 16px -14px rgba(83, 37, 100, 0.65);
+  box-shadow: 0 8px 16px -14px rgba(83, 37, 100, 0.65);
 }
 
 .bar strong {
   position: absolute;
-
   top: -27px;
-
+  left: 0;
+  width: 100%;
   color: var(--admin-maroon);
-
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 800;
-
+  text-align: center;
   white-space: nowrap;
 }
 
 .bar span {
   position: absolute;
-
-  bottom: -42px;
-
+  bottom: -96px;
   left: 50%;
-
-  width: max-content;
-
+  width: 84px;
+  max-width: 84px;
   color: var(--admin-muted);
-
   font-size: 0.7rem;
   font-weight: 600;
-
+  line-height: 1.2;
   text-align: center;
-
   transform: translateX(-50%);
-
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .diagonal-labels .bar {
-  min-width: 52px;
+  flex: 0 0 88px;
+  width: 88px;
+  min-width: 88px;
 }
 
 .diagonal-labels .bar span {
-  bottom: -60px;
-
+  bottom: -96px;
+  width: 88px;
+  max-width: 88px;
   left: 50%;
-
-  width: 100px;
-
-  text-align: left;
-
-  transform:
-    translateX(-8px)
-    rotate(-35deg);
-
-  transform-origin: top left;
-
-  white-space: nowrap;
+  text-align: center;
+  transform: translateX(-50%);
+  white-space: normal;
 }
 
-/* Long-category chart labels stay readable by giving each bar a fixed
-   horizontal footprint and moving the label below the chart at an angle.
-   The chart remains horizontally scrollable on smaller screens. */
+/* Long-category graphs keep labels horizontal and wrap them under each bar.
+   Wide graphs scroll horizontally rather than letting labels collide. */
 .chart-angled-labels {
-  min-height: 390px;
-  height: 390px;
-  padding-bottom: 150px;
-  gap: 24px;
+  min-height: 360px;
+  height: 360px;
+  padding: 30px 18px 108px;
+  gap: 14px;
 }
 
 .chart-angled-labels .bar {
-  min-width: 96px;
+  flex: 0 0 104px;
+  width: 104px;
+  min-width: 104px;
 }
 
 .chart-angled-labels .bar span {
-  bottom: -118px;
+  bottom: -96px;
   left: 50%;
-  width: 132px;
-  color: var(--admin-muted);
+  width: 98px;
+  max-width: 98px;
   font-size: 0.7rem;
   line-height: 1.2;
-  text-align: left;
+  text-align: center;
   white-space: normal;
-  overflow-wrap: break-word;
-  transform:
-    translateX(-7px)
-    rotate(-42deg);
-  transform-origin: top left;
+  overflow-wrap: anywhere;
+  transform: translateX(-50%);
 }
 
 
