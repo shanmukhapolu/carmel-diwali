@@ -7479,7 +7479,8 @@ function openVolunteerReport(
 
   styleLines.push(".page-content{flex:0 0 auto;min-height:0;overflow:visible}.page-content > .section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px} @media screen and (max-width:800px){.page-content{overflow:visible}}");
   styleLines[styleLines.findIndex((rule) => rule.startsWith("@media screen and (max-width:800px)"))] =
-    "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
+    "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.position-chart-layout{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
+  styleLines.push(".toc-table{font-size:10pt;margin:18px 0 20px}.toc-table th{font-size:8pt}.toc-table td{padding:13px 10px}.toc-table td:first-child{font-weight:750}.toc-table td:last-child{text-align:right;font-weight:800;color:var(--purple-dark);white-space:nowrap}.toc-note{font-size:9pt;line-height:1.55;color:var(--muted);margin-top:18px;padding:12px 14px;background:var(--wash);border-left:3px solid var(--purple)}.position-chart-layout{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.4fr);gap:10px;align-items:stretch}.position-chart-layout .panel{margin:7px 0 10px;padding:11px}.position-chart-layout .panel-title{font-size:10pt}.position-chart-layout .panel-note{font-size:7.5pt;margin-bottom:6px}.position-chart-layout .donut-layout{grid-template-columns:105px minmax(0,1fr);gap:8px}.checkout-profile-layout .panel{margin:8px 0 12px}.section-note{font-size:8pt;color:var(--muted);margin:7px 0 12px}.page-foot span:last-child{white-space:nowrap}@media print{.position-chart-layout{grid-template-columns:minmax(0,.72fr) minmax(0,1.4fr)}.checkout-profile-layout{grid-template-columns:1fr 1fr}}");
 
   function chunkRows(items, size) {
     const groups = [];
@@ -7518,12 +7519,19 @@ function openVolunteerReport(
     esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><div class='eyebrow'>Internal report</div></div></section>"
   );
 
+  const tocEntries = [];
+  pages.push("");
+  const noteToc = (label, detail) => {
+    tocEntries.push({ label, detail, page: pages.length + 1 });
+  };
+
   const executiveContent =
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Attendance is recorded for " +
     attendedCount + " of " + expected + " shift registrations (" + showRate + "). The chart separates actual, estimated and incomplete checkouts.</p>" +
     donut(attendanceMix, String(expected), "booked shifts") + "</div>" +
     "<div class='note-box'><strong>How to read this report:</strong> counts are per shift registration. One volunteer with two shifts counts as two shift registrations but one distinct volunteer. Estimated shift-end times are not actual booth checkouts.</div>";
+  noteToc("Executive summary", "Overall registrations, attendance, and recorded volunteer time.");
   pages.push(makePage(
     "01 / Executive summary", "At a glance",
     "A concise view of booked shifts, attendance outcomes, and checkout documentation for " + CONFIG.eventName + ".",
@@ -7534,6 +7542,7 @@ function openVolunteerReport(
     "<div class='insight-grid'>" +
     (insights.slice(0, 3).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
     "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
+  noteToc("Key findings", "Main patterns and observations drawn from the attendance records.");
   pages.push(makePage(
     "02 / Key findings", "What stands out",
     "A few notable patterns before the detailed tables and duration analysis.",
@@ -7551,42 +7560,49 @@ function openVolunteerReport(
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
   ).slice(0, 5);
-  const positionFirstRows = [];
+  const positionFirstRows = positionTableRows.slice(0, 5);
   const positionContent =
-    "<div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The six largest roles are shown individually; remaining roles are combined.</p>" +
+    "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The largest roles are shown individually; the rest are grouped.</p>" +
     donut(topMix, String(expected), "registrations") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
-    positionBarChart(positionChartItems) + "</div>" +
-    "<div class='note-box'><strong>Interpretation:</strong> the role with the most no-shows may differ from the role with the lowest show rate. Detailed counts and rates follow on the next pages.</div>";
+    positionBarChart(positionChartItems) + "</div></div>" +
+    "<h3 class='section-title'>Five roles with the most no-shows</h3>" +
+    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
+    "<p class='section-note'>Remaining position results continue on the next page.</p>";
+  noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
   pages.push(makePage(
-    "03 / Volunteer positions", "Where coverage landed",
-    "Role-level turnout, distribution of volunteer registrations, and recorded no-shows.",
+    "03 / Volunteer positions", "Role coverage and results",
+    "Role turnout, the five largest no-show counts, and position-by-position results.",
     positionContent, "Position performance"
   ));
 
-  chunkRows(positionTableRows, 7).forEach((rows, index) => {
+  chunkRows(positionTableRows.slice(5), 12).forEach((rows, index) => {
     pages.push(makePage(
       "03 / Volunteer positions", "Position results · continued",
-      "Additional roles, sorted by registrations without a recorded check-in.",
+      "Remaining roles, sorted by registrations without a recorded check-in.",
       reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], rows, "compact"),
       "Position detail " + (index + 1)
     ));
   });
 
+  const shiftFirstRows = shiftTableRows.slice(0, 5);
   const shiftContent =
-    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Small booking counts are less conclusive, so compare rate with the number of bookings.</p>" +
+    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Compare each rate with its booking count; small shifts are less conclusive.</p>" +
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<div class='note-box'><strong>Planning use:</strong> review low-turnout shifts before the next registration cycle. Larger no-show counts may warrant reminders or a waitlist. The complete shift table follows separately.</div>";
+    "<h3 class='section-title'>Five shifts with the most no-shows</h3>" +
+    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftFirstRows, "compact") +
+    "<p class='section-note'>Remaining shift results continue on the next page.</p>";
+  noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
   pages.push(makePage(
-    "04 / Shift performance", "Reliability by shift",
-    "Compare turnout and coverage across individual scheduled time slots.",
+    "04 / Shift performance", "Shift turnout and reliability",
+    "Compare turnout across scheduled time slots and identify shifts needing follow-up.",
     shiftContent, "Shift performance"
   ));
 
-  chunkRows(shiftTableRows, 7).forEach((rows, index) => {
+  chunkRows(shiftTableRows.slice(5), 11).forEach((rows, index) => {
     pages.push(makePage(
       "04 / Shift performance", "Shift results · continued",
-      "Remaining shifts, sorted by the number of registrations without recorded attendance.",
+      "Remaining shifts, sorted by registrations without recorded attendance.",
       reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], rows, "compact"),
       "Shift detail " + (index + 1)
     ));
@@ -7600,9 +7616,10 @@ function openVolunteerReport(
   ];
 
   const closeoutContent =
-    "<div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Each registration is grouped by how its attendance record was closed out.</p>" +
+    "<div class='two-col checkout-profile-layout'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations grouped by how attendance was closed out.</p>" +
     donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
-    "</div>" +
+    "</div><div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Counts are registrations, not unique people.</p>" +
+    donut(ageMix, String(expected), "registrations") + "</div></div>" +
     "<div class='note-box'><strong>Data quality:</strong> " +
     (checkoutCounts.estimated
       ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
@@ -7610,18 +7627,11 @@ function openVolunteerReport(
     (checkoutCounts.custom ? " " + checkoutCounts.custom + " custom/admin checkout record(s) are also reported separately." : "") +
     (lateNoCheckin ? " " + lateNoCheckin + " registration(s) were marked late but have no check-in timestamp." : "") +
     "</div>";
+  noteToc("Checkout quality", "Checkout methods, estimated or custom times, and age confirmation at signup.");
   pages.push(makePage(
-    "05 / Checkout quality", "Recorded hours and closeout",
-    "Recorded duration depends on attendance timestamps and the method used to record checkout.",
+    "05 / Checkout quality", "Checkout records and signup profile",
+    "Review how attendance was closed out and the age information reported at signup.",
     closeoutContent, "Hours & closeout"
-  ));
-
-  pages.push(makePage(
-    "05 / Checkout quality", "Volunteer registration profile",
-    "Age confirmation as reported on the registration form. Counts represent registrations, not unique people.",
-    "<div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Included as a planning summary only; it does not change attendance totals.</p>" +
-    donut(ageMix, String(expected), "registrations") + "</div>",
-    "Registration profile"
   ));
 
   const allDurationShifts = shiftStats.filter((item) => item.timedCount > 0)
@@ -7630,8 +7640,9 @@ function openVolunteerReport(
     item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
     fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
   ]);
-  const durationChunks = chunkRows(durationRows, 8);
+  const durationChunks = chunkRows(durationRows, 14);
   if (durationChunks.length) {
+    noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
     durationChunks.forEach((rows, index) => {
       pages.push(makePage(
         "06 / Service time",
@@ -7642,6 +7653,7 @@ function openVolunteerReport(
       ));
     });
   } else {
+    noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
     pages.push(makePage(
       "06 / Service time", "How long volunteers stayed",
       "Average, median and longest recorded duration.",
@@ -7650,6 +7662,26 @@ function openVolunteerReport(
     ));
   }
 
+  const tocContent =
+    "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
+    tocEntries.map((item) => "<tr><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td>" + item.page + "</td></tr>").join("") +
+    "</tbody></table><div class='toc-note'>The report starts with overall outcomes, then moves into findings, role and shift detail, checkout documentation, and recorded service time. Counts and rates are based on the records described in each section.</div>";
+  pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents");
+  const totalPages = pages.length;
+  pages[0] = pages[0].replace("<div class='eyebrow'>Internal report</div>", "<div class='eyebrow'>Internal report · Page 1 of " + totalPages + "</div>");
+  for (let index = 0; index < pages.length; index++) {
+    const page = pages[index];
+    const footStart = page.indexOf("<div class='page-foot'>");
+    if (footStart >= 0) {
+      const firstClose = page.indexOf("</span>", footStart);
+      const secondStart = page.indexOf("<span>", firstClose + 7);
+      const secondClose = page.indexOf("</span>", secondStart + 6);
+      if (firstClose >= 0 && secondStart >= 0 && secondClose >= 0) {
+        const label = page.slice(secondStart + 6, secondClose);
+        pages[index] = page.slice(0, secondStart + 6) + "Page " + (index + 1) + " of " + totalPages + " · " + label + page.slice(secondClose);
+      }
+    }
+  }
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
