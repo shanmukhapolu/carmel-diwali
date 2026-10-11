@@ -2,78 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Create Check-In Account | Carmel Diwali Festival</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <meta http-equiv="refresh" content="0;url=/admin/staff.html">
+  <title>Staff | Carmel Diwali Festival</title>
+  <script>window.location.replace("/admin/staff.html");</script>
 </head>
-<body class="auth-body">
-  <main class="auth-card">
-    <p class="eyebrow">Administrator-only setup</p>
-    <h1>Create Check-In Account</h1>
-    <p>
-      Create the login for Guest Services. This form creates both the Firebase
-      Authentication account and its enabled Check-In role record automatically.
-      The new account will only have access to the Check-In page.
-    </p>
-    <p id="signed-in-admin" class="muted">Verifying administrator access…</p>
-
-    <form id="signup-form">
-      <label for="displayName">Account display name</label>
-      <input
-        id="displayName"
-        name="displayName"
-        type="text"
-        autocomplete="off"
-        maxlength="80"
-        value="Diwali Check-In"
-        required
-      >
-
-      <label for="email">New account email</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        autocomplete="off"
-        required
-      >
-
-      <label for="password">Password</label>
-      <input
-        id="password"
-        name="password"
-        type="password"
-        autocomplete="new-password"
-        minlength="6"
-        required
-      >
-
-      <label for="confirmPassword">Confirm password</label>
-      <input
-        id="confirmPassword"
-        name="confirmPassword"
-        type="password"
-        autocomplete="new-password"
-        minlength="6"
-        required
-      >
-
-      <p id="success" class="success" role="status" aria-live="polite"></p>
-      <p id="error" class="error" role="alert"></p>
-
-      <div class="auth-actions">
-        <button id="submit" class="primary" type="submit" disabled>
-          Create Check-In Account
-        </button>
-        <a class="btn secondary" href="/admin/">Back to Dashboard</a>
-        <button id="logout" class="secondary" type="button">Sign Out</button>
-      </div>
-    </form>
-  </main>
-  <script type="module" src="signup.js"></script>
+<body>
+  <p>Opening Staff management… <a href="/admin/staff.html">Continue to Staff</a></p>
 </body>
 </html>
