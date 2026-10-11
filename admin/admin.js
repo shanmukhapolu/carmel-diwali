@@ -7542,7 +7542,7 @@ function openVolunteerReport(
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
     esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
     esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div><div><span class='meta-label'>Report generated</span><span class='meta-value'>" +
-    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div></div></section>"
+    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
   );
 
   const tocEntries = [];
