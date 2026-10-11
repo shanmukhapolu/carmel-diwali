@@ -7530,6 +7530,24 @@ function openVolunteerReport(
     executiveContent, "Executive summary"
   ));
 
+  const insightPageContent =
+    "<div class='insight-grid'>" +
+    (insights.slice(0, 3).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
+    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
+  pages.push(makePage(
+    "02 / Key findings", "What stands out",
+    "A few notable patterns before the detailed tables and duration analysis.",
+    insightPageContent, "Key findings"
+  ));
+  if (insights.length > 3) {
+    pages.push(makePage(
+      "02 / Key findings", "Additional observations",
+      "More findings from attendance and recorded shift duration.",
+      "<div class='insight-grid'>" + insights.slice(3).join("") + "</div>",
+      "Additional findings"
+    ));
+  }
+
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
   ).slice(0, 5);
@@ -7636,24 +7654,6 @@ function openVolunteerReport(
       "Average, median and longest recorded duration.",
       "<p class='empty'>No shift currently has valid check-in and checkout timestamps for duration analysis.</p>",
       "Duration analysis"
-    ));
-  }
-
-  const insightPageContent =
-    "<div class='insight-grid'>" +
-    (insights.slice(0, 3).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
-    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
-  pages.push(makePage(
-    "02 / Key findings", "What stands out",
-    "A few notable patterns before the detailed tables and duration analysis.",
-    insightPageContent, "Key findings"
-  ));
-  if (insights.length > 3) {
-    pages.push(makePage(
-      "02 / Key findings", "Additional observations",
-      "More findings from attendance and recorded shift duration.",
-      "<div class='insight-grid'>" + insights.slice(3).join("") + "</div>",
-      "Additional findings"
     ));
   }
 
