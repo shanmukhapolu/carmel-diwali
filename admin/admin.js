@@ -7660,12 +7660,127 @@ function openVolunteerReport(
     "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
     tocEntries.map((item) => "<tr data-toc-label='" + esc(item.label) + "'><td>" + esc(item.label) + "</td><td>" + esc(item.detail) + "</td><td class='toc-page-number'>" + esc(item.page) + "</td></tr>").join("") +
     "</tbody></table><div class='toc-note'>Page numbers match the printed page numbers shown at the bottom of each page.</div>";
-  pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents").replace("<section class='page report-section'>", "<section class='page toc-page'>");
+  pages[1] = makePage("REPORT GUIDE", "Contents", "A quick guide to the report sections and where to find each analysis.", tocContent, "Contents").replace("<section class='page report-section' data-section='REPORT GUIDE'>", "<section class='page toc-page' data-section='REPORT GUIDE'>");
   pages.forEach((page, index) => {
     if (typeof page === "string" && page.includes("{{PAGE_NUMBER}}")) {
       pages[index] = page.replace("{{PAGE_NUMBER}}", String(index + 1));
     }
   });
+  function paginateReportTables(reportDocument) {
+    const originalPages = Array.from(reportDocument.querySelectorAll("body > .page.report-section"));
+
+    function rowLimit(page) {
+      const content = page.querySelector(".page-content");
+      const footer = page.querySelector(".page-foot");
+      const contentBottom = content ? content.getBoundingClientRect().bottom : page.getBoundingClientRect().bottom;
+      const footerTop = footer ? footer.getBoundingClientRect().top : contentBottom;
+      return Math.min(contentBottom, footerTop) - 6;
+    }
+
+    function createContinuation(basePage, sourceTable, afterPage, title, subtitle) {
+      const continuation = reportDocument.createElement("section");
+      continuation.className = basePage.className;
+      continuation.dataset.section = basePage.dataset.section || "";
+      continuation.dataset.continuation = "true";
+
+      const header = basePage.querySelector(".page-head")?.cloneNode(true);
+      if (header) {
+        const heading = header.querySelector(".page-title");
+        const subheading = header.querySelector(".page-subtitle");
+        if (heading) heading.textContent = title;
+        if (subheading) subheading.textContent = subtitle;
+        continuation.appendChild(header);
+      }
+
+      const content = reportDocument.createElement("div");
+      content.className = "page-content";
+      const tableWrap = reportDocument.createElement("div");
+      tableWrap.className = "pagination-table continuation-table";
+      const table = sourceTable.cloneNode(false);
+      if (sourceTable.tHead) table.appendChild(sourceTable.tHead.cloneNode(true));
+      const body = reportDocument.createElement("tbody");
+      table.appendChild(body);
+      tableWrap.appendChild(table);
+      content.appendChild(tableWrap);
+      continuation.appendChild(content);
+
+      const footer = basePage.querySelector(".page-foot")?.cloneNode(true);
+      if (footer) continuation.appendChild(footer);
+
+      const next = afterPage.nextElementSibling;
+      reportDocument.body.insertBefore(continuation, next || null);
+      return { page: continuation, body };
+    }
+
+    for (const page of originalPages) {
+      const wrapper = page.querySelector(".pagination-table:not(.continuation-table)");
+      if (!wrapper) continue;
+      const table = wrapper.querySelector("table");
+      const tbody = table?.tBodies?.[0];
+      if (!table || !tbody || !tbody.rows.length) continue;
+
+      const overflowRows = [];
+      const limit = rowLimit(page);
+
+      // Keep every row that fits. Move only rows that actually reach beyond the available page area.
+      while (tbody.rows.length) {
+        const lastRow = tbody.rows[tbody.rows.length - 1];
+        if (lastRow.getBoundingClientRect().bottom <= limit) break;
+        overflowRows.unshift(lastRow);
+        lastRow.remove();
+      }
+      if (!overflowRows.length) continue;
+      if (!tbody.rows.length) wrapper.remove();
+
+      const continuationTitle = wrapper.dataset.continuedTitle || "Results · continued";
+      const continuationSubtitle = wrapper.dataset.continuedSubtitle || "Remaining results from this section.";
+      let pendingRows = overflowRows;
+      let afterPage = page;
+
+      while (pendingRows.length) {
+        const continuation = createContinuation(page, table, afterPage, continuationTitle, continuationSubtitle);
+        afterPage = continuation.page;
+        const destinationBody = continuation.body;
+
+        pendingRows.forEach((row) => destinationBody.appendChild(row));
+        const nextPageRows = [];
+
+        while (destinationBody.rows.length) {
+          const lastRow = destinationBody.rows[destinationBody.rows.length - 1];
+          if (lastRow.getBoundingClientRect().bottom <= rowLimit(continuation.page)) break;
+          if (destinationBody.rows.length === 1) break;
+          nextPageRows.unshift(lastRow);
+          lastRow.remove();
+        }
+        pendingRows = nextPageRows;
+      }
+    }
+  }
+
+  function updateReportPageNumbers(reportDocument) {
+    const sheets = Array.from(reportDocument.querySelectorAll("body > .page"));
+    sheets.forEach((sheet, index) => {
+      sheet.querySelectorAll(".page-number").forEach((number) => {
+        number.textContent = "Page " + (index + 1);
+      });
+    });
+
+    const tocSectionForLabel = {
+      "Executive summary": "01 / Executive summary",
+      "Key findings": "02 / Key findings",
+      "Volunteer positions": "03 / Volunteer positions",
+      "Shift performance": "04 / Shift performance",
+      "Checkout quality": "05 / Checkout quality",
+      "Service time": "06 / Service time"
+    };
+    reportDocument.querySelectorAll(".toc-table tbody tr[data-toc-label]").forEach((row) => {
+      const targetSection = tocSectionForLabel[row.dataset.tocLabel || ""];
+      const firstSheet = targetSection ? sheets.find((sheet) => sheet.dataset.section === targetSection) : null;
+      const pageCell = row.querySelector(".toc-page-number");
+      if (pageCell && firstSheet) pageCell.textContent = String(sheets.indexOf(firstSheet) + 1);
+    });
+  }
+
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
@@ -7673,8 +7788,19 @@ function openVolunteerReport(
   win.document.open();
   win.document.write(html);
   win.document.close();
-  win.focus();
-  win.print();
+  const preparePrint = () => {
+    paginateReportTables(win.document);
+    updateReportPageNumbers(win.document);
+    win.focus();
+    win.print();
+  };
+  const fontsReady = win.document.fonts?.ready;
+  if (fontsReady && typeof fontsReady.then === "function") {
+    fontsReady.then(() => win.requestAnimationFrame(preparePrint))
+      .catch(() => win.requestAnimationFrame(preparePrint));
+  } else {
+    win.requestAnimationFrame(preparePrint);
+  }
 }
 
 
