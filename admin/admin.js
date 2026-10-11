@@ -4230,149 +4230,88 @@ function checkinCard(
   actorName,
   checkinOnly = false
 ) {
-  const card =
-    document.createElement(
-      "article"
-    );
+  const card = document.createElement("article");
+  card.className = "checkin-card";
 
-  card.className =
-    "checkin-card";
-
-  const status =
-    record.checkin
-      ?.status ||
-    "registered";
-
+  const status = record.checkin?.status || "registered";
   card.innerHTML =
-    `
-      <div>
-        <h2></h2>
-        <p></p>
-        <p></p>
-      </div>
+    '<div class="checkin-card-info">' +
+      '<h2></h2>' +
+      '<p class="checkin-assignment"></p>' +
+      '<p class="checkin-status-line"></p>' +
+      '<p class="checkin-time-detail"></p>' +
+      '<p class="checkout-time-detail"></p>' +
+    '</div>' +
+    '<div class="checkin-actions"></div>';
 
-      <div class="checkin-actions"></div>
-    `;
+  card.querySelector("h2").textContent =
+    (String(record.firstName || "") + " " +
+      String(record.lastName || "")).trim() || "Unnamed volunteer";
 
-  card.querySelector(
-    "h2"
-  ).textContent =
-    `${record.firstName || ""} ${
-      record.lastName || ""
-    }`.trim() ||
-    "Unnamed volunteer";
-
-  card.querySelectorAll(
-    "p"
-  )[0].textContent =
-    `${positionLabel(
+  card.querySelector(".checkin-assignment").textContent =
+    positionLabel(
       record.positionId,
-      record.positionName ||
-        record.position
-    )} · ${shiftLabel(
-      record.shiftId,
-      record.shiftLabel
-    )}`;
+      record.positionName || record.position
+    ) + " · " + shiftLabel(record.shiftId, record.shiftLabel);
 
-  card.querySelectorAll(
-    "p"
-  )[1].textContent =
-    `${operationalLabel(
-      status
-    )}${
-      record.checkin
-        ?.checkedInAt
-        ? ` · Checked in ${timeOnly(
-            record.checkin
-              .checkedInAt
-          )}`
-        : ""
-    }${
-      isLateArrival(
-        record
-      )
-        ? " · Late"
-        : ""
-    }`;
+  card.querySelector(".checkin-status-line").textContent =
+    operationalLabel(status) +
+    (isLateArrival(record) ? " · Late" : "");
 
-  const checkoutInfo = record.checkin?.checkedOutAt
-    ? "Checked out " + timeOnly(record.checkin.checkedOutAt) + " · " +
-      checkoutMethodLabel(effectiveCheckoutMethod(record))
-    : "";
-  const timeDetail = document.createElement("p");
-  timeDetail.className = "checkin-time-detail";
-  timeDetail.textContent = checkoutInfo;
-  card.querySelector("div").appendChild(timeDetail);
+  const checkedInAt = toDate(record.checkin?.checkedInAt);
+  const checkedOutAt = toDate(record.checkin?.checkedOutAt);
 
-  const actions =
-    card.querySelector(
-      ".checkin-actions"
+  card.querySelector(".checkin-time-detail").textContent =
+    "Check-in time: " + (
+      checkedInAt
+        ? formatTimestamp(checkedInAt) + " " + EVENT_TIME_ZONE_LABEL
+        : "Not recorded"
     );
 
-  if (
-    status ===
-      "registered" ||
-    status === "late"
-  ) {
+  card.querySelector(".checkout-time-detail").textContent =
+    "Check-out time: " + (
+      checkedOutAt
+        ? formatTimestamp(checkedOutAt) + " " + EVENT_TIME_ZONE_LABEL +
+          " · " + checkoutMethodLabel(effectiveCheckoutMethod(record))
+        : "Not recorded"
+    );
+
+  const actions = card.querySelector(".checkin-actions");
+
+  if (status === "registered" || status === "late") {
     actions.append(
       actionButton(
-        status === "late"
-          ? "CHECK IN LATE"
-          : "CHECK IN",
-
-        () =>
-          transitionCheckin(
-            record.id,
-            "checkin",
-            user.uid,
-            actorName ||
-              adminDisplayName(
-                null,
-                user
-              )
-          )
+        status === "late" ? "CHECK IN LATE" : "CHECK IN",
+        () => transitionCheckin(
+          record.id,
+          "checkin",
+          user.uid,
+          actorName || adminDisplayName(null, user)
+        )
       )
     );
-
-  } else if (
-    status ===
-    "checked_in"
-  ) {
+  } else if (status === "checked_in") {
     actions.append(
       actionButton(
         "CHECK OUT",
-        () =>
-          showCheckoutTimeModal(
-            record,
-            (checkoutAt, checkoutMethod) =>
-              transitionCheckin(
-                record.id,
-                "checkout",
-                user.uid,
-                actorName ||
-                  adminDisplayName(
-                    null,
-                    user
-                  ),
-                checkoutAt,
-                checkoutMethod
-              )
-          )
+        () => showCheckoutTimeModal(
+          record,
+          (checkoutAt, checkoutMethod) =>
+            transitionCheckin(
+              record.id,
+              "checkout",
+              user.uid,
+              actorName || adminDisplayName(null, user),
+              checkoutAt,
+              checkoutMethod
+            )
+        )
       )
     );
-
   } else {
-    const completed =
-      document.createElement(
-        "strong"
-      );
-
-    completed.textContent =
-      "Completed";
-
-    actions.append(
-      completed
-    );
+    const completed = document.createElement("strong");
+    completed.textContent = "Completed";
+    actions.append(completed);
   }
 
   if (!checkinOnly) {
