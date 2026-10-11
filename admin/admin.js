@@ -19,6 +19,7 @@ import { requireAdmin, logout, isEnabledCheckinStaff } from "./auth.js";
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -3782,7 +3783,8 @@ async function initCheckinPage(
       checkins,
       results,
       user,
-      actorName
+      actorName,
+      isEnabledCheckinStaff(profile)
     );
 
   } catch (error) {
@@ -3836,7 +3838,8 @@ async function initCheckinPage(
         checkins,
         results,
         user,
-        actorName
+        actorName,
+        isEnabledCheckinStaff(profile)
       );
     },
 
@@ -3855,7 +3858,8 @@ async function initCheckinPage(
         checkins,
         results,
         user,
-        actorName
+        actorName,
+        isEnabledCheckinStaff(profile)
       )
   );
 
@@ -4144,7 +4148,8 @@ function renderCheckinResults(
   checkins,
   root,
   user,
-  actorName
+  actorName,
+  checkinOnly = false
 ) {
   if (!root) return;
 
@@ -4211,7 +4216,8 @@ function renderCheckinResults(
               }
           },
           user,
-          actorName
+          actorName,
+          checkinOnly
         )
       )
   );
@@ -4221,7 +4227,8 @@ function renderCheckinResults(
 function checkinCard(
   record,
   user,
-  actorName
+  actorName,
+  checkinOnly = false
 ) {
   const card =
     document.createElement(
@@ -4288,6 +4295,15 @@ function checkinCard(
         : ""
     }`;
 
+  const checkoutInfo = record.checkin?.checkedOutAt
+    ? "Checked out " + timeOnly(record.checkin.checkedOutAt) + " · " +
+      checkoutMethodLabel(record.checkin.checkoutMethod || "actual_current_time")
+    : "";
+  const timeDetail = document.createElement("p");
+  timeDetail.className = "checkin-time-detail";
+  timeDetail.textContent = checkoutInfo;
+  card.querySelector("div").appendChild(timeDetail);
+
   const actions =
     card.querySelector(
       ".checkin-actions"
@@ -4328,7 +4344,7 @@ function checkinCard(
         () =>
           showCheckoutTimeModal(
             record,
-            (checkoutAt) =>
+            (checkoutAt, checkoutMethod) =>
               transitionCheckin(
                 record.id,
                 "checkout",
@@ -4338,7 +4354,8 @@ function checkinCard(
                     null,
                     user
                   ),
-                checkoutAt
+                checkoutAt,
+                checkoutMethod
               )
           )
       )
@@ -4355,6 +4372,19 @@ function checkinCard(
 
     actions.append(
       completed
+    );
+  }
+
+  if (!checkinOnly) {
+    actions.append(
+      actionButton(
+        "EDIT TIMES",
+        () => showAttendanceTimesModal(
+          record,
+          user,
+          actorName || adminDisplayName(null, user)
+        )
+      )
     );
   }
 
@@ -4513,13 +4543,17 @@ function showCheckoutTimeModal(record, onConfirm) {
       form.querySelector('input[name="checkout-time-choice"]:checked')?.value;
 
     let checkoutAt = null;
+    let checkoutMethod = "";
 
     if (selected === "shiftEnd") {
       checkoutAt = eventDateTimeForTimeValue(shiftEndTime);
+      checkoutMethod = "estimated_shift_end";
     } else if (selected === "current") {
       checkoutAt = new Date();
+      checkoutMethod = "actual_current_time";
     } else if (selected === "custom") {
       checkoutAt = eventDateTimeForTimeValue(customInput.value);
+      checkoutMethod = "custom";
     }
 
     if (!(checkoutAt instanceof Date) || Number.isNaN(checkoutAt.getTime())) {
@@ -4532,7 +4566,7 @@ function showCheckoutTimeModal(record, onConfirm) {
     confirm.disabled = true;
     confirm.textContent = "Saving…";
     root.textContent = "";
-    await onConfirm(checkoutAt);
+    await onConfirm(checkoutAt, checkoutMethod);
   });
 
   modal.card.appendChild(form);
@@ -4937,7 +4971,8 @@ async function transitionCheckin(
   action,
   uid,
   actorName,
-  checkoutAt = null
+  checkoutAt = null,
+  checkoutMethod = ""
 ) {
   try {
     await runTransaction(
@@ -4988,7 +5023,8 @@ async function transitionCheckin(
         if (
           action === "checkout" &&
           (!(checkoutAt instanceof Date) ||
-            Number.isNaN(checkoutAt.getTime()))
+            Number.isNaN(checkoutAt.getTime()) ||
+            !["actual_current_time", "estimated_shift_end", "custom"].includes(checkoutMethod))
         ) {
           throw new Error("invalid-checkout-time");
         }
@@ -5071,6 +5107,8 @@ async function transitionCheckin(
 
               checkedOutAt:
                 checkoutAt,
+
+              checkoutMethod,
 
               checkedOutBy:
                 uid,
