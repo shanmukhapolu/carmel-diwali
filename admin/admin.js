@@ -15,6 +15,7 @@ import {
 
 import { db } from "../firebase-init.js";
 import { requireAdmin, logout, isEnabledCheckinStaff } from "./auth.js";
+import { initVerificationPage } from "./verification.js";
 
 import {
   collection,
@@ -85,6 +86,11 @@ requireAdmin({
       initStatisticsPage();
       return;
     }
+
+    if (location.pathname.includes("verification")) {
+      initVerificationPage();
+      return;
+    }
   },
 
   onDenied: (message) => showError(message),
@@ -136,6 +142,7 @@ function renderNavigation(profile) {
           ["WhatsApp", "/admin/whatsapp.html"],
           ["Check-In", "/admin/checkin.html"],
           ["Statistics", "/admin/statistics.html"],
+          ["Verification", "/admin/verification.html"],
           ["Create Check-In Account", "/admin/signup.html"]
         ];
 
