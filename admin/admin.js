@@ -7520,13 +7520,10 @@ function openVolunteerReport(
 
   const executiveContent =
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
-    "<div class='two-col'><div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Attendance is recorded for " +
+    "<div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Attendance is recorded for " +
     attendedCount + " of " + expected + " shift registrations (" + showRate + "). The chart separates actual, estimated and incomplete checkouts.</p>" +
     donut(attendanceMix, String(expected), "booked shifts") + "</div>" +
-    "<div class='panel'><h3 class='panel-title'>Key findings</h3><p class='panel-note'>Highlights based on recorded attendance.</p><div class='insight-grid'>" +
-    (insights.slice(0, 4).join("") || "<p class='empty'>Not enough attendance data to generate role-level findings.</p>") +
-    "</div></div></div>" +
-    "<div class='note-box'><strong>How to read this report:</strong> counts are per shift registration. Distinct volunteers are deduplicated by normalized first and last name. A no-show means there is no recorded check-in or checkout. Estimated shift-end times are not counted as actual booth checkouts.</div>";
+    "<div class='note-box'><strong>How to read this report:</strong> counts are per shift registration. One volunteer with two shifts counts as two shift registrations but one distinct volunteer. Estimated shift-end times are not actual booth checkouts.</div>";
   pages.push(makePage(
     "01 / Executive summary", "At a glance",
     "A concise view of booked shifts, attendance outcomes, and checkout documentation for " + CONFIG.eventName + ".",
@@ -7542,9 +7539,7 @@ function openVolunteerReport(
     donut(topMix, String(expected), "registrations") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
     positionBarChart(positionChartItems) + "</div>" +
-    "<h3 class='section-title'>Position-level results</h3>" +
-    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionFirstRows, "compact") +
-    "<div class='note-box'><strong>Interpretation:</strong> the role with the most no-shows may differ from the role with the lowest show rate. Use both the count and percentage when planning staffing.</div>";
+    "<div class='note-box'><strong>Interpretation:</strong> the role with the most no-shows may differ from the role with the lowest show rate. Detailed counts and rates follow on the next pages.</div>";
   pages.push(makePage(
     "02 / Volunteer positions", "Where coverage landed",
     "Role-level turnout, distribution of volunteer registrations, and recorded no-shows.",
@@ -7563,9 +7558,7 @@ function openVolunteerReport(
   const shiftContent =
     "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Small booking counts are less conclusive, so compare rate with the number of bookings.</p>" +
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<h3 class='section-title'>Shift results</h3>" +
-    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows.slice(0, 7), "compact") +
-    "<div class='note-box'><strong>Planning use:</strong> review low-turnout shifts before the next registration cycle. Larger no-show counts may warrant reminders or a waitlist.</div>";
+    "<div class='note-box'><strong>Planning use:</strong> review low-turnout shifts before the next registration cycle. Larger no-show counts may warrant reminders or a waitlist. The complete shift table follows separately.</div>";
   pages.push(makePage(
     "03 / Shift performance", "Reliability by shift",
     "Compare turnout and coverage across individual scheduled time slots.",
@@ -7596,11 +7589,10 @@ function openVolunteerReport(
     kpi("Actual booth checkout rate", actualRate, checkoutCounts.actual + " registrations") +
     kpi("Estimated shift-end checkouts", String(checkoutCounts.estimated), "Kept separate from actual checkout") +
     kpi("Custom/admin checkout times", String(checkoutCounts.custom), "Kept separate from actual checkout") +
-    "</div><div class='two-col'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations categorized by their recorded closeout state.</p>" +
+    "</div><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations categorized by their recorded closeout state.</p>" +
     donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
-    "</div><div class='panel'><h3 class='panel-title'>Age response at registration</h3><p class='panel-note'>Based on age confirmation collected at signup; counts represent registrations.</p>" +
-    donut(ageMix, String(expected), "registrations") + "</div></div>" +
-    "<div class='note-box'><strong>Data quality:</strong> " +
+    "</div>" +
+    "<div class='note-box'><strong>Data quality:</strong> "
     (checkoutCounts.estimated
       ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
       : "No checkout records are currently classified as estimated shift-end placeholders.") +
@@ -7611,6 +7603,14 @@ function openVolunteerReport(
     "04 / Checkout quality", "Recorded hours and closeout",
     "Recorded duration depends on attendance timestamps and the method used to record checkout.",
     closeoutContent, "Hours & closeout"
+  ));
+
+  pages.push(makePage(
+    "04 / Checkout quality", "Volunteer registration profile",
+    "Age confirmation as reported on the registration form. Counts represent registrations, not unique people.",
+    "<div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Included as a planning summary only; it does not change attendance totals.</p>" +
+    donut(ageMix, String(expected), "registrations") + "</div>",
+    "Registration profile"
   ));
 
   const allDurationShifts = shiftStats.filter((item) => item.timedCount > 0)
@@ -7641,14 +7641,21 @@ function openVolunteerReport(
 
   const insightPageContent =
     "<div class='insight-grid'>" +
-    (insights.join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
-    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate based on one registration is a smaller sample than a 100% show rate across a full shift. Duration findings use recorded timestamps, and estimated checkout times remain identified as estimates.</div>" +
-    "<p class='small-muted'>Prepared by Shanmukha Polu &amp; Sonal Sanghani · Generated " + esc(generatedAt) + " · Event time zone: " + esc(EVENT_TIME_ZONE_LABEL) + ".</p>";
+    (insights.slice(0, 3).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
+    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
   pages.push(makePage(
-    "06 / Findings", "What the records suggest",
-    "Automatically generated highlights to support staffing decisions and improve future volunteer operations.",
-    insightPageContent, "Findings"
+    "02 / Key findings", "What stands out",
+    "A few notable patterns before the detailed tables and duration analysis.",
+    insightPageContent, "Key findings"
   ));
+  if (insights.length > 3) {
+    pages.push(makePage(
+      "02 / Key findings", "Additional observations",
+      "More findings from attendance and recorded shift duration.",
+      "<div class='insight-grid'>" + insights.slice(3).join("") + "</div>",
+      "Additional findings"
+    ));
+  }
 
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
