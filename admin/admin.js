@@ -7613,6 +7613,8 @@ function openVolunteerReport(
     closeoutContent, "Hours & closeout"
   ));
 
+  const allDurationShifts = shiftStats.filter((item) => item.timedCount > 0)
+    .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount);
   const durationRows = allDurationShifts.map((item) => [
     item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
     fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
