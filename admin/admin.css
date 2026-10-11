@@ -2274,3 +2274,439 @@ tbody tr:last-child td {
 .checkin-actions .big-action {
   white-space: nowrap;
 }
+
+
+/* ==========================================================================
+   VOLUNTEER VERIFICATION
+   ========================================================================== */
+.verification-layout {
+  max-width: 1760px;
+}
+
+.verification-hero {
+  padding: clamp(22px, 3vw, 34px);
+  border-top: 3px solid var(--admin-maroon);
+}
+
+.verification-intro {
+  max-width: 850px;
+  margin-bottom: 22px;
+  font-size: .95rem;
+}
+
+.verification-search-wrap {
+  max-width: 900px;
+}
+
+.verification-search-wrap input {
+  min-height: 50px;
+  background: #fff;
+}
+
+.verification-search-note {
+  margin: 7px 0 0;
+  font-size: .8rem;
+}
+
+.verification-workspace {
+  display: grid;
+  grid-template-columns: minmax(290px, .78fr) minmax(0, 1.55fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.verification-left,
+.verification-right,
+.verification-left > div,
+.verification-right > div {
+  min-width: 0;
+}
+
+.verification-results-panel,
+.verification-volunteer-summary,
+.verification-editor {
+  padding: 20px;
+  margin-bottom: 16px;
+  background: var(--admin-surface-solid);
+}
+
+.verification-empty {
+  padding: 27px 24px;
+  text-align: center;
+}
+
+.verification-empty h2 {
+  margin: 9px 0 7px;
+}
+
+.verification-empty p {
+  margin-bottom: 0;
+  font-size: .88rem;
+}
+
+.verification-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 15px;
+  background: #f2eafa;
+  color: var(--admin-maroon);
+  font-size: 26px;
+}
+
+.verification-results-heading,
+.verification-profile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.verification-results-heading .eyebrow,
+.verification-profile-head .eyebrow {
+  margin-bottom: 5px;
+}
+
+.verification-results-heading h2,
+.verification-profile-head h2 {
+  margin-bottom: 0;
+}
+
+.verification-hint {
+  color: var(--admin-maroon);
+  font-size: .75rem;
+  font-weight: 750;
+  text-align: right;
+}
+
+.verification-candidate-list {
+  display: grid;
+  gap: 8px;
+}
+
+.verification-candidate {
+  display: grid;
+  grid-template-columns: 39px minmax(0, 1fr) auto 10px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 78px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid var(--admin-border);
+  border-radius: 13px;
+  background: #fff;
+  color: var(--admin-text);
+  box-shadow: none;
+}
+
+.verification-candidate:hover,
+.verification-candidate.selected {
+  background: #fbf7ff;
+  border-color: #b59ad8;
+}
+
+.verification-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--admin-maroon), #80509a);
+  font-weight: 800;
+}
+
+.verification-candidate-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.verification-candidate-main strong {
+  overflow-wrap: anywhere;
+  font-size: .88rem;
+}
+
+.verification-candidate-main > span,
+.verification-candidate-main small {
+  color: var(--admin-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.verification-candidate-hours {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.verification-candidate-hours strong {
+  color: var(--admin-maroon);
+  font-size: .83rem;
+}
+
+.verification-candidate-hours small {
+  color: var(--admin-muted-light);
+  font-size: .65rem;
+}
+
+.verification-candidate-arrow {
+  color: var(--admin-muted-light);
+  font-size: 1.45rem;
+}
+
+.verification-privacy-note {
+  font-size: .76rem;
+  margin: 13px 0 0;
+}
+
+.verification-profile-head > div {
+  min-width: 0;
+}
+
+.verification-profile-head .muted {
+  overflow-wrap: anywhere;
+  margin: 6px 0 0;
+  font-size: .82rem;
+}
+
+.verification-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.verification-stat {
+  min-width: 0;
+  padding: 12px;
+  background: #faf7fc;
+  border: 1px solid #eee6f4;
+  border-radius: 12px;
+}
+
+.verification-stat span,
+.verification-stat small {
+  display: block;
+  color: var(--admin-muted);
+  font-size: .69rem;
+  line-height: 1.35;
+}
+
+.verification-stat strong {
+  display: block;
+  margin: 5px 0 3px;
+  color: var(--admin-maroon);
+  font-family: var(--admin-display);
+  font-size: clamp(1.1rem, 1.6vw, 1.5rem);
+  overflow-wrap: anywhere;
+}
+
+.verification-review-note,
+.verification-clear-note {
+  padding: 12px 14px;
+  border-radius: 11px;
+  font-size: .81rem;
+  line-height: 1.55;
+}
+
+.verification-review-note {
+  color: #6b4a0c;
+  background: #fff7e4;
+  border: 1px solid #f2e0ae;
+}
+
+.verification-clear-note {
+  color: #245c40;
+  background: #edf8f0;
+  border: 1px solid #d1ead9;
+}
+
+.verification-review-note strong,
+.verification-clear-note strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.verification-subheading {
+  margin: 22px 0 10px;
+  font-size: .98rem;
+}
+
+.verification-shift-list {
+  display: grid;
+  gap: 8px;
+}
+
+.verification-shift-row {
+  display: grid;
+  grid-template-columns: 25px minmax(125px, .85fr) minmax(165px, 1.2fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: #fffefa;
+}
+
+.verification-shift-index {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  color: var(--admin-maroon);
+  background: #f1e7f5;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.verification-shift-main,
+.verification-shift-times {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.verification-shift-main strong {
+  font-size: .8rem;
+  overflow-wrap: anywhere;
+}
+
+.verification-shift-main span,
+.verification-shift-main small,
+.verification-shift-times span,
+.verification-shift-times small {
+  font-size: .72rem;
+  line-height: 1.45;
+  color: var(--admin-muted);
+  overflow-wrap: anywhere;
+}
+
+.verification-shift-times b {
+  color: var(--admin-text);
+  font-weight: 750;
+}
+
+.verification-shift-status {
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: .58rem;
+  letter-spacing: .04em;
+  font-weight: 850;
+}
+
+.verification-shift-status.recorded {
+  background: #eaf6ef;
+  color: #28734d;
+}
+
+.verification-shift-status.estimated {
+  background: #fff5dc;
+  color: #936200;
+}
+
+.verification-shift-status.incomplete {
+  background: #fceef0;
+  color: #a32b42;
+}
+
+.verification-editor {
+  border-top: 3px solid var(--admin-maroon);
+}
+
+.verification-editor h2 {
+  margin-bottom: 7px;
+}
+
+.verification-editor > .muted {
+  font-size: .82rem;
+}
+
+.verification-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 18px;
+}
+
+.verification-field {
+  min-width: 0;
+}
+
+.verification-field input,
+.verification-field textarea {
+  width: 100%;
+  background: #fff;
+}
+
+.verification-field small {
+  display: block;
+  margin-top: 6px;
+  color: var(--admin-muted);
+  font-size: .73rem;
+  line-height: 1.4;
+}
+
+.verification-field-wide {
+  grid-column: 1 / -1;
+}
+
+.verification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.verification-actions button {
+  flex: 1 1 220px;
+}
+
+@media (max-width: 1180px) {
+  .verification-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .verification-candidate-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .verification-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .verification-candidate-list,
+  .verification-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .verification-field-wide {
+    grid-column: auto;
+  }
+
+  .verification-profile-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .verification-shift-row {
+    grid-template-columns: 25px minmax(0, 1fr);
+  }
+
+  .verification-shift-times {
+    grid-column: 2;
+  }
+
+  .verification-shift-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
