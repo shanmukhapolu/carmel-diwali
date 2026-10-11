@@ -432,17 +432,22 @@ function generateDocument(kind) {
 
   let page = "";
   if (isCertificate) {
-    page = "<main class='certificate'><div class='frame'></div><div class='certificate-inner'>" +
-      "<div class='brand-kicker'>✦ &nbsp; CARMEL DIWALI &nbsp; ✦</div><div class='overline'>FESTIVAL OF LIGHTS · VOLUNTEER RECOGNITION</div>" +
-      "<h1>Certificate of<br><span>Volunteer Service</span></h1><p class='intro'>This certificate is presented to</p>" +
+    page = "<main class='certificate'><div class='frame'></div>" +
+      "<div class='mandala mandala-left'>✺</div><div class='mandala mandala-right'>✺</div>" +
+      "<div class='certificate-inner'>" +
+      "<div class='festival-lockup'><div class='festival-monogram'>CD</div><div><div class='brand-kicker'>CARMEL DIWALI</div><div class='festival-subline'>FESTIVAL OF LIGHTS · CARMEL, INDIANA</div></div><div class='festival-year'>2026</div></div>" +
+      "<div class='certificate-ornament'>✧ &nbsp; ✦ &nbsp; ✧</div><div class='overline'>COMMUNITY CONTRIBUTION · VOLUNTEER RECOGNITION</div>" +
+      "<h1>Certificate of <span>Volunteer Service</span></h1><p class='intro'>Proudly presented to</p>" +
       "<div class='recipient'>" + esc(name) + "</div><div class='short-rule'></div>" +
       "<p class='main-copy'>In recognition of <strong>" + esc(hourText) + "</strong> of service as <strong>" +
-      esc(role || "Volunteer") + "</strong> in support of the <strong>" + esc(CONFIG.eventName) +
-      "</strong>.</p><p class='certificate-shifts'><span>ROLE &amp; SHIFT ASSIGNMENTS</span>" + esc(shiftSummary) + "</p>" +
+      esc(role || "Volunteer") + "</strong> for the <strong>" + esc(CONFIG.eventName) + "</strong>.</p>" +
+      "<p class='certificate-note'>" + esc(descriptionText) + "</p>" +
+      "<p class='certificate-shifts'><span>ROLE &amp; SHIFT ASSIGNMENTS</span>" + esc(shiftSummary) + "</p>" +
       "<p class='event-line'>" + esc(eventDate) + " <span>·</span> " + esc(CONFIG.location) + "</p>" +
-      "<div class='certificate-bottom'>" + signoff + "<div class='seal'><strong>CD</strong><span>COMMUNITY<br>SERVICE</span></div>" +
+      "<div class='certificate-bottom'>" + signoff +
+      "<div class='diya-seal'><svg viewBox='0 0 180 76' role='img' aria-label='Decorative diya lamp'><defs><linearGradient id='diyaGold' x1='0' x2='1'><stop offset='0' stop-color='#f3d58a'/><stop offset='.5' stop-color='#c99332'/><stop offset='1' stop-color='#f3d58a'/></linearGradient></defs><path d='M90 4 C78 19 79 29 90 37 C101 29 102 19 90 4Z' fill='#f4bd52'/><path d='M26 39 Q90 63 154 39 Q146 65 90 69 Q34 65 26 39Z' fill='#59257b'/><path d='M31 42 Q90 59 149 42' fill='none' stroke='url(#diyaGold)' stroke-width='3'/><circle cx='24' cy='25' r='3' fill='#d9b35e'/><circle cx='156' cy='25' r='3' fill='#d9b35e'/></svg><span>LIGHT · SERVICE · COMMUNITY</span></div>" +
       "<div class='signature'><div class='signature-name'>" + esc(issueDate) + "</div><div class='signature-rule'></div><strong>Date issued</strong><span>" +
-      esc(issueDate) + "</span></div></div><div class='certificate-note'>" + esc(descriptionText) + "</div></div></main>";
+      esc(issueDate) + "</span></div></div></div></main>";
   } else {
     page = "<main class='letter'><div class='letter-brand'><div class='monogram'>CD</div><div><strong>" +
       esc(CONFIG.eventName) + "</strong><span>Volunteer Service Verification</span></div></div><div class='accent'></div>" +
