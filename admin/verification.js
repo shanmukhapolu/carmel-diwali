@@ -499,7 +499,6 @@ function generateDocument(kind) {
     .certificate-bottom .signature span{font-size:8.5pt;line-height:1.4;color:#5f5567}
     @media screen and (max-width:900px){.certificate{width:11in;height:8.5in;min-height:8.5in;margin:20px auto;padding:.3in .42in}.certificate-inner{height:7.78in;min-height:7.78in;padding:.36in .48in .22in}.certificate-bottom{width:82%;gap:1.2in}.certificate .recipient{width:88%;font-size:28pt}}
     @media print{.certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;overflow:hidden}.certificate-inner{height:7.78in;min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}
-  `;e-inner{height:7.78in;min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}
   `;
   const html = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>" +
     esc(CONFIG.eventName) + " · " + (isCertificate ? "Volunteer Certificate" : "Hours Verification Letter") +
