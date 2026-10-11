@@ -7434,11 +7434,6 @@ function openVolunteerReport(
     ));
   }
 
-  const generatedAt = new Date().toLocaleString("en-US", {
-    month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
-    timeZone: EVENT_TIME_ZONE
-  }) + " " + EVENT_TIME_ZONE_LABEL;
-
   const styleLines = [
     ":root{color-scheme:light;--purple:#6d28d9;--purple-dark:#4c1d95;--purple-soft:#f5f3ff;--lavender:#ddd6fe;--ink:#242033;--muted:#716b7d;--line:#e8e4ed;--paper:#fff;--wash:#faf9fc}",
     "*{box-sizing:border-box}",
@@ -7453,7 +7448,7 @@ function openVolunteerReport(
     ".eyebrow{font-size:9pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}",
     ".cover h1{font-size:39pt;line-height:1.05;letter-spacing:-.045em;max-width:6.1in;margin:20px 0 18px;font-weight:750}",
     ".cover-subtitle{font-size:16pt;line-height:1.35;color:#5d526d;max-width:5.7in}",
-    ".cover-meta{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:5.8in}",
+    ".cover-meta{margin-top:30px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:6.8in}",
     ".meta-label{display:block;text-transform:uppercase;letter-spacing:.09em;font-size:8pt;color:var(--muted);font-weight:700;margin-bottom:4px}.meta-value{font-size:11pt;font-weight:650}",
     ".cover-bottom{border-top:1px solid var(--line);padding-top:22px;display:flex;justify-content:space-between;gap:20px;align-items:end}.byline{font-size:11pt;font-weight:700}.small-muted{font-size:8.5pt;color:var(--muted)}",
     ".cover-mark{position:absolute;right:-95px;top:2.1in;width:3.6in;height:3.6in;border:1px solid #e9e2fa;border-radius:50%;box-shadow:0 0 0 26px #f9f7ff,0 0 0 54px #fcfbff}",
@@ -7520,7 +7515,7 @@ function openVolunteerReport(
   }
 
   function makePage(section, title, subtitle, pageContent, footerLabel) {
-    return "<section class='page report-section'><div class='page-head'><div><div class='eyebrow'>" +
+    return "<section class='page report-section' data-section='" + esc(section) + "'><div class='page-head'><div><div class='eyebrow'>" +
       esc(section) + "</div><h2 class='page-title'>" + esc(title) +
       "</h2><div class='page-subtitle'>" + esc(subtitle) +
       "</div></div></div><div class='page-content'>" + pageContent +
@@ -7544,8 +7539,7 @@ function openVolunteerReport(
     "<p class='cover-subtitle'>Attendance, shift coverage and volunteer time. A data-led review of how the volunteer operation performed.</p>" +
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
     esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
-    esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div><div><span class='meta-label'>Report generated</span><span class='meta-value'>" +
-    esc(generatedAt) + "</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
+    esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
   );
 
   const tocEntries = [];
