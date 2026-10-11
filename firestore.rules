@@ -382,6 +382,11 @@ service cloud.firestore {
               resource.data.status == "checked_in"
               && request.resource.data.status == "completed"
               && request.resource.data.checkedOutAt is timestamp
+              && request.resource.data.checkoutMethod in [
+                "actual_current_time",
+                "estimated_shift_end",
+                "custom"
+              ]
               && request.resource.data.checkedOutBy == request.auth.uid
               && request.resource.data.checkedOutByName is string
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -390,6 +395,7 @@ service cloud.firestore {
                 "updatedBy",
                 "updatedByName",
                 "checkedOutAt",
+                "checkoutMethod",
                 "checkedOutBy",
                 "checkedOutByName"
               ])
