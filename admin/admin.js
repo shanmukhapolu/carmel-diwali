@@ -7477,7 +7477,7 @@ function openVolunteerReport(
     "@media screen and (max-width:800px){.page{width:100%;margin:10px auto;padding:26px 22px;min-height:auto}.cover{min-height:760px}.cover h1{font-size:31pt}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.page-foot{position:static;margin-top:30px}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}"
   ];
 
-  styleLines.push(".page-content{flex:1;min-height:0;overflow:hidden}.page-content > .section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px} @media screen and (max-width:800px){.page-content{overflow:visible}}");
+  styleLines.push(".page-content{flex:0 0 auto;min-height:0;overflow:visible}.page-content > .section-title:first-child{margin-top:3px}.page-content .panel{margin:9px 0 11px}.page-content .section-title{margin-top:13px} @media screen and (max-width:800px){.page-content{overflow:visible}}");
   styleLines[styleLines.findIndex((rule) => rule.startsWith("@media screen and (max-width:800px)"))] =
     "@media screen and (max-width:800px){.page{width:100%;height:auto;min-height:0;margin:10px auto;padding:28px 22px;overflow:visible}.cover{min-height:760px;height:auto}.page-content{overflow:visible}.page-foot{margin-top:28px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.donut-layout{grid-template-columns:145px minmax(0,1fr)}.insight-grid{grid-template-columns:1fr}.cover-mark{right:-180px;opacity:.5}}";
 
