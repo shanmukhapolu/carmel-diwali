@@ -7563,7 +7563,7 @@ function openVolunteerReport(
 
   const insightPageContent =
     "<div class='insight-grid'>" +
-    (insights.slice(0, 3).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
+    (insights.join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
     "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
   noteToc("Key findings", "Main patterns and observations drawn from the attendance records.");
   pages.push(makePage(
@@ -7571,14 +7571,6 @@ function openVolunteerReport(
     "A few notable patterns before the detailed tables and duration analysis.",
     insightPageContent, "Key findings"
   ));
-  if (insights.length > 3) {
-    pages.push(makePage(
-      "02 / Key findings", "Additional observations",
-      "More findings from attendance and recorded shift duration.",
-      "<div class='insight-grid'>" + insights.slice(3).join("") + "</div>",
-      "Additional findings"
-    ));
-  }
 
   const positionChartItems = positionStats.slice().sort((x, y) =>
     y.noShows - x.noShows || y.expected - x.expected
