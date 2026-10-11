@@ -7559,14 +7559,14 @@ function openVolunteerReport(
     positionBarChart(positionChartItems) + "</div>" +
     "<div class='note-box'><strong>Interpretation:</strong> the role with the most no-shows may differ from the role with the lowest show rate. Detailed counts and rates follow on the next pages.</div>";
   pages.push(makePage(
-    "02 / Volunteer positions", "Where coverage landed",
+    "03 / Volunteer positions", "Where coverage landed",
     "Role-level turnout, distribution of volunteer registrations, and recorded no-shows.",
     positionContent, "Position performance"
   ));
 
   chunkRows(positionTableRows, 7).forEach((rows, index) => {
     pages.push(makePage(
-      "02 / Volunteer positions", "Position results · continued",
+      "03 / Volunteer positions", "Position results · continued",
       "Additional roles, sorted by registrations without a recorded check-in.",
       reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], rows, "compact"),
       "Position detail " + (index + 1)
@@ -7578,14 +7578,14 @@ function openVolunteerReport(
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
     "<div class='note-box'><strong>Planning use:</strong> review low-turnout shifts before the next registration cycle. Larger no-show counts may warrant reminders or a waitlist. The complete shift table follows separately.</div>";
   pages.push(makePage(
-    "03 / Shift performance", "Reliability by shift",
+    "04 / Shift performance", "Reliability by shift",
     "Compare turnout and coverage across individual scheduled time slots.",
     shiftContent, "Shift performance"
   ));
 
   chunkRows(shiftTableRows, 7).forEach((rows, index) => {
     pages.push(makePage(
-      "03 / Shift performance", "Shift results · continued",
+      "04 / Shift performance", "Shift results · continued",
       "Remaining shifts, sorted by the number of registrations without recorded attendance.",
       reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], rows, "compact"),
       "Shift detail " + (index + 1)
@@ -7600,14 +7600,7 @@ function openVolunteerReport(
   ];
 
   const closeoutContent =
-    "<div class='kpi-grid'>" +
-    kpi("Total recorded time", fmtHours(totalMinutes / 60), "Actual, estimated and custom timed sessions") +
-    kpi("Actual-checkout time", fmtHours(actualMinutes / 60), "Only sessions ending with actual booth checkout") +
-    kpi("Check-in / estimated rate", checkinEstimatedRate, checkinEstimatedCount + " registrations") +
-    kpi("Actual booth checkout rate", actualRate, checkoutCounts.actual + " registrations") +
-    kpi("Estimated shift-end checkouts", String(checkoutCounts.estimated), "Kept separate from actual checkout") +
-    kpi("Custom/admin checkout times", String(checkoutCounts.custom), "Kept separate from actual checkout") +
-    "</div><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations categorized by their recorded closeout state.</p>" +
+    "<div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Each registration is grouped by how its attendance record was closed out.</p>" +
     donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
     "</div>" +
     "<div class='note-box'><strong>Data quality:</strong> " +
@@ -7618,13 +7611,13 @@ function openVolunteerReport(
     (lateNoCheckin ? " " + lateNoCheckin + " registration(s) were marked late but have no check-in timestamp." : "") +
     "</div>";
   pages.push(makePage(
-    "04 / Checkout quality", "Recorded hours and closeout",
+    "05 / Checkout quality", "Recorded hours and closeout",
     "Recorded duration depends on attendance timestamps and the method used to record checkout.",
     closeoutContent, "Hours & closeout"
   ));
 
   pages.push(makePage(
-    "04 / Checkout quality", "Volunteer registration profile",
+    "05 / Checkout quality", "Volunteer registration profile",
     "Age confirmation as reported on the registration form. Counts represent registrations, not unique people.",
     "<div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Included as a planning summary only; it does not change attendance totals.</p>" +
     donut(ageMix, String(expected), "registrations") + "</div>",
@@ -7641,7 +7634,7 @@ function openVolunteerReport(
   if (durationChunks.length) {
     durationChunks.forEach((rows, index) => {
       pages.push(makePage(
-        "05 / Shift duration",
+        "06 / Service time",
         index === 0 ? "How long volunteers stayed" : "Shift duration · continued",
         "Average, median and longest recorded duration. Only shifts with valid check-in and checkout timestamps are included.",
         reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], rows, "compact"),
@@ -7650,7 +7643,7 @@ function openVolunteerReport(
     });
   } else {
     pages.push(makePage(
-      "05 / Shift duration", "How long volunteers stayed",
+      "06 / Service time", "How long volunteers stayed",
       "Average, median and longest recorded duration.",
       "<p class='empty'>No shift currently has valid check-in and checkout timestamps for duration analysis.</p>",
       "Duration analysis"
