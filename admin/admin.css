@@ -2719,3 +2719,169 @@ tbody tr:last-child td {
     justify-self: start;
   }
 }
+
+
+/* ==========================================================================
+   STAFF ACCESS MANAGEMENT
+   ========================================================================== */
+
+.staff-heading {
+  align-items: flex-start;
+}
+
+.staff-toolbar {
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 12px;
+}
+
+.staff-search-field {
+  flex: 1 1 320px;
+  max-width: 560px;
+  min-width: 220px;
+}
+
+.staff-search-field input {
+  width: 100%;
+}
+
+.staff-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.staff-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--admin-border, #eadfce);
+  border-radius: 14px;
+  background: var(--admin-surface-solid, #ffffff);
+}
+
+.staff-account-identity {
+  min-width: 0;
+}
+
+.staff-account-identity h3 {
+  margin: 0;
+  color: var(--admin-ink, #2e2330);
+  font-size: 1rem;
+}
+
+.staff-account-email {
+  margin: 4px 0 0;
+  color: var(--admin-muted, #746a81);
+  font-size: .9rem;
+  overflow-wrap: anywhere;
+}
+
+.staff-account-details {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.staff-account-created {
+  color: var(--admin-muted, #746a81);
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+.staff-modal-card {
+  width: min(650px, 100%);
+}
+
+.staff-modal-heading {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.staff-modal-heading h2 {
+  margin: 0 0 6px;
+}
+
+.staff-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.staff-form-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.staff-form-field label {
+  font-weight: 700;
+}
+
+.staff-form-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.staff-form-wide {
+  grid-column: 1 / -1;
+}
+
+.staff-modal-note {
+  margin: 16px 0;
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.staff-modal-actions {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+#staff-count {
+  margin: 0;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .staff-heading,
+  .staff-account-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .staff-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #staff-count {
+    text-align: left;
+  }
+
+  .staff-account-details {
+    justify-content: flex-start;
+  }
+
+  .staff-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-form-wide {
+    grid-column: auto;
+  }
+
+  .staff-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .staff-modal-actions button {
+    width: 100%;
+  }
+}
