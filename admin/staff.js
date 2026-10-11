@@ -220,6 +220,9 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     const profile = await getAdminProfile(user);
+    document.body.classList.remove("admin-auth-checking");
+    document.body.classList.add("admin-auth-ready");
+
     if (isEnabledCheckinStaff(profile)) {
       window.location.replace("/admin/checkin.html");
       return;
@@ -239,6 +242,8 @@ onAuthStateChanged(auth, async (user) => {
     );
     loadStaffAccounts();
   } catch (error) {
+    document.body.classList.remove("admin-auth-checking");
+    document.body.classList.add("admin-auth-ready");
     console.error("[Diwali Staff] administrator access check failed:", {
       code: error?.code || "unknown"
     });
