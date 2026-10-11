@@ -5222,80 +5222,70 @@ function computeOpsStats(
   regs,
   checkins
 ) {
-  const records =
-    mergedRecords(
-      regs,
-      checkins
-    );
+  const records = mergedRecords(regs, checkins);
 
   const counts = {
-    expected:
-      records.length,
-
+    expected: records.length,
     checkedIn: 0,
-
     checkedOut: 0,
-
+    customCheckout: 0,
     notArrived: 0,
-
     late: 0
   };
 
-  for (
-    const r of records
-  ) {
-    const status =
-      r.checkin
-        ?.status;
+  for (const record of records) {
+    const attendance = record.checkin || {};
+    const status = attendance.status;
+    const method = effectiveCheckoutMethod(record);
+    const hasCheckoutTime = Boolean(toDate(attendance.checkedOutAt));
 
+    // This category represents volunteers still checked in, or whose shift-end
+    // was entered as an estimated checkout after they forgot to check out.
     if (
-      status ===
-      "checked_in"
+      status === "checked_in" ||
+      (status === "completed" &&
+        hasCheckoutTime &&
+        method === "estimated_shift_end")
     ) {
       counts.checkedIn += 1;
     }
 
+    // The checkout rate is intentionally limited to actual/current-time
+    // booth checkouts. Estimates and custom administrative entries are separate.
     if (
-      status ===
-      "completed"
+      status === "completed" &&
+      hasCheckoutTime &&
+      method === "actual_current_time"
     ) {
       counts.checkedOut += 1;
     }
 
     if (
-      status ===
-      "late"
+      status === "completed" &&
+      hasCheckoutTime &&
+      method === "custom"
     ) {
+      counts.customCheckout += 1;
+    }
+
+    if (status === "late") {
       counts.late += 1;
     }
   }
 
-  counts.notArrived =
-    Math.max(
-      0,
-      counts.expected -
-        counts.checkedIn -
-        counts.checkedOut
-    );
+  counts.notArrived = Math.max(
+    0,
+    counts.expected -
+      counts.checkedIn -
+      counts.checkedOut -
+      counts.customCheckout
+  );
 
   counts.rates = {
-    checkin:
-      percent(
-        counts.checkedIn,
-        counts.expected
-      ),
-
-    checkout:
-      percent(
-        counts.checkedOut,
-        counts.expected
-      ),
-
-    notArrived:
-      percent(
-        counts.notArrived,
-        counts.expected
-      )
+    checkin: percent(counts.checkedIn, counts.expected),
+    checkout: percent(counts.checkedOut, counts.expected),
+    customCheckout: percent(counts.customCheckout, counts.expected),
+    notArrived: percent(counts.notArrived, counts.expected)
   };
 
   return counts;
@@ -5328,100 +5318,42 @@ function renderOperationsDashboard(
 ) {
   if (!root) return;
 
-  const stats =
-    computeOpsStats(
-      regs,
-      checkins
-    );
-
+  const stats = computeOpsStats(regs, checkins);
   root.textContent = "";
 
-  const title =
-    document.createElement(
-      "h2"
-    );
+  const title = document.createElement("h2");
+  title.textContent = "Today's volunteer stats";
 
-  title.textContent =
-    "Today's volunteer stats";
-
-  const list =
-    document.createElement(
-      "div"
-    );
-
-  list.className =
-    "checkin-stat-list";
+  const list = document.createElement("div");
+  list.className = "checkin-stat-list";
 
   [
-    [
-      "Not checked in",
-      stats.notArrived
-    ],
+    ["Not arrived / incomplete", stats.notArrived],
+    ["Checked in only / estimated", stats.checkedIn],
+    ["Actual booth checkout", stats.checkedOut],
+    ["Custom/admin checkout", stats.customCheckout],
+    ["Late", stats.late],
+    ["Expected", stats.expected]
+  ].forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "checkin-stat-row";
 
-    [
-      "Checked in",
-      stats.checkedIn
-    ],
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
 
-    [
-      "Checked out",
-      stats.checkedOut
-    ],
+    const valueEl = document.createElement("b");
+    valueEl.textContent = String(value);
 
-    [
-      "Late",
-      stats.late
-    ],
+    row.append(labelEl, valueEl);
+    list.appendChild(row);
+  });
 
-    [
-      "Expected",
-      stats.expected
-    ]
-  ].forEach(
-    ([label, value]) => {
-      const row =
-        document.createElement(
-          "div"
-        );
-
-      row.className =
-        "checkin-stat-row";
-
-      const labelEl =
-        document.createElement(
-          "span"
-        );
-
-      labelEl.textContent =
-        label;
-
-      const valueEl =
-        document.createElement(
-          "b"
-        );
-
-      valueEl.textContent =
-        String(value);
-
-      row.append(
-        labelEl,
-        valueEl
-      );
-
-      list.appendChild(
-        row
-      );
-    }
-  );
-
-  root.append(
-    title,
-    list
-  );
+  root.append(title, list);
 }
 
 
 /* =========================================================
+   ACTIVITY/* =========================================================
    ACTIVITY
 ========================================================= */
 
@@ -6877,15 +6809,14 @@ function dayOfOverview(records) {
   const insights = computeAttendanceInsights(records);
 
   return statGrid([
-    ["Expected shift assignments", stats.expected, "Registrations, not deduplicated people"],
-    ["Checked in / active", stats.checkedIn, "Volunteers currently checked in"],
-    ["Checked out", stats.checkedOut, stats.rates.checkout + " of expected registrations"],
+    ["Expected shift assignments", stats.expected, "Volunteer registrations for the event"],
+    ["Checked in only / estimated", stats.checkedIn, "Includes currently checked-in volunteers and admin shift-end placeholders"],
+    ["Actual booth checkouts", stats.checkedOut, stats.rates.checkout + " of expected registrations"],
+    ["Custom/admin-adjusted checkouts", stats.customCheckout, stats.rates.customCheckout + " of expected registrations"],
     ["Not arrived / incomplete", stats.notArrived, stats.rates.notArrived + " of expected registrations"],
     ["Total logged volunteering hours", insights.totalHours.toFixed(1), "Includes estimated shift-end placeholders"],
     ["Average completed shift", formatDurationMinutes(insights.averageMinutes), insights.timedShifts + " shifts with valid timestamps"],
-    ["Actual/current-time checkouts", insights.actualCheckoutCount, "Includes legacy checkouts from the old system"],
-    ["Estimated shift-end checkouts", insights.estimatedCheckoutCount, "Admin placeholder for volunteers who forgot to check out"],
-    ["Custom/admin-adjusted checkouts", insights.customCheckoutCount, "Manually specified checkout time"]
+    ["Estimated shift-end checkouts", insights.estimatedCheckoutCount, "Admin placeholder for volunteers who forgot to check out"]
   ]);
 }
 
@@ -6902,16 +6833,18 @@ function dayOfStatsPanel(records) {
 
   return chartPanel(
     "Attendance completion",
-    "Compares expected shift assignments with arrival and checkout completion.",
+    "Checked-in-only includes volunteers still checked in and those given a shift-end estimate. Actual checkout includes only booth checkouts recorded at current time.",
     [
       { label: "Expected", value: stats.expected },
-      { label: "Checked in", value: stats.checkedIn },
-      { label: "Checked out", value: stats.checkedOut },
+      { label: "Checked in only / estimate", value: stats.checkedIn },
+      { label: "Actual booth checkout", value: stats.checkedOut },
+      { label: "Custom/admin time", value: stats.customCheckout },
       { label: "Not arrived", value: stats.notArrived }
     ],
     [
-      "Check-in rate — " + stats.rates.checkin,
-      "Checkout completion rate — " + stats.rates.checkout,
+      "Check-in-only / estimated rate — " + stats.rates.checkin,
+      "Actual/current-time checkout rate — " + stats.rates.checkout,
+      "Custom/admin-adjusted checkout rate — " + stats.rates.customCheckout,
       "Valid timed shifts — " + insights.timedShifts,
       "Incomplete/missing timestamps — " + insights.missingTimestampCount
     ]
