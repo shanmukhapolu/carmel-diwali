@@ -76,30 +76,32 @@
         <button id="staff-modal-close" class="secondary" type="button" aria-label="Close dialog">Close</button>
       </div>
 
-      <form id="staff-create-form">
+      <form id="signup-form">
         <div class="staff-form-grid">
           <div class="staff-form-field staff-form-wide">
-            <label for="staff-display-name">Display name</label>
-            <input id="staff-display-name" name="displayName" type="text" autocomplete="off" maxlength="80" required>
+            <label for="displayName">Display name</label>
+            <input id="displayName" name="displayName" type="text" autocomplete="off" maxlength="80" required>
           </div>
           <div class="staff-form-field staff-form-wide">
-            <label for="staff-email-input">Email address</label>
-            <input id="staff-email-input" name="email" type="email" autocomplete="off" required>
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" autocomplete="off" required>
           </div>
           <div class="staff-form-field">
-            <label for="staff-password">Temporary password</label>
-            <input id="staff-password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+            <label for="password">Temporary password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
           </div>
           <div class="staff-form-field">
-            <label for="staff-confirm-password">Confirm password</label>
-            <input id="staff-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
+            <label for="confirmPassword">Confirm password</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
           </div>
         </div>
         <p class="muted staff-modal-note">Share the credentials securely with the person being added. They can use the same administrator sign-in page to access Check-In.</p>
-        <p id="staff-modal-error" class="error" role="alert"></p>
+        <p id="signed-in-admin" class="muted"></p>
+        <p id="success" class="success" role="status" aria-live="polite"></p>
+        <p id="error" class="error" role="alert"></p>
         <div class="header-actions staff-modal-actions">
           <button id="staff-cancel" class="secondary" type="button">Cancel</button>
-          <button id="staff-submit" class="primary" type="submit">Create Check-In Account</button>
+          <button id="submit" class="primary" type="submit" disabled>Create Check-In Account</button>
         </div>
       </form>
     </section>
