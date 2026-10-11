@@ -4325,16 +4325,20 @@ function checkinCard(
     actions.append(
       actionButton(
         "CHECK OUT",
-
         () =>
-          transitionCheckin(
-            record.id,
-            "checkout",
-            user.uid,
-            actorName ||
-              adminDisplayName(
-                null,
-                user
+          showCheckoutTimeModal(
+            record,
+            (checkoutAt) =>
+              transitionCheckin(
+                record.id,
+                "checkout",
+                user.uid,
+                actorName ||
+                  adminDisplayName(
+                    null,
+                    user
+                  ),
+                checkoutAt
               )
           )
       )
@@ -4355,6 +4359,247 @@ function checkinCard(
   }
 
   return card;
+}
+
+
+function showCheckoutTimeModal(record, onConfirm) {
+  const root = $("modal-root");
+  if (!root) return;
+
+  root.textContent = "";
+
+  const name = [
+    record.firstName || "",
+    record.lastName || ""
+  ].join(" ").trim() || "this volunteer";
+
+  const configuredShift =
+    findShift(record.shiftId)?.shift ||
+    findConfiguredShiftForRecord(record);
+
+  const shiftEndHHMM = configuredShift
+    ? normalizeStoredShiftTimeForAdmin(configuredShift.endTime)
+    : "";
+
+  const shiftEndTime = shiftEndHHMM
+    ? `${shiftEndHHMM.slice(0, 2)}:${shiftEndHHMM.slice(2, 4)}`
+    : "";
+
+  const modal = modalShell(`Check out ${name}`);
+
+  const form = document.createElement("form");
+  form.className = "checkout-time-form";
+
+  const intro = document.createElement("p");
+  intro.textContent =
+    `Choose the checkout timestamp for this volunteer. The event date was ${formatDriveDate(CONFIG.eventDate)}.`;
+  form.appendChild(intro);
+
+  const choiceGroup = document.createElement("div");
+  choiceGroup.className = "checkout-time-options";
+
+  function addChoice(value, titleText, descriptionText, checked, disabled = false) {
+    const label = document.createElement("label");
+    label.className = "checkout-time-option";
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "checkout-time-choice";
+    radio.value = value;
+    radio.checked = checked;
+    radio.disabled = disabled;
+
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = titleText;
+    const description = document.createElement("small");
+    description.textContent = descriptionText;
+
+    copy.append(title, description);
+    label.append(radio, copy);
+    choiceGroup.appendChild(label);
+    return radio;
+  }
+
+  const shiftRadio = addChoice(
+    "shiftEnd",
+    "Use shift end time",
+    shiftEndHHMM
+      ? `${formatDriveDate(CONFIG.eventDate)} at ${formatTime(configuredShift.endTime)} (${EVENT_TIME_ZONE_LABEL})`
+      : "No configured shift end time was found for this registration.",
+    Boolean(shiftEndHHMM),
+    !shiftEndHHMM
+  );
+
+  const currentRadio = addChoice(
+    "current",
+    "Use current time",
+    `Record the moment you confirm checkout: ${new Date().toLocaleString("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: EVENT_TIME_ZONE
+    })} (${EVENT_TIME_ZONE_LABEL}).`,
+    !shiftEndHHMM
+  );
+
+  const customRadio = addChoice(
+    "custom",
+    "Choose a custom time",
+    `Set a specific time on the event date, ${formatDriveDate(CONFIG.eventDate)}.`,
+    false
+  );
+
+  const customWrap = document.createElement("div");
+  customWrap.className = "checkout-time-custom";
+
+  const customLabel = document.createElement("label");
+  customLabel.textContent = "Custom checkout time";
+  customLabel.htmlFor = "checkout-custom-time";
+
+  const customInput = document.createElement("input");
+  customInput.type = "time";
+  customInput.id = "checkout-custom-time";
+  customInput.name = "customCheckoutTime";
+  customInput.value = shiftEndTime;
+  customInput.disabled = true;
+  customInput.required = false;
+
+  const customHelp = document.createElement("p");
+  customHelp.className = "muted";
+  customHelp.textContent =
+    "The selected time will be saved on the event date in Eastern Time.";
+
+  customWrap.append(customLabel, customInput, customHelp);
+  form.append(choiceGroup, customWrap);
+
+  function syncCustomInput() {
+    const useCustom = customRadio.checked;
+    customInput.disabled = !useCustom;
+    customInput.required = useCustom;
+  }
+
+  [shiftRadio, currentRadio, customRadio].forEach((radio) => {
+    radio.addEventListener("change", syncCustomInput);
+  });
+
+  const error = document.createElement("p");
+  error.className = "error";
+  error.setAttribute("role", "alert");
+
+  const footer = document.createElement("div");
+  footer.className = "checkout-time-footer";
+
+  const cancel = smallButton("Cancel", () => {
+    root.textContent = "";
+  });
+  cancel.className = "secondary";
+  cancel.addEventListener("click", () => {
+    root.textContent = "";
+  }, { once: true });
+
+  const confirm = document.createElement("button");
+  confirm.type = "submit";
+  confirm.className = "primary";
+  confirm.textContent = "Confirm Check Out";
+
+  footer.append(cancel, confirm);
+  form.append(error, footer);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    error.textContent = "";
+
+    const selected =
+      form.querySelector('input[name="checkout-time-choice"]:checked')?.value;
+
+    let checkoutAt = null;
+
+    if (selected === "shiftEnd") {
+      checkoutAt = eventDateTimeForTimeValue(shiftEndTime);
+    } else if (selected === "current") {
+      checkoutAt = new Date();
+    } else if (selected === "custom") {
+      checkoutAt = eventDateTimeForTimeValue(customInput.value);
+    }
+
+    if (!(checkoutAt instanceof Date) || Number.isNaN(checkoutAt.getTime())) {
+      error.textContent = selected === "custom"
+        ? "Enter a valid custom checkout time."
+        : "Select a valid checkout time.";
+      return;
+    }
+
+    confirm.disabled = true;
+    confirm.textContent = "Saving…";
+    root.textContent = "";
+    await onConfirm(checkoutAt);
+  });
+
+  modal.card.appendChild(form);
+  root.appendChild(modal.overlay);
+}
+
+function eventDateTimeForTimeValue(timeValue) {
+  const match = String(timeValue || "").match(/^(\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+
+  if (hour > 23 || minute > 59) return null;
+
+  const dateParts = String(CONFIG.eventDate || "")
+    .split("-")
+    .map(Number);
+
+  if (
+    dateParts.length !== 3 ||
+    dateParts.some((part) => !Number.isFinite(part) || part <= 0)
+  ) {
+    return null;
+  }
+
+  const [year, month, day] = dateParts;
+  const wallClockAsUtc = Date.UTC(
+    year,
+    month - 1,
+    day,
+    hour,
+    minute,
+    0,
+    0
+  );
+
+  // Resolve the event's wall-clock time into a true timestamp using the
+  // configured event time zone, regardless of the device's local time zone.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(wallClockAsUtc));
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)])
+  );
+
+  const representedAsUtc = Date.UTC(
+    values.year,
+    values.month - 1,
+    values.day,
+    values.hour,
+    values.minute,
+    0,
+    0
+  );
+
+  const timezoneOffset = representedAsUtc - wallClockAsUtc;
+  return new Date(wallClockAsUtc - timezoneOffset);
 }
 
 
@@ -4392,7 +4637,8 @@ async function transitionCheckin(
   id,
   action,
   uid,
-  actorName
+  actorName,
+  checkoutAt = null
 ) {
   try {
     await runTransaction(
@@ -4438,6 +4684,14 @@ async function transitionCheckin(
           throw new Error(
             "already-updated"
           );
+        }
+
+        if (
+          action === "checkout" &&
+          (!(checkoutAt instanceof Date) ||
+            Number.isNaN(checkoutAt.getTime()))
+        ) {
+          throw new Error("invalid-checkout-time");
         }
 
         const base = {
@@ -4517,7 +4771,7 @@ async function transitionCheckin(
                 "completed",
 
               checkedOutAt:
-                serverTimestamp(),
+                checkoutAt,
 
               checkedOutBy:
                 uid,
