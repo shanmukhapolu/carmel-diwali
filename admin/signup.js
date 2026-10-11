@@ -128,9 +128,17 @@ form.addEventListener("submit", async (event) => {
     profileCreated = true;
     passwordInput.value = "";
     confirmPasswordInput.value = "";
-    showSuccess(
-      `Account created and enabled for Check-In. Sign in at /admin/login.html using ${email}. The matching Firestore role record was created automatically.`
-    );
+
+    if (document.getElementById("staff-modal")) {
+      const message = "Created and enabled Check-In access for " + email + ".";
+      window.dispatchEvent(new CustomEvent("diwali:staff-account-created", {
+        detail: { message }
+      }));
+    } else {
+      showSuccess(
+        `Account created and enabled for Check-In. Sign in at /admin/login.html using ${email}. The matching Firestore role record was created automatically.`
+      );
+    }
   } catch (error) {
     console.error("[Diwali Check-In Signup] account creation failed:", {
       code: error?.code || "unknown"
@@ -187,7 +195,7 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
     redirecting = true;
-    window.location.replace("/admin/login.html?returnTo=%2Fadmin%2Fsignup.html");
+    window.location.replace("/admin/login.html?returnTo=%2Fadmin%2Fstaff.html");
     return;
   }
 
