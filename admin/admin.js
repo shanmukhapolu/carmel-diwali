@@ -4297,7 +4297,7 @@ function checkinCard(
 
   const checkoutInfo = record.checkin?.checkedOutAt
     ? "Checked out " + timeOnly(record.checkin.checkedOutAt) + " · " +
-      checkoutMethodLabel(record.checkin.checkoutMethod || "actual_current_time")
+      checkoutMethodLabel(effectiveCheckoutMethod(record))
     : "";
   const timeDetail = document.createElement("p");
   timeDetail.className = "checkin-time-detail";
@@ -4663,6 +4663,39 @@ function actionButton(
 }
 
 
+function effectiveCheckoutMethod(record) {
+  const attendance = record?.checkin || {};
+  const storedMethod = attendance.checkoutMethod;
+  if (["actual_current_time", "estimated_shift_end", "custom"].includes(storedMethod)) {
+    return storedMethod;
+  }
+
+  const checkedOutAt = toDate(attendance.checkedOutAt);
+  if (!checkedOutAt) return "actual_current_time";
+
+  // A previous version allowed admins to save the scheduled shift end as a
+  // placeholder but did not store the chosen method. Its timestamp is exactly
+  // the scheduled minute with zero seconds; infer only that strong match.
+  const shift = findShift(record.shiftId)?.shift ||
+    findConfiguredShiftForRecord(record);
+  const rawEndTime = shift?.endTime || record.shiftEndTime || "";
+  const endHHMM = normalizeStoredShiftTimeForAdmin(rawEndTime);
+  if (!endHHMM) return "actual_current_time";
+
+  const expectedShiftEnd = eventDateTimeForTimeValue(
+    endHHMM.slice(0, 2) + ":" + endHHMM.slice(2, 4)
+  );
+  if (
+    expectedShiftEnd &&
+    checkedOutAt.getTime() === expectedShiftEnd.getTime()
+  ) {
+    return "estimated_shift_end";
+  }
+
+  return "actual_current_time";
+}
+
+
 function checkoutMethodLabel(method) {
   switch (method) {
     case "estimated_shift_end":
@@ -4817,13 +4850,13 @@ function showAttendanceTimesModal(record, user, actorName) {
   ].forEach(([value, label]) => {
     methodSelect.append(new Option(label, value));
   });
-  methodSelect.value = existing.checkoutMethod || "actual_current_time";
+  methodSelect.value = effectiveCheckoutMethod(record);
   methodSelect.disabled = !existing.checkedOutAt;
 
   const methodHint = document.createElement("small");
   methodHint.className = "muted";
   methodHint.textContent =
-    "Older checkouts without method metadata are treated as actual/current-time checkouts, matching the old system.";
+    "Older records without method metadata default to actual/current-time, except exact scheduled shift-end timestamps, which are inferred as estimates.";
 
   methodWrap.append(methodLabel, methodSelect, methodHint);
   form.appendChild(methodWrap);
@@ -6760,7 +6793,7 @@ function computeAttendanceInsights(records) {
     const attendance = record.checkin || {};
     const checkInDate = toDate(attendance.checkedInAt);
     const checkOutDate = toDate(attendance.checkedOutAt);
-    const method = attendance.checkoutMethod || "actual_current_time";
+    const method = effectiveCheckoutMethod(record);
 
     if (attendance.status === "completed" && checkOutDate) {
       completedWithCheckoutTime += 1;
@@ -6896,7 +6929,7 @@ function dayOfCheckoutMethodPanel(records) {
     ],
     [
       "Completed with checkout timestamps — " + insights.completedWithCheckoutTime,
-      "Legacy completed records without checkoutMethod are counted as actual/current-time.",
+      "Legacy records are treated as actual/current-time unless the saved timestamp exactly matches that shift's scheduled end, which is inferred as estimated.",
       "Estimates remain separately identified in individual volunteer records."
     ]
   );
