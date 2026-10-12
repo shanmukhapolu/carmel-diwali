@@ -7051,16 +7051,10 @@ function openVolunteerReport(
   }
 
   function nameKey(record) {
-    const name = [record.firstName, record.lastName]
-      .filter(Boolean)
-      .join(" ")
-      .normalize("NFKC")
-      .toLocaleLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
-    if (name) return "name:" + name;
-    const email = String(record.email || "").trim().toLocaleLowerCase();
-    return email ? "email:" + email : "registration:" + record.id;
+    const first = normalizeFirstName(record.firstName);
+    const last = normalizeLastName(record.lastName);
+    if (first && last) return first + "|" + last;
+    return "registration:" + String(record.id);
   }
 
   function addDuration(record, positionGroup, shiftGroup) {
