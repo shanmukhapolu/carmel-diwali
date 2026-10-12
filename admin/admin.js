@@ -7631,8 +7631,8 @@ function openVolunteerReport(
     kpi("Distinct volunteers signed up", distinctPeople.length.toLocaleString("en-US"), "Grouped by normalized first and last name"),
     kpi("Distinct volunteers who showed up", attendedPeople.length.toLocaleString("en-US"), personAttendanceRate + " attended at least one shift"),
     kpi("Distinct volunteer no-shows", noShowPeople.length.toLocaleString("en-US"), "No attendance recorded on any booked shift"),
+    kpi("People who missed one or more shifts", peopleWithMissedShifts.length.toLocaleString("en-US"), "May overlap with people who attended another shift"),
     kpi("Distinct people with a checkout", checkedOutPeople.length.toLocaleString("en-US"), "At least one checkout record, including estimates"),
-    kpi("Distinct people with actual booth checkout", actualCheckoutPeople.length.toLocaleString("en-US"), "Excludes estimated and custom/admin times"),
     kpi("Assignments with attendance", assignmentsWithAttendance.toLocaleString("en-US"), fmtRate(assignmentsWithAttendance, expected) + " of booked shift assignments"),
     kpi("Not arrived / incomplete assignments", operationalStats.notArrived.toLocaleString("en-US"), "Assignment count, matching the Statistics page"),
     kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " shift assignments with valid times")
@@ -7789,11 +7789,11 @@ function openVolunteerReport(
     "<div class='kpi-grid'>" + [
       kpi("Distinct people with a checkout", checkedOutPeople.length, "Any checkout method recorded"),
       kpi("Distinct people with actual booth checkout", actualCheckoutPeople.length, "Excludes estimated and custom/admin times"),
+      kpi("Distinct people with estimated checkout", estimatedCheckoutPeople.length, "At least one estimated shift-end time"),
+      kpi("Distinct people with custom/admin checkout", customCheckoutPeople.length, "At least one admin-adjusted checkout"),
       kpi("Actual booth checkout assignments", checkoutCounts.actual, "Recorded at the booth"),
       kpi("Estimated shift-end assignments", checkoutCounts.estimated, "Uses scheduled shift end as an estimate"),
       kpi("Custom/admin checkout assignments", checkoutCounts.custom, "Time adjusted by an administrator"),
-      kpi("Checked in only / estimated assignments", operationalStats.checkedIn, "Matches the Statistics page"),
-      kpi("Not arrived / incomplete assignments", operationalStats.notArrived, "Matches the Statistics page"),
       kpi("Total recorded volunteer time", fmtHours(totalMinutes / 60), "May include estimated or admin-adjusted durations")
     ].join("") + "</div>" +
     "<div class='panel'><h3 class='panel-title'>Checkout and attendance records</h3>" +
