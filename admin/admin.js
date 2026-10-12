@@ -7109,6 +7109,10 @@ function openVolunteerReport(
         registrations: 0,
         attendedRegistrations: 0,
         noShowRegistrations: 0,
+        checkedOutRegistrations: 0,
+        actualCheckoutRegistrations: 0,
+        estimatedCheckoutRegistrations: 0,
+        customCheckoutRegistrations: 0,
         is18OrOlder: typeof record.is18OrOlder === "boolean" ? record.is18OrOlder : null
       });
     }
@@ -7122,6 +7126,14 @@ function openVolunteerReport(
     const recordAttended = attended(record);
     if (recordAttended) personGroup.attendedRegistrations += 1;
     else personGroup.noShowRegistrations += 1;
+
+    const recordCheckoutType = checkoutType(record);
+    if (["actual", "estimated", "custom"].includes(recordCheckoutType)) {
+      personGroup.checkedOutRegistrations += 1;
+    }
+    if (recordCheckoutType === "actual") personGroup.actualCheckoutRegistrations += 1;
+    if (recordCheckoutType === "estimated") personGroup.estimatedCheckoutRegistrations += 1;
+    if (recordCheckoutType === "custom") personGroup.customCheckoutRegistrations += 1;
 
     const currentStatus = record.checkin?.status || "registered";
     if (
@@ -7186,7 +7198,7 @@ function openVolunteerReport(
       }
     }
 
-    checkoutCounts[checkoutType(record)] += 1;
+    checkoutCounts[recordCheckoutType] += 1;
     addDuration(record, positionGroup, shiftGroup);
   });
 
@@ -7194,6 +7206,19 @@ function openVolunteerReport(
   const attendedPeople = distinctPeople.filter((person) => person.attendedRegistrations > 0);
   const noShowPeople = distinctPeople.filter((person) => person.attendedRegistrations === 0);
   const peopleWithMissedShifts = distinctPeople.filter((person) => person.noShowRegistrations > 0);
+  const checkedOutPeople = distinctPeople.filter((person) => person.checkedOutRegistrations > 0);
+  const actualCheckoutPeople = distinctPeople.filter((person) => person.actualCheckoutRegistrations > 0);
+  const estimatedCheckoutPeople = distinctPeople.filter((person) => person.estimatedCheckoutRegistrations > 0);
+  const customCheckoutPeople = distinctPeople.filter((person) => person.customCheckoutRegistrations > 0);
+  const reportCheckins = new Map(reportRecords.map((record) => [
+    record.id,
+    record.checkin || { status: "registered" }
+  ]));
+  const operationalStats = computeOpsStats(reportRecords, reportCheckins);
+  const assignmentsWithAttendance =
+    operationalStats.checkedIn +
+    operationalStats.checkedOut +
+    operationalStats.customCheckout;
   const personAttendanceRate = fmtRate(attendedPeople.length, distinctPeople.length);
   const adultPeopleCount = distinctPeople.filter((person) => person.is18OrOlder === true).length;
   const minorPeopleCount = distinctPeople.filter((person) => person.is18OrOlder === false).length;
@@ -7374,6 +7399,20 @@ function openVolunteerReport(
     return "<article class='kpi'><div class='kpi-label'>" + esc(label) +
       "</div><div class='kpi-value'>" + esc(value) +
       "</div><div class='kpi-note'>" + esc(note || "") + "</div></article>";
+  }
+
+  function simpleBarChart(items) {
+    const maxValue = Math.max(1, ...items.map((item) => Number(item.value) || 0));
+    return "<div class='simple-bars'>" + items.map((item) => {
+      const width = item.percent !== undefined
+        ? Math.max(0, Math.min(100, Number(item.percent) || 0))
+        : Math.max(0, Math.min(100, ((Number(item.value) || 0) / maxValue) * 100));
+      const shownValue = item.displayValue !== undefined ? item.displayValue : String(item.value ?? 0);
+      return "<div class='simple-bar-row'><div class='simple-bar-heading'><span>" +
+        esc(item.label) + "</span><strong>" + esc(shownValue) +
+        "</strong></div><div class='simple-bar-track'><span style='width:" +
+        width.toFixed(1) + "%'></span></div></div>";
+    }).join("") + "</div>";
   }
 
   const personAttendanceMix = [
@@ -7594,22 +7633,33 @@ function openVolunteerReport(
   }
 
   const attendanceCards = [
-    kpi("Distinct volunteers", distinctPeople.length.toLocaleString("en-US"), "Grouped by normalized first and last name"),
-    kpi("Volunteers who attended", attendedPeople.length.toLocaleString("en-US"), personAttendanceRate + " attended at least one assigned shift"),
-    kpi("Distinct volunteer no-shows", noShowPeople.length.toLocaleString("en-US"), "No attendance recorded on any assigned shift"),
-    kpi("People who missed ≥1 shift", peopleWithMissedShifts.length.toLocaleString("en-US"), "May overlap with people who attended"),
-    kpi("Shift assignments attended", attendedCount.toLocaleString("en-US"), fmtRate(attendedCount, expected) + " of " + expected + " assigned shifts"),
-    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " timed shift assignments")
+    kpi("Total registrations", expected.toLocaleString("en-US"), "Shift signups; one person may have more than one"),
+    kpi("Distinct volunteers signed up", distinctPeople.length.toLocaleString("en-US"), "Grouped by normalized first and last name"),
+    kpi("Distinct volunteers who showed up", attendedPeople.length.toLocaleString("en-US"), personAttendanceRate + " attended at least one shift"),
+    kpi("Distinct volunteer no-shows", noShowPeople.length.toLocaleString("en-US"), "No attendance recorded on any booked shift"),
+    kpi("Distinct people with a checkout", checkedOutPeople.length.toLocaleString("en-US"), "At least one checkout record, including estimates"),
+    kpi("Distinct people with actual booth checkout", actualCheckoutPeople.length.toLocaleString("en-US"), "Excludes estimated and custom/admin times"),
+    kpi("Assignments with attendance", assignmentsWithAttendance.toLocaleString("en-US"), fmtRate(assignmentsWithAttendance, expected) + " of booked shift assignments"),
+    kpi("Not arrived / incomplete assignments", operationalStats.notArrived.toLocaleString("en-US"), "Assignment count, matching the Statistics page"),
+    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " shift assignments with valid times")
   ];
 
   const pages = [];
   pages.push(
-    "<section class='page cover'><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
+    "<section class='page cover'><div><div class='cover-rule'></div><div class='eyebrow'>Event summary</div>" +
     "<h1>" + esc(CONFIG.eventName) + "<br>Volunteer Report</h1>" +
-    "<p class='cover-subtitle'>Distinct volunteers, attendance outcomes, role coverage, shift assignments and recorded volunteer time.</p>" +
+    "<p class='cover-subtitle'>Registration, attendance and checkout totals, followed by simple shift-by-shift results.</p>" +
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
     esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
-    esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
+    esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div></div>" +
+    "<div class='cover-facts'>" +
+    "<div class='cover-fact'><span>Total registrations</span><strong>" + esc(expected) + "</strong></div>" +
+    "<div class='cover-fact'><span>Distinct volunteers signed up</span><strong>" + esc(distinctPeople.length) + "</strong></div>" +
+    "<div class='cover-fact'><span>Distinct volunteers who showed up</span><strong>" + esc(attendedPeople.length) + "</strong></div>" +
+    "<div class='cover-fact'><span>Distinct volunteer no-shows</span><strong>" + esc(noShowPeople.length) + "</strong></div>" +
+    "<div class='cover-fact'><span>Distinct people with a checkout</span><strong>" + esc(checkedOutPeople.length) + "</strong></div>" +
+    "<div class='cover-fact'><span>Distinct people with actual booth checkout</span><strong>" + esc(actualCheckoutPeople.length) + "</strong></div>" +
+    "</div></div><div class='cover-bottom'><div><div class='byline'>Volunteer attendance overview</div><div class='small-muted'>Distinct people and shift assignments are reported separately.</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
   );
 
   const tocEntries = [];
@@ -7620,115 +7670,159 @@ function openVolunteerReport(
 
   const executiveContent =
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
-    "<div class='panel'><h3 class='panel-title'>Distinct volunteer attendance</h3><p class='panel-note'>" +
-    attendedPeople.length + " of " + distinctPeople.length + " distinct volunteers attended at least one assigned shift (" + personAttendanceRate + "). " +
-    noShowPeople.length + " people had no recorded attendance on any assigned shift.</p>" +
-    donut(personAttendanceMix, String(distinctPeople.length), "unique people") + "</div>" +
-    "<div class='note-box'><strong>How to read this report:</strong> people are grouped by normalized first and last name. When a name is unavailable, email or registration ID is used as a fallback. A person counts as attended if any assigned shift has a recorded check-in; a person is a volunteer no-show only if none of their assigned shifts has recorded attendance. People who attended one shift and missed another also appear under “People who missed ≥1 shift.” Separately, " +
-    attendedCount + " of " + expected + " shift assignments had attendance recorded and " + noShowCount + " assignments had no check-in. Estimated shift-end times are not actual checkouts.</div>";
-  noteToc("Executive summary", "Distinct volunteers attended or no-showed, with shift-assignment counts shown separately.");
+    "<div class='two-col'>" +
+    "<div class='panel'><h3 class='panel-title'>Distinct volunteer attendance</h3>" +
+    "<p class='panel-note'>Each person is counted once. A volunteer counts as having shown up if at least one booked shift has a check-in or checkout status.</p>" +
+    simpleBarChart([
+      { label: "Signed up", value: distinctPeople.length },
+      { label: "Showed up for at least one shift", value: attendedPeople.length },
+      { label: "No attendance on any booked shift", value: noShowPeople.length }
+    ]) + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Shift assignment outcomes</h3>" +
+    "<p class='panel-note'>These categories use the same definitions as the Statistics page's Day-of Attendance tab.</p>" +
+    simpleBarChart([
+      { label: "Checked in only / estimated", value: operationalStats.checkedIn },
+      { label: "Actual booth checkout", value: operationalStats.checkedOut },
+      { label: "Custom/admin checkout", value: operationalStats.customCheckout },
+      { label: "Not arrived / incomplete", value: operationalStats.notArrived }
+    ]) + "</div></div>" +
+    "<div class='note-box'><strong>How counts work:</strong> distinct volunteers are grouped by normalized first and last name, with email or registration ID used when a name is missing. A person who attended one shift but missed another counts as attended and also as someone who missed a shift. The shift tables count registrations/assignments, not distinct people. Estimated shift-end and custom/admin-adjusted times are not actual booth checkouts.</div>";
+  noteToc("Executive summary", "Total registrations, distinct volunteers, attendance, checkout and shift outcomes.");
   pages.push(makePage(
-    "01 / Executive summary", "Volunteer attendance summary",
-    "People are counted once by normalized name; separate assignment statistics provide detail about the shifts they booked.",
+    "01 / Executive summary", "Event totals and attendance",
+    "The main facts first. Person counts are distinct volunteers; shift counts are registrations or assignments.",
     executiveContent, "Executive summary"
   ));
 
-  const insightPageContent =
-    "<div class='insight-grid'>" +
-    (insights.slice(0, 6).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
-    "</div><div class='note-box'><strong>Counting notes:</strong> these findings prioritize distinct people grouped by normalized first and last name. A person who attended one shift but missed another counts as an attendee and also as someone who missed at least one shift. Role and shift assignment counts are reported separately and can exceed the distinct-person total. Detailed checkout and duration findings appear in their own sections.</div>";
-  noteToc("Key findings", "Main patterns and observations drawn from the attendance records.");
-  pages.push(makePage(
-    "02 / Key findings", "What stands out",
-    "A few notable patterns before the detailed tables and duration analysis.",
-    insightPageContent, "Key findings"
-  ));
-
-  const positionChartItems = positionStats.slice().sort((x, y) =>
-    y.noShowPeopleCount - x.noShowPeopleCount || y.uniquePeopleCount - x.uniquePeopleCount
-  ).slice(0, 5);
+  const totalRoleNoShowMemberships = positionStats.reduce((sum, item) => sum + item.noShowPeopleCount, 0);
   const positionContent =
-    "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Distinct volunteers by role</h3><p class='panel-note'>Each person counts once within each role. Volunteers assigned to multiple roles appear in more than one category.</p>" +
-    donut(topMix, String(totalRolePeople), "role memberships") + "</div>" +
-    "<div class='panel'><h3 class='panel-title'>Person-level attendance by role</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Attended at least one shift</span><span><i style='background:#e9d5ff'></i>No attendance recorded</span></div>" +
-    positionBarChart(positionChartItems) + "</div></div>" +
-    "<p class='section-note'>The table counts distinct people within each role. “No-showed” means no recorded attendance for any shift that person had in that role. Shift assignments are shown separately for context.</p>" +
-    "<div class='pagination-table' data-continued-title='Position results · continued' data-continued-subtitle='Remaining roles, sorted by the number of distinct volunteers with no recorded attendance.'>" +
-    "<h3 class='section-title'>Roles with the most distinct volunteer no-shows</h3>" +
-    reportTable(["Volunteer position", "Distinct volunteers", "Attended people", "No-showed people", "People show rate", "Shift assignments"], positionTableRows, "compact") +
-    "</div>";
-  noteToc("Volunteer positions", "Distinct volunteers, person-level attendance and no-shows by role; shift assignment totals are secondary.");
+    "<div class='kpi-grid'>" + [
+      kpi("Roles with registrations", positionStats.length, "Volunteer positions with at least one signup"),
+      kpi("Distinct volunteer-role memberships", totalRolePeople, "One person in two roles counts once in each role"),
+      kpi("People with attendance in a role", positionStats.reduce((sum, item) => sum + item.attendedPeopleCount, 0), "Counted once within each role"),
+      kpi("No-attendance role memberships", totalRoleNoShowMemberships, "A person may be counted in more than one role")
+    ].join("") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Distinct volunteers by role</h3>" +
+    "<p class='panel-note'>Each bar shows the number of distinct people assigned to that position.</p>" +
+    simpleBarChart(positionStats.slice().sort((a, b) => b.uniquePeopleCount - a.uniquePeopleCount)
+      .map((item) => ({ label: item.label, value: item.uniquePeopleCount }))) + "</div>" +
+    "<div class='pagination-table' data-continued-title='Position results · continued' data-continued-subtitle='Remaining volunteer positions and their counts.'>" +
+    reportTable(["Volunteer position", "Distinct volunteers", "Attended people", "No-showed people", "People show rate", "Shift registrations"], positionTableRows, "compact") +
+    "</div>" +
+    "<p class='section-note'>A role-level no-show means the person had no recorded attendance for any shift in that role. A person assigned to more than one role can appear in more than one row.</p>";
+  noteToc("Volunteer positions", "Distinct volunteers, people who showed up, and no-shows by position.");
   pages.push(makePage(
-    "03 / Volunteer positions", "Role coverage and results",
-    "Role turnout, the largest no-show counts, and position-by-position results.",
-    positionContent, "Position performance"
+    "02 / Volunteer positions", "Volunteer positions",
+    "See how many distinct people signed up for each role and how many attended.",
+    positionContent, "Volunteer positions"
   ));
 
-  const shiftContent =
-    "<div class='panel'><h3 class='panel-title'>Lowest attendance rates by shift</h3><p class='panel-note'>This section counts shift assignments, not unique people. The same volunteer may appear in multiple scheduled slots.</p>" +
-    shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<p class='section-note'>Each row represents one role-and-time-slot combination. A missed assignment does not necessarily mean the person no-showed the entire event; use the distinct volunteer summary for person-level no-shows.</p>" +
-    "<div class='pagination-table' data-continued-title='Shift results · continued' data-continued-subtitle='Remaining shifts, sorted by shift assignments without recorded attendance.'>" +
-    "<h3 class='section-title'>Shift assignments with the most no-shows</h3>" +
-    reportTable(["Position · shift", "Booked assignments", "Attended assignments", "No-show assignments", "Assignment show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
-    "</div>";
-  noteToc("Shift performance", "Assignment-level attendance for each scheduled shift, distinct from the person-level summary.");
-  pages.push(makePage(
-    "04 / Shift performance", "Shift turnout and reliability",
-    "Compare turnout across scheduled time slots and identify shifts needing follow-up.",
-    shiftContent, "Shift performance"
-  ));
-
-  const checkoutMethodMix = [
-    { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
-    { label: "Estimated shift end", value: checkoutCounts.estimated, color: mutedColors.estimated },
-    { label: "Custom/admin time", value: checkoutCounts.custom, color: mutedColors.custom },
-    { label: "Still checked in / incomplete", value: checkoutCounts.open, color: mutedColors.open }
-  ];
-
-  const closeoutContent =
-    "<div class='two-col checkout-profile-layout'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Shift assignments grouped by how attendance was closed out. One person may appear in multiple records.</p>" +
-    donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
-    "</div><div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Each person is counted once, grouped by normalized name.</p>" +
-    donut(ageMix, String(distinctPeople.length), "unique people") + "</div></div>" +
-    "<div class='note-box'><strong>Data quality:</strong> " +
-    (checkoutCounts.estimated
-      ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
-      : "No checkout records are currently classified as estimated shift-end placeholders.") +
-    (checkoutCounts.custom ? " " + checkoutCounts.custom + " custom/admin checkout record(s) are also reported separately." : "") +
-    (lateNoCheckin ? " " + lateNoCheckin + " registration(s) were marked late but have no check-in timestamp." : "") +
-    "</div>";
-  noteToc("Checkout quality", "Checkout methods and data quality by shift assignment, plus age confirmation counted once per distinct person.");
-  pages.push(makePage(
-    "05 / Checkout quality", "Checkout records and signup profile",
-    "Review how attendance was closed out and the age information reported at signup.",
-    closeoutContent, "Hours & closeout"
-  ));
-
-  const allDurationShifts = shiftStats.filter((item) => item.timedCount > 0)
-    .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount);
-  const durationRows = allDurationShifts.map((item) => [
-    item.label, String(item.timedCount), fmtMinutes(item.avgMinutes),
-    fmtMinutes(item.medianMinutes), fmtMinutes(item.longestMinutes)
+  const allShiftRows = allShifts().map((shift) => {
+    const shiftRecords = reportRecords.filter((record) => record.shiftId === shift.id);
+    const shiftCheckins = new Map(shiftRecords.map((record) => [
+      record.id,
+      record.checkin || { status: "registered" }
+    ]));
+    const ops = computeOpsStats(shiftRecords, shiftCheckins);
+    const attendedAssignments = ops.checkedIn + ops.checkedOut + ops.customCheckout;
+    const duration = computeAttendanceInsights(shiftRecords);
+    return {
+      id: shift.id,
+      position: shift.positionName,
+      shift: formatShiftTime(shift),
+      label: shift.positionName + " · " + formatShiftTime(shift),
+      expected: ops.expected,
+      checkedIn: ops.checkedIn,
+      actualCheckout: ops.checkedOut,
+      customCheckout: ops.customCheckout,
+      notArrived: ops.notArrived,
+      attendedAssignments,
+      attendanceRate: ops.expected ? Math.round((attendedAssignments / ops.expected) * 100) : 0,
+      duration
+    };
+  });
+  const activeShiftRows = allShiftRows.filter((item) => item.expected > 0);
+  const lowestAttendanceShifts = activeShiftRows.slice().sort((a, b) =>
+    a.attendanceRate - b.attendanceRate || b.notArrived - a.notArrived || b.expected - a.expected
+  ).slice(0, 10);
+  const shiftTableRowsSimple = allShiftRows.map((item) => [
+    item.position,
+    item.shift,
+    String(item.expected),
+    String(item.checkedIn),
+    String(item.actualCheckout),
+    String(item.customCheckout),
+    String(item.notArrived),
+    item.expected ? item.attendanceRate + "%" : "—"
   ]);
-  noteToc("Service time", "Average, median, and longest recorded duration for each timed shift.");
-  if (durationRows.length) {
-    pages.push(makePage(
-      "06 / Service time", "How long volunteers stayed",
-      "Average, median and longest recorded duration. Only shifts with valid check-in and checkout timestamps are included.",
-      "<div class='pagination-table' data-continued-title='Shift duration · continued' data-continued-subtitle='Recorded durations for the remaining timed shifts.'>" +
-      reportTable(["Position · shift", "Timed records", "Average", "Median", "Longest"], durationRows, "compact") +
-      "</div>",
-      "Duration analysis"
-    ));
-  } else {
-    pages.push(makePage(
-      "06 / Service time", "How long volunteers stayed",
-      "Average, median and longest recorded duration.",
-      "<p class='empty'>No shift currently has valid check-in and checkout timestamps for duration analysis.</p>",
-      "Duration analysis"
-    ));
-  }
+  const shiftContent =
+    "<div class='kpi-grid'>" + [
+      kpi("Shifts with registrations", activeShiftRows.length, "Of all configured shifts"),
+      kpi("Total registrations", expected, "One registration represents one booked shift"),
+      kpi("Assignments with attendance", assignmentsWithAttendance, fmtRate(assignmentsWithAttendance, expected) + " of registrations"),
+      kpi("Not arrived / incomplete", operationalStats.notArrived, "Shift assignment count")
+    ].join("") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Attendance rate by shift</h3>" +
+    "<p class='panel-note'>Lowest attendance rates are shown first. Each bar is the percentage of booked assignments with a recorded attendance category.</p>" +
+    simpleBarChart(lowestAttendanceShifts.map((item) => ({
+      label: item.label,
+      value: item.attendanceRate,
+      percent: item.attendanceRate,
+      displayValue: item.attendedAssignments + " of " + item.expected + " · " + item.attendanceRate + "%"
+    }))) + "</div>" +
+    "<div class='pagination-table' data-continued-title='Shift attendance · continued' data-continued-subtitle='Attendance outcomes for the remaining configured shifts.'>" +
+    reportTable(["Position", "Shift", "Registrations", "Checked in only / estimated", "Actual booth checkout", "Custom/admin checkout", "Not arrived / incomplete", "Attendance rate"], shiftTableRowsSimple, "compact") +
+    "</div>" +
+    "<p class='section-note'>This table counts shift assignments, matching the Day-of Attendance statistics. A volunteer who missed one shift may still have attended another shift.</p>";
+  noteToc("Shift attendance", "Attendance categories and rates for each configured shift.");
+  pages.push(makePage(
+    "03 / Shift attendance", "Shift-by-shift attendance",
+    "The same attendance categories used on the Statistics page, with all configured shifts listed.",
+    shiftContent, "Shift attendance"
+  ));
+
+  const durationRowsSimple = allShiftRows.filter((item) => item.duration.timedShifts > 0)
+    .sort((a, b) => b.duration.totalHours - a.duration.totalHours)
+    .map((item) => [
+      item.label,
+      String(item.duration.timedShifts),
+      fmtHours(item.duration.totalHours),
+      fmtMinutes(item.duration.averageMinutes),
+      fmtMinutes(item.duration.medianMinutes),
+      fmtMinutes(item.duration.longestMinutes)
+    ]);
+  const checkoutContent =
+    "<div class='kpi-grid'>" + [
+      kpi("Distinct people with a checkout", checkedOutPeople.length, "Any checkout method recorded"),
+      kpi("Distinct people with actual booth checkout", actualCheckoutPeople.length, "Excludes estimated and custom/admin times"),
+      kpi("Actual booth checkout assignments", checkoutCounts.actual, "Recorded at the booth"),
+      kpi("Estimated shift-end assignments", checkoutCounts.estimated, "Uses scheduled shift end as an estimate"),
+      kpi("Custom/admin checkout assignments", checkoutCounts.custom, "Time adjusted by an administrator"),
+      kpi("Checked in only / estimated assignments", operationalStats.checkedIn, "Matches the Statistics page"),
+      kpi("Not arrived / incomplete assignments", operationalStats.notArrived, "Matches the Statistics page"),
+      kpi("Total recorded volunteer time", fmtHours(totalMinutes / 60), "May include estimated or admin-adjusted durations")
+    ].join("") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Checkout and attendance records</h3>" +
+    "<p class='panel-note'>Counts below are shift assignments, not distinct people. Estimated shift-end and custom/admin-adjusted records are shown separately from actual booth checkout.</p>" +
+    simpleBarChart([
+      { label: "Checked in only / estimated", value: operationalStats.checkedIn },
+      { label: "Actual booth checkout", value: operationalStats.checkedOut },
+      { label: "Custom/admin checkout", value: operationalStats.customCheckout },
+      { label: "Not arrived / incomplete", value: operationalStats.notArrived }
+    ]) + "</div>" +
+    "<div class='pagination-table' data-continued-title='Recorded shift time · continued' data-continued-subtitle='Remaining shifts with valid check-in and checkout timestamps.'>" +
+    "<h3 class='section-title'>Recorded time by shift</h3>" +
+    (durationRowsSimple.length
+      ? reportTable(["Position · shift", "Timed assignments", "Total recorded time", "Average", "Median", "Longest"], durationRowsSimple, "compact")
+      : "<p class='empty'>No shifts have both valid check-in and checkout timestamps for duration analysis.</p>") +
+    "</div>" +
+    "<div class='note-box'><strong>Time note:</strong> recorded duration is calculated from check-in and checkout timestamps. Totals may include estimated shift-end or custom/admin-adjusted checkout times and should not be treated as fully verified hours.</div>";
+  noteToc("Checkout and time", "Distinct people with checkouts, checkout methods and recorded time by shift.");
+  pages.push(makePage(
+    "04 / Checkout and time", "Checkout and volunteer time",
+    "Distinguishes actual booth checkouts from estimates and admin-adjusted checkout times.",
+    checkoutContent, "Checkout and time"
+  ));
 
   const tocContent =
     "<table class='toc-table'><thead><tr><th>Section</th><th>What it covers</th><th>Page</th></tr></thead><tbody>" +
@@ -7841,11 +7935,9 @@ function openVolunteerReport(
 
     const tocSectionForLabel = {
       "Executive summary": "01 / Executive summary",
-      "Key findings": "02 / Key findings",
-      "Volunteer positions": "03 / Volunteer positions",
-      "Shift performance": "04 / Shift performance",
-      "Checkout quality": "05 / Checkout quality",
-      "Service time": "06 / Service time"
+      "Volunteer positions": "02 / Volunteer positions",
+      "Shift attendance": "03 / Shift attendance",
+      "Checkout and time": "04 / Checkout and time"
     };
     reportDocument.querySelectorAll(".toc-table tbody tr[data-toc-label]").forEach((row) => {
       const targetSection = tocSectionForLabel[row.dataset.tocLabel || ""];
@@ -7855,6 +7947,29 @@ function openVolunteerReport(
     });
   }
 
+  styleLines.push(
+    ".cover-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0 0;max-width:6.9in}",
+    ".cover-fact{border-top:2px solid #b9a2ee;padding:8px 9px;background:#faf9fc;min-width:0}",
+    ".cover-fact span{display:block;font-size:7.6pt;color:#716b7d;font-weight:700;line-height:1.3}",
+    ".cover-fact strong{display:block;font-size:20pt;color:#4c1d95;line-height:1.15;margin-top:3px}",
+    ".simple-bars{display:grid;gap:10px;margin:12px 0 3px}",
+    ".simple-bar-row{min-width:0;break-inside:avoid}",
+    ".simple-bar-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:8.5pt;margin-bottom:4px}",
+    ".simple-bar-heading span{color:#514b5d;min-width:0}",
+    ".simple-bar-heading strong{font-size:8pt;white-space:nowrap;color:#4c1d95}",
+    ".simple-bar-track{height:9px;width:100%;background:#eeeaf5;border-radius:2px;overflow:hidden}",
+    ".simple-bar-track>span{display:block;height:100%;background:#7c3aed;border-radius:2px;min-width:0}",
+    ".kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 14px}",
+    ".kpi{padding:10px 11px;min-height:72px;border-radius:7px}",
+    ".kpi-value{font-size:21pt}",
+    ".panel{border-radius:7px;padding:11px 12px;margin:8px 0 10px}",
+    ".panel-title{font-size:10pt;margin-bottom:3px}",
+    ".panel-note{font-size:7.8pt;margin-bottom:8px}",
+    ".two-col{gap:10px}",
+    ".section-note{font-size:7.8pt;margin:8px 0}",
+    "@media screen and (max-width:800px){.cover-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
+    "@media print{.cover-facts{grid-template-columns:repeat(3,minmax(0,1fr))}.cover-fact{break-inside:avoid}.simple-bar-row{break-inside:avoid}}"
+  );
   const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
     "<title>" + esc(CONFIG.eventName) + " · Volunteer Operations Report</title><style>" + styleLines.join("\n") +
     "</style></head><body><div class='toolbar'><span>Volunteer Operations Report · Print or save as PDF</span><button class='print-button' onclick='window.print()'>Print / Save PDF</button></div>" +
