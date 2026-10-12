@@ -6981,6 +6981,7 @@ function openVolunteerReport(
 
   const expected = reportRecords.length;
   const people = new Set();
+  const personMap = new Map();
   const positionMap = new Map();
   const shiftMap = new Map();
   const durationEntries = [];
@@ -7091,7 +7092,38 @@ function openVolunteerReport(
   }
 
   reportRecords.forEach((record) => {
-    people.add(nameKey(record));
+    const personKey = nameKey(record);
+    people.add(personKey);
+
+    if (!personMap.has(personKey)) {
+      const displayName = [
+        record.firstName,
+        record.lastName
+      ].filter(Boolean).join(" ").trim() ||
+        record.fullName ||
+        record.name ||
+        record.email ||
+        "Unnamed volunteer";
+
+      personMap.set(personKey, {
+        key: personKey,
+        displayName,
+        registrations: 0,
+        attendedRegistrations: 0,
+        noShowRegistrations: 0,
+        is18OrOlder: typeof record.is18OrOlder === "boolean" ? record.is18OrOlder : null
+      });
+    }
+
+    const personGroup = personMap.get(personKey);
+    personGroup.registrations += 1;
+    if (personGroup.is18OrOlder === null && typeof record.is18OrOlder === "boolean") {
+      personGroup.is18OrOlder = record.is18OrOlder;
+    }
+
+    const recordAttended = attended(record);
+    if (recordAttended) personGroup.attendedRegistrations += 1;
+    else personGroup.noShowRegistrations += 1;
 
     const currentStatus = record.checkin?.status || "registered";
     if (
@@ -7115,11 +7147,13 @@ function openVolunteerReport(
     if (!positionMap.has(positionId)) {
       positionMap.set(positionId, {
         id: positionId, label: positionName, expected: 0, showed: 0,
-        noShows: 0, late: 0, durations: [], longestMinutes: 0
+        noShows: 0, late: 0, durations: [], longestMinutes: 0,
+        uniquePeople: new Set(), attendedPeople: new Set()
       });
     }
     const positionGroup = positionMap.get(positionId);
     positionGroup.expected += 1;
+    positionGroup.uniquePeople.add(personKey);
 
     const shiftId = String(record.shiftId || record.shiftLabel || "unscheduled");
     const shiftKey = positionId + "::" + shiftId;
@@ -7140,9 +7174,10 @@ function openVolunteerReport(
     const shiftGroup = shiftMap.get(shiftKey);
     shiftGroup.expected += 1;
 
-    if (attended(record)) {
+    if (recordAttended) {
       attendedCount += 1;
       positionGroup.showed += 1;
+      positionGroup.attendedPeople.add(personKey);
       shiftGroup.showed += 1;
     } else {
       positionGroup.noShows += 1;
@@ -7157,10 +7192,23 @@ function openVolunteerReport(
     addDuration(record, positionGroup, shiftGroup);
   });
 
+  const distinctPeople = Array.from(personMap.values());
+  const attendedPeople = distinctPeople.filter((person) => person.attendedRegistrations > 0);
+  const noShowPeople = distinctPeople.filter((person) => person.attendedRegistrations === 0);
+  const peopleWithMissedShifts = distinctPeople.filter((person) => person.noShowRegistrations > 0);
+  const personAttendanceRate = fmtRate(attendedPeople.length, distinctPeople.length);
+  const adultPeopleCount = distinctPeople.filter((person) => person.is18OrOlder === true).length;
+  const minorPeopleCount = distinctPeople.filter((person) => person.is18OrOlder === false).length;
+  const ageUnknownPeopleCount = distinctPeople.filter((person) => person.is18OrOlder === null).length;
+
   const positionStats = Array.from(positionMap.values()).map((item) => {
     const durations = item.durations.slice().sort((a, b) => a - b);
     const total = durations.reduce((sum, n) => sum + n, 0);
     item.showRate = item.expected ? item.showed / item.expected : 0;
+    item.uniquePeopleCount = item.uniquePeople.size;
+    item.attendedPeopleCount = item.attendedPeople.size;
+    item.noShowPeopleCount = item.uniquePeopleCount - item.attendedPeopleCount;
+    item.personShowRate = item.uniquePeopleCount ? item.attendedPeopleCount / item.uniquePeopleCount : 0;
     item.avgMinutes = durations.length ? total / durations.length : 0;
     item.medianMinutes = durations.length
       ? (durations.length % 2
@@ -7199,14 +7247,14 @@ function openVolunteerReport(
     : 0;
   const longestSession = durationEntries.slice().sort((a, b) => b.minutes - a.minutes)[0] || null;
   const worstNoShowPosition = positionStats.slice().sort((a, b) =>
-    b.noShows - a.noShows || b.expected - a.expected
+    b.noShowPeopleCount - a.noShowPeopleCount || b.uniquePeopleCount - a.uniquePeopleCount
   )[0] || null;
-  const bestPosition = positionStats.filter((item) => item.expected >= 2)
-    .sort((a, b) => b.showRate - a.showRate || b.expected - a.expected)[0] ||
-    positionStats.slice().sort((a, b) => b.showRate - a.showRate || b.expected - a.expected)[0] ||
+  const bestPosition = positionStats.filter((item) => item.uniquePeopleCount >= 2)
+    .sort((a, b) => b.personShowRate - a.personShowRate || b.uniquePeopleCount - a.uniquePeopleCount)[0] ||
+    positionStats.slice().sort((a, b) => b.personShowRate - a.personShowRate || b.uniquePeopleCount - a.uniquePeopleCount)[0] ||
     null;
   const fullestPosition = positionStats.slice().sort((a, b) =>
-    b.expected - a.expected || b.showed - a.showed
+    b.uniquePeopleCount - a.uniquePeopleCount || b.attendedPeopleCount - a.attendedPeopleCount
   )[0] || null;
   const longestAverageShift = shiftStats.filter((item) => item.timedCount > 0)
     .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount)[0] || null;
@@ -7261,8 +7309,8 @@ function openVolunteerReport(
   }
 
   function positionBarChart(items) {
-    if (!items.length) return "<p class='empty'>No position registrations were found.</p>";
-    const maxExpected = Math.max(1, ...items.map((item) => item.expected));
+    if (!items.length) return "<p class='empty'>No volunteer positions were found.</p>";
+    const maxPeople = Math.max(1, ...items.map((item) => item.uniquePeopleCount));
     const barX = 236;
     const plotWidth = 420;
     const rateX = 768;
@@ -7270,20 +7318,22 @@ function openVolunteerReport(
     const height = items.length * rowHeight + 22;
     const rows = items.map((item, index) => {
       const y = 25 + index * rowHeight;
-      const totalWidth = plotWidth * item.expected / maxExpected;
-      const showedWidth = totalWidth * item.showed / item.expected;
+      const totalWidth = plotWidth * item.uniquePeopleCount / maxPeople;
+      const showedWidth = item.uniquePeopleCount
+        ? totalWidth * item.attendedPeopleCount / item.uniquePeopleCount
+        : 0;
       const noShowWidth = Math.max(0, totalWidth - showedWidth);
       return "<text x='8' y='" + (y + 14) + "' class='svg-label'>" + esc(item.label) +
         "</text><rect x='" + barX + "' y='" + y + "' width='" + showedWidth.toFixed(2) +
         "' height='17' rx='4' fill='#7c3aed'/><rect x='" + (barX + showedWidth).toFixed(2) +
         "' y='" + y + "' width='" + noShowWidth.toFixed(2) +
         "' height='17' rx='2' fill='#e9d5ff'/><text x='" + (barX + totalWidth + 8).toFixed(2) +
-        "' y='" + (y + 13) + "' class='svg-small'>" + item.showed + "/" + item.expected +
+        "' y='" + (y + 13) + "' class='svg-small'>" + item.attendedPeopleCount + "/" + item.uniquePeopleCount +
         "</text><text x='" + rateX + "' y='" + (y + 14) +
-        "' class='svg-rate'>" + fmtRate(item.showed, item.expected) + "</text>";
+        "' class='svg-rate'>" + fmtRate(item.attendedPeopleCount, item.uniquePeopleCount) + "</text>";
     }).join("");
     return "<svg class='report-chart' viewBox='0 0 790 " + height +
-      "' role='img' aria-label='Attendance counts by volunteer position'>" + rows + "</svg>";
+      "' role='img' aria-label='Distinct volunteer attendance by role'>" + rows + "</svg>";
   }
 
   function shiftRateChart(items) {
@@ -7328,26 +7378,30 @@ function openVolunteerReport(
       "</div><div class='kpi-note'>" + esc(note || "") + "</div></article>";
   }
 
-  const attendanceMix = [
-    { label: "Actual booth checkout", value: checkoutCounts.actual, color: mutedColors.actual },
-    { label: "Estimated shift-end checkout", value: checkoutCounts.estimated, color: mutedColors.estimated },
-    { label: "Custom/admin checkout", value: checkoutCounts.custom, color: mutedColors.custom },
-    { label: "Checked in, no checkout", value: checkoutCounts.open, color: mutedColors.open },
-    { label: "No check-in recorded", value: checkoutCounts.noCheckin, color: mutedColors.noCheckin }
+  const personAttendanceMix = [
+    { label: "Attended at least one shift", value: attendedPeople.length, color: mutedColors.actual },
+    { label: "No attendance recorded", value: noShowPeople.length, color: mutedColors.noCheckin }
   ];
 
-  const positionMix = positionStats.slice().sort((a, b) => b.expected - a.expected);
+  const positionMix = positionStats.slice().sort((a, b) =>
+    b.uniquePeopleCount - a.uniquePeopleCount || b.attendedPeopleCount - a.attendedPeopleCount
+  );
   const topMix = positionMix.slice(0, 6).map((item, index) => ({
-    label: item.label, value: item.expected, color: palette[index % palette.length]
+    label: item.label, value: item.uniquePeopleCount, color: palette[index % palette.length]
   }));
-  const otherPositions = positionMix.slice(6).reduce((sum, item) => sum + item.expected, 0);
-  if (otherPositions) topMix.push({ label: "Other positions", value: otherPositions, color: "#d1d5db" });
+  const otherPositions = positionMix.slice(6).reduce((sum, item) => sum + item.uniquePeopleCount, 0);
+  if (otherPositions) topMix.push({ label: "Other roles", value: otherPositions, color: "#d1d5db" });
+  const totalRolePeople = positionStats.reduce((sum, item) => sum + item.uniquePeopleCount, 0);
 
   const positionTableRows = positionStats.slice().sort((a, b) =>
-    b.noShows - a.noShows || b.expected - a.expected
+    b.noShowPeopleCount - a.noShowPeopleCount || b.uniquePeopleCount - a.uniquePeopleCount
   ).map((item) => [
-    item.label, String(item.expected), String(item.showed), String(item.noShows),
-    fmtRate(item.showed, item.expected), item.timedCount ? fmtMinutes(item.avgMinutes) : "No timed records"
+    item.label,
+    String(item.uniquePeopleCount),
+    String(item.attendedPeopleCount),
+    String(item.noShowPeopleCount),
+    fmtRate(item.attendedPeopleCount, item.uniquePeopleCount),
+    String(item.expected)
   ]);
 
   const sortedShiftStats = shiftStats.slice().sort((a, b) =>
@@ -7367,33 +7421,51 @@ function openVolunteerReport(
     .sort((a, b) => b.avgMinutes - a.avgMinutes || b.timedCount - a.timedCount)
     .slice(0, 8);
   const ageMix = [
-    { label: "18 or older", value: adultCount, color: "#6d28d9" },
-    { label: "Under 18", value: minorCount, color: "#a78bfa" },
-    { label: "Not provided", value: ageUnknownCount, color: "#e5e7eb" }
+    { label: "18 or older", value: adultPeopleCount, color: "#6d28d9" },
+    { label: "Under 18", value: minorPeopleCount, color: "#a78bfa" },
+    { label: "Not provided", value: ageUnknownPeopleCount, color: "#e5e7eb" }
   ];
 
   const insights = [];
-  if (worstNoShowPosition && worstNoShowPosition.noShows > 0) {
+  insights.push(insight(
+    "Distinct volunteers who attended",
+    "A person counts as attending when at least one of their assigned shifts has a recorded check-in. People are grouped by normalized name.",
+    attendedPeople.length + " of " + distinctPeople.length + " people · " + personAttendanceRate
+  ));
+  insights.push(insight(
+    "Distinct volunteer no-shows",
+    "These people had no recorded attendance on any of their booked shifts. This is different from a missed shift assignment.",
+    noShowPeople.length + " people · " + fmtRate(noShowPeople.length, distinctPeople.length)
+  ));
+  if (peopleWithMissedShifts.length) {
     insights.push(insight(
-      "No-show concentration",
-      "<strong>" + esc(worstNoShowPosition.label) + "</strong> had the highest number of registrations without a recorded check-in.",
-      worstNoShowPosition.noShows + " of " + worstNoShowPosition.expected + " · " +
-        fmtRate(worstNoShowPosition.noShows, worstNoShowPosition.expected) + " no-shows"
+      "Volunteers who missed one or more shifts",
+      "Includes people who may have attended another shift. This measure can overlap with volunteers who attended.",
+      peopleWithMissedShifts.length + " people"
+    ));
+  }
+  if (worstNoShowPosition && worstNoShowPosition.noShowPeopleCount > 0) {
+    insights.push(insight(
+      "Most distinct volunteer no-shows by role",
+      "<strong>" + esc(worstNoShowPosition.label) + "</strong> had the most people with no recorded attendance for any shift in that role.",
+      worstNoShowPosition.noShowPeopleCount + " of " + worstNoShowPosition.uniquePeopleCount + " people · " +
+        fmtRate(worstNoShowPosition.noShowPeopleCount, worstNoShowPosition.uniquePeopleCount) + " no-attendance rate"
     ));
   }
   if (bestPosition) {
     insights.push(insight(
-      "Strongest attendance rate",
-      "<strong>" + esc(bestPosition.label) + "</strong> had the highest observed show rate among positions with " +
-        (bestPosition.expected >= 2 ? "at least two registrations." : "available registrations."),
-      bestPosition.showed + " of " + bestPosition.expected + " · " + fmtRate(bestPosition.showed, bestPosition.expected) + " showed"
+      "Strongest person-level attendance by role",
+      "<strong>" + esc(bestPosition.label) + "</strong> had the highest proportion of distinct assigned volunteers with at least one recorded check-in" +
+        (bestPosition.uniquePeopleCount >= 2 ? " among roles with at least two distinct volunteers." : "."),
+      bestPosition.attendedPeopleCount + " of " + bestPosition.uniquePeopleCount + " people · " +
+        fmtRate(bestPosition.attendedPeopleCount, bestPosition.uniquePeopleCount) + " attended"
     ));
   }
   if (fullestPosition) {
     insights.push(insight(
-      "Largest volunteer role",
-      "<strong>" + esc(fullestPosition.label) + "</strong> accounted for the most booked volunteer shifts.",
-      fullestPosition.expected + " registrations"
+      "Largest role by distinct volunteers",
+      "<strong>" + esc(fullestPosition.label) + "</strong> had the most unique people assigned to that role.",
+      fullestPosition.uniquePeopleCount + " people · " + fullestPosition.expected + " shift assignments"
     ));
   }
   if (zeroNoShowShifts.length) {
@@ -7524,19 +7596,19 @@ function openVolunteerReport(
   }
 
   const attendanceCards = [
-    kpi("Booked shift registrations", expected.toLocaleString("en-US"), "One registration represents one shift"),
-    kpi("Distinct volunteers", people.size.toLocaleString("en-US"), "Grouped by normalized first and last name"),
-    kpi("Check-in / estimated rate", checkinEstimatedRate, checkinEstimatedCount + " check-in-only or estimated-end registrations"),
-    kpi("No check-in recorded", noShowCount.toLocaleString("en-US"), fmtRate(noShowCount, expected) + " of booked shifts"),
-    kpi("Actual booth checkouts", checkoutCounts.actual.toLocaleString("en-US"), actualRate + " of all booked shifts"),
-    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " timed sessions")
+    kpi("Distinct volunteers", distinctPeople.length.toLocaleString("en-US"), "Grouped by normalized first and last name"),
+    kpi("Volunteers who attended", attendedPeople.length.toLocaleString("en-US"), personAttendanceRate + " attended at least one assigned shift"),
+    kpi("Distinct volunteer no-shows", noShowPeople.length.toLocaleString("en-US"), "No attendance recorded on any assigned shift"),
+    kpi("People who missed ≥1 shift", peopleWithMissedShifts.length.toLocaleString("en-US"), "May overlap with people who attended"),
+    kpi("Shift assignments attended", attendedCount.toLocaleString("en-US"), fmtRate(attendedCount, expected) + " of " + expected + " assigned shifts"),
+    kpi("Recorded volunteer time", fmtHours(totalMinutes / 60), durationEntries.length + " timed shift assignments")
   ];
 
   const pages = [];
   pages.push(
     "<section class='page cover'><div><div class='cover-rule'></div><div class='eyebrow'>Event operations · Post-event report</div>" +
     "<h1>" + esc(CONFIG.eventName) + "<br>Volunteer Report</h1>" +
-    "<p class='cover-subtitle'>Attendance, shift coverage and volunteer time. A data-led review of how the volunteer operation performed.</p>" +
+    "<p class='cover-subtitle'>Distinct volunteers, attendance outcomes, role coverage, shift assignments and recorded volunteer time.</p>" +
     "<div class='cover-meta'><div><span class='meta-label'>Event date</span><span class='meta-value'>" +
     esc(formatDriveDate(CONFIG.eventDate)) + "</span></div><div><span class='meta-label'>Location</span><span class='meta-value'>" +
     esc(CONFIG.location || "Location not specified") + "</span></div><div><span class='meta-label'>Prepared by</span><span class='meta-value'>Shanmukha Polu<br>&amp; Sonal Sanghani</span></div></div></div><div class='cover-bottom'><div><div class='byline'>Volunteer Operations Review</div><div class='small-muted'>Attendance outcomes · Role coverage · Shift-level performance · Recorded duration</div></div><span class='page-number cover-page-number'>Page 1</span></div></section>"
@@ -7550,21 +7622,23 @@ function openVolunteerReport(
 
   const executiveContent =
     "<div class='kpi-grid'>" + attendanceCards.join("") + "</div>" +
-    "<div class='panel'><h3 class='panel-title'>Attendance outcomes</h3><p class='panel-note'>Attendance is recorded for " +
-    attendedCount + " of " + expected + " shift registrations (" + showRate + "). The chart separates actual, estimated and incomplete checkouts.</p>" +
-    donut(attendanceMix, String(expected), "booked shifts") + "</div>" +
-    "<div class='note-box'><strong>How to read this report:</strong> counts are per shift registration. One volunteer with two shifts counts as two shift registrations but one distinct volunteer. Estimated shift-end times are not actual booth checkouts.</div>";
-  noteToc("Executive summary", "Overall registrations, attendance, and recorded volunteer time.");
+    "<div class='panel'><h3 class='panel-title'>Distinct volunteer attendance</h3><p class='panel-note'>" +
+    attendedPeople.length + " of " + distinctPeople.length + " distinct volunteers attended at least one assigned shift (" + personAttendanceRate + "). " +
+    noShowPeople.length + " people had no recorded attendance on any assigned shift.</p>" +
+    donut(personAttendanceMix, String(distinctPeople.length), "unique people") + "</div>" +
+    "<div class='note-box'><strong>How to read this report:</strong> people are grouped by normalized first and last name. When a name is unavailable, email or registration ID is used as a fallback. A person counts as attended if any assigned shift has a recorded check-in; a person is a volunteer no-show only if none of their assigned shifts has recorded attendance. People who attended one shift and missed another also appear under “People who missed ≥1 shift.” Separately, " +
+    attendedCount + " of " + expected + " shift assignments had attendance recorded and " + noShowCount + " assignments had no check-in. Estimated shift-end times are not actual checkouts.</div>";
+  noteToc("Executive summary", "Distinct volunteers attended or no-showed, with shift-assignment counts shown separately.");
   pages.push(makePage(
-    "01 / Executive summary", "At a glance",
-    "A concise view of booked shifts, attendance outcomes, and checkout documentation for " + CONFIG.eventName + ".",
+    "01 / Executive summary", "Volunteer attendance summary",
+    "People are counted once by normalized name; separate assignment statistics provide detail about the shifts they booked.",
     executiveContent, "Executive summary"
   ));
 
   const insightPageContent =
     "<div class='insight-grid'>" +
     (insights.join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
-    "</div><div class='note-box'><strong>Interpret findings in context.</strong> A 100% show rate on one registration is less conclusive than a 100% rate across a larger shift. Read counts, rates, and sample size together.</div>";
+    "</div><div class='note-box'><strong>Counting notes:</strong> distinct people are normalized by first and last name. A person who attended one shift but missed another counts as an attendee and also as someone who missed at least one shift. Role and shift assignment counts are reported separately and can exceed the distinct-person total.</div>";
   noteToc("Key findings", "Main patterns and observations drawn from the attendance records.");
   pages.push(makePage(
     "02 / Key findings", "What stands out",
@@ -7573,18 +7647,19 @@ function openVolunteerReport(
   ));
 
   const positionChartItems = positionStats.slice().sort((x, y) =>
-    y.noShows - x.noShows || y.expected - x.expected
+    y.noShowPeopleCount - x.noShowPeopleCount || y.uniquePeopleCount - x.uniquePeopleCount
   ).slice(0, 5);
   const positionContent =
-    "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Booked shifts by role</h3><p class='panel-note'>The largest roles are shown individually; the rest are grouped.</p>" +
-    donut(topMix, String(expected), "registrations") + "</div>" +
-    "<div class='panel'><h3 class='panel-title'>Attendance by position</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Showed</span><span><i style='background:#e9d5ff'></i>No check-in recorded</span></div>" +
+    "<div class='position-chart-layout'><div class='panel'><h3 class='panel-title'>Distinct volunteers by role</h3><p class='panel-note'>Each person counts once within each role. Volunteers assigned to multiple roles appear in more than one category.</p>" +
+    donut(topMix, String(totalRolePeople), "role memberships") + "</div>" +
+    "<div class='panel'><h3 class='panel-title'>Person-level attendance by role</h3><div class='chart-legend'><span><i style='background:#7c3aed'></i>Attended at least one shift</span><span><i style='background:#e9d5ff'></i>No attendance recorded</span></div>" +
     positionBarChart(positionChartItems) + "</div></div>" +
-    "<div class='pagination-table' data-continued-title='Position results · continued' data-continued-subtitle='Remaining roles, sorted by registrations without a recorded check-in.'>" +
-    "<h3 class='section-title'>Roles with the most no-shows</h3>" +
-    reportTable(["Volunteer position", "Booked", "Showed", "No-show", "Show rate", "Avg. timed session"], positionTableRows, "compact") +
+    "<p class='section-note'>The table counts distinct people within each role. “No-showed” means no recorded attendance for any shift that person had in that role. Shift assignments are shown separately for context.</p>" +
+    "<div class='pagination-table' data-continued-title='Position results · continued' data-continued-subtitle='Remaining roles, sorted by the number of distinct volunteers with no recorded attendance.'>" +
+    "<h3 class='section-title'>Roles with the most distinct volunteer no-shows</h3>" +
+    reportTable(["Volunteer position", "Distinct volunteers", "Attended people", "No-showed people", "People show rate", "Shift assignments"], positionTableRows, "compact") +
     "</div>";
-  noteToc("Volunteer positions", "Role-level turnout, the largest no-show counts, and detailed results.");
+  noteToc("Volunteer positions", "Distinct volunteers, person-level attendance and no-shows by role; shift assignment totals are secondary.");
   pages.push(makePage(
     "03 / Volunteer positions", "Role coverage and results",
     "Role turnout, the largest no-show counts, and position-by-position results.",
@@ -7592,13 +7667,14 @@ function openVolunteerReport(
   ));
 
   const shiftContent =
-    "<div class='panel'><h3 class='panel-title'>Lowest show rates</h3><p class='panel-note'>Compare each rate with its booking count; small shifts are less conclusive.</p>" +
+    "<div class='panel'><h3 class='panel-title'>Lowest attendance rates by shift</h3><p class='panel-note'>This section counts shift assignments, not unique people. The same volunteer may appear in multiple scheduled slots.</p>" +
     shiftRateChart(worstShifts.slice(0, 7)) + "</div>" +
-    "<div class='pagination-table' data-continued-title='Shift results · continued' data-continued-subtitle='Remaining shifts, sorted by registrations without recorded attendance.'>" +
-    "<h3 class='section-title'>Shifts with the most no-shows</h3>" +
-    reportTable(["Position · shift", "Booked", "Showed", "No-show", "Show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
+    "<p class='section-note'>Each row represents one role-and-time-slot combination. A missed assignment does not necessarily mean the person no-showed the entire event; use the distinct volunteer summary for person-level no-shows.</p>" +
+    "<div class='pagination-table' data-continued-title='Shift results · continued' data-continued-subtitle='Remaining shifts, sorted by shift assignments without recorded attendance.'>" +
+    "<h3 class='section-title'>Shift assignments with the most no-shows</h3>" +
+    reportTable(["Position · shift", "Booked assignments", "Attended assignments", "No-show assignments", "Assignment show rate", "Avg. duration", "Longest"], shiftTableRows, "compact") +
     "</div>";
-  noteToc("Shift performance", "Show rates by scheduled shift, followed by detailed shift results.");
+  noteToc("Shift performance", "Assignment-level attendance for each scheduled shift, distinct from the person-level summary.");
   pages.push(makePage(
     "04 / Shift performance", "Shift turnout and reliability",
     "Compare turnout across scheduled time slots and identify shifts needing follow-up.",
@@ -7613,10 +7689,10 @@ function openVolunteerReport(
   ];
 
   const closeoutContent =
-    "<div class='two-col checkout-profile-layout'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Registrations grouped by how attendance was closed out.</p>" +
+    "<div class='two-col checkout-profile-layout'><div class='panel'><h3 class='panel-title'>Checkout documentation</h3><p class='panel-note'>Shift assignments grouped by how attendance was closed out. One person may appear in multiple records.</p>" +
     donut(checkoutMethodMix, String(checkoutCounts.actual + checkoutCounts.estimated + checkoutCounts.custom + checkoutCounts.open), "checkout records") +
-    "</div><div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Counts are registrations, not unique people.</p>" +
-    donut(ageMix, String(expected), "registrations") + "</div></div>" +
+    "</div><div class='panel'><h3 class='panel-title'>Age confirmation at signup</h3><p class='panel-note'>Each person is counted once, grouped by normalized name.</p>" +
+    donut(ageMix, String(distinctPeople.length), "unique people") + "</div></div>" +
     "<div class='note-box'><strong>Data quality:</strong> " +
     (checkoutCounts.estimated
       ? checkoutCounts.estimated + " checkout record(s) use an estimated shift end. Hours that include these records are recorded durations, not fully verified time."
@@ -7624,7 +7700,7 @@ function openVolunteerReport(
     (checkoutCounts.custom ? " " + checkoutCounts.custom + " custom/admin checkout record(s) are also reported separately." : "") +
     (lateNoCheckin ? " " + lateNoCheckin + " registration(s) were marked late but have no check-in timestamp." : "") +
     "</div>";
-  noteToc("Checkout quality", "Checkout methods, estimated or custom times, and age confirmation at signup.");
+  noteToc("Checkout quality", "Checkout methods and data quality by shift assignment, plus age confirmation counted once per distinct person.");
   pages.push(makePage(
     "05 / Checkout quality", "Checkout records and signup profile",
     "Review how attendance was closed out and the age information reported at signup.",
