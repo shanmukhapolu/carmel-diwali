@@ -6980,7 +6980,6 @@ function openVolunteerReport(
   }));
 
   const expected = reportRecords.length;
-  const people = new Set();
   const personMap = new Map();
   const positionMap = new Map();
   const shiftMap = new Map();
@@ -7093,7 +7092,6 @@ function openVolunteerReport(
 
   reportRecords.forEach((record) => {
     const personKey = nameKey(record);
-    people.add(personKey);
 
     if (!personMap.has(personKey)) {
       const displayName = [
@@ -7637,8 +7635,8 @@ function openVolunteerReport(
 
   const insightPageContent =
     "<div class='insight-grid'>" +
-    (insights.join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
-    "</div><div class='note-box'><strong>Counting notes:</strong> distinct people are normalized by first and last name. A person who attended one shift but missed another counts as an attendee and also as someone who missed at least one shift. Role and shift assignment counts are reported separately and can exceed the distinct-person total.</div>";
+    (insights.slice(0, 6).join("") || "<p class='empty'>Not enough attendance data to generate specific findings.</p>") +
+    "</div><div class='note-box'><strong>Counting notes:</strong> these findings prioritize distinct people grouped by normalized first and last name. A person who attended one shift but missed another counts as an attendee and also as someone who missed at least one shift. Role and shift assignment counts are reported separately and can exceed the distinct-person total. Detailed checkout and duration findings appear in their own sections.</div>";
   noteToc("Key findings", "Main patterns and observations drawn from the attendance records.");
   pages.push(makePage(
     "02 / Key findings", "What stands out",
