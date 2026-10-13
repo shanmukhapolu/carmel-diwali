@@ -373,8 +373,8 @@ function renderDetail() {
     (sum.all / 60).toFixed(2) + "'><small>Calculated from valid check-in and checkout timestamps. Adjust only after reviewing exceptions.</small></div>" +
     "<div class='verification-field verification-field-wide'><label for='verification-roles'>Role(s) / contribution</label><input id='verification-roles' value='" +
     esc(roleText) + "'></div><div class='verification-field verification-field-wide'><label for='verification-description'>Service description</label><textarea id='verification-description' rows='3'>" + esc(serviceDescription) + "</textarea></div>" +
-    "<div class='verification-field'><label for='verification-signer'>Authorized signer's name</label><input id='verification-signer' placeholder='Enter the organizer signing this document' autocomplete='off'></div>" +
-    "<div class='verification-field'><label for='verification-title'>Signer's title</label><input id='verification-title' value='Volunteer Coordinator, Carmel Diwali Festival'></div></div>" +
+    "<div class='verification-field'><label for='verification-signer'>Authorized signer's name</label><input id='verification-signer' value='Sonal Sanghani' autocomplete='off'></div>" +
+    "<div class='verification-field'><label for='verification-title'>Signer's title</label><input id='verification-title' value='Volunteer Coordinator'></div></div>" +
     "<p id='verification-document-error' class='error' role='alert'></p><div class='verification-actions'><button id='verification-generate-letter' type='button' class='secondary'>Generate verification letter</button><button id='verification-generate-certificate' type='button' class='primary'>Generate certificate</button></div></section>";
 
   $("verification-change-person")?.addEventListener("click", () => {
@@ -404,6 +404,8 @@ function generateDocument(kind) {
   const description = $("verification-description")?.value.trim() || "";
   const signer = $("verification-signer")?.value.trim() || "";
   const signerTitle = $("verification-title")?.value.trim() || "";
+  const rawRoleParts = role.split(",").map((item) => item.trim()).filter(Boolean);
+  const certificateRoleLabel = rawRoleParts.length > 1 ? "MULTIPLE ROLES" : (rawRoleParts[0] || "VOLUNTEER");
   const hours = Number($("verification-hours")?.value);
   const error = $("verification-document-error");
 
@@ -437,15 +439,18 @@ function generateDocument(kind) {
 
   let page = "";
   if (isCertificate) {
-    page = "<main class='certificate'><div class='frame'></div><div class='certificate-inner'>" +
-      "<header class='festival-lockup'><div class='brand-kicker'>CARMEL DIWALI FESTIVAL</div><div class='festival-subline'>Carmel, Indiana</div></header>" +
-      "<div class='overline'>VOLUNTEER RECOGNITION</div><h1>Certificate of Volunteer Service</h1><p class='intro'>Presented to</p>" +
-      "<div class='recipient'>" + esc(name) + "</div>" +
-      "<p class='main-copy'>In recognition of <strong>" + esc(hourText) + "</strong> of volunteer service with <strong>" + esc(CONFIG.eventName) + "</strong>.</p>" +
-      "<p class='certificate-roles'><strong>Role(s):</strong> " + esc(role || "Volunteer") + "</p>" +
-      "<p class='certificate-note'>" + esc(descriptionText) + "</p>" +
-      "<p class='event-line'>" + esc(eventDate) + " · " + esc(CONFIG.location) + "</p>" +
-      "<div class='certificate-bottom'>" + certificateSignoff + certificateDate + "</div></div></main>";
+    page = "<main class='certificate ornate-certificate'>" +
+      "<img class='certificate-background' src='/assets/diwali-certificate-background.jpg' alt='' />" +
+      "<div class='certificate-overlay certificate-recipient'>" + esc(name) + "</div>" +
+      "<div class='certificate-overlay certificate-hours'>In recognition of <strong>" + esc(hourText) + "</strong> of dedicated volunteer service<br>at the Carmel Diwali Festival of Lights.</div>" +
+      "<div class='certificate-overlay certificate-role'>ROLE: " + esc(certificateRoleLabel.toUpperCase()) + "</div>" +
+      "<div class='certificate-overlay certificate-description'>" + esc(descriptionText) + "</div>" +
+      "<div class='certificate-overlay certificate-event-line'>" + esc((eventDate + " | " + CONFIG.location).toUpperCase()) + "</div>" +
+      "<div class='certificate-overlay certificate-signer-script'>" + esc(signer) + "</div>" +
+      "<div class='certificate-overlay certificate-signer-name'>" + esc(signer) + "</div>" +
+      "<div class='certificate-overlay certificate-signer-title'>" + esc(signerTitle) + "</div>" +
+      "<div class='certificate-overlay certificate-issue-date'>" + esc(issueDate) + "</div>" +
+      "</main>";
   } else {
     page = "<main class='letter'><div class='letter-brand'><div class='monogram'>CD</div><div><strong>" +
       esc(CONFIG.eventName) + "</strong><span>Volunteer Service Verification</span></div></div><div class='accent'></div>" +
@@ -473,35 +478,39 @@ function generateDocument(kind) {
   ];
 
   const certificateCss = `
+
     @page{size:Letter landscape;margin:0}
-    .certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;background:#fff;color:#242033;box-shadow:none;overflow:hidden;break-after:avoid;page-break-after:avoid}
-    .certificate .frame{position:absolute;inset:.22in;border:1.5px solid #6b3a80;box-shadow:none}
-    .certificate .frame:before{display:none}
-    .certificate-inner{position:relative;width:100%;height:7.78in;min-height:7.78in;padding:.36in .48in .22in;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;background:#fff;border:0;overflow:visible}
-    .festival-lockup{display:block;width:100%;padding:0 0 10px;border-bottom:1.5px solid #c5a35b;text-align:center}
-    .brand-kicker{color:#51245f;letter-spacing:.12em;font:700 13pt Arial,sans-serif}
-    .festival-subline{margin-top:3px;font-size:9pt;letter-spacing:.03em;color:#665d6b}
-    .certificate .overline{margin:17px 0 0;color:#665d6c;letter-spacing:.1em;font-size:8pt;font-weight:700}
-    .certificate h1{font:700 26pt/1.15 Inter,Arial,sans-serif;color:#30223a;margin:13px 0 9px;letter-spacing:0}
-    .certificate .intro{margin:0;color:#655d6c;font-size:11pt}
-    .certificate .recipient{font:700 28pt/1.12 Arial,sans-serif;color:#41214f;border-bottom:1px solid #c8b8d0;width:88%;max-width:100%;padding:10px 10px 12px;margin:10px 0 12px;overflow-wrap:anywhere}
-    .certificate .main-copy{max-width:9.4in;margin:12px auto 0;color:#38313d;font-family:Inter,Arial,sans-serif;font-size:13pt;line-height:1.5}
-    .certificate-roles{margin:11px auto 0;font-size:10.5pt;line-height:1.45;color:#3f3546}
-    .certificate-note{max-width:9.35in;margin:13px auto 0;padding:0;border:0;font-family:Inter,Arial,sans-serif;font-size:11.5pt;line-height:1.5;color:#4b4351}
-    .certificate .event-line{margin:13px 0 0;font-family:Inter,Arial,sans-serif;font-size:11pt;line-height:1.4;color:#655d6c}
-    .certificate-bottom{width:82%;display:grid;grid-template-columns:1fr 1fr;gap:1.2in;align-items:end;margin-top:0;padding-top:18px;padding-bottom:.06in;min-height:1.15in}
-    .certificate-bottom .signature{text-align:center;min-width:0}
-    .certificate-bottom .signature-rule{position:relative;z-index:0;width:auto;max-width:2.8in;margin:0 auto 5px;border-color:#806a8e}
-    .certificate-bottom .signature-name{display:none}
-    .certificate-bottom .signature-handwriting{font-family:'Allura','Dancing Script','Segoe Script',cursive;font-size:30pt;line-height:.9;font-weight:400;color:#34213d;white-space:nowrap;position:relative;z-index:1;margin:0 auto -8px;transform:none}
-    .certificate-bottom .signature .signature-printed-name{font-family:Inter,Arial,sans-serif;font-size:10pt;font-weight:700;color:#35273d;margin-top:0}
-    .certificate-bottom .signature strong{font-size:10pt;color:#35273d}
-    .certificate-bottom .signature span{font-family:Inter,Arial,sans-serif;font-size:8.5pt;line-height:1.4;color:#5f5567}
-    .certificate-date .date-issued-value{display:block;font-family:Inter,Arial,sans-serif;font-size:11pt;line-height:1.2;color:#35273d;margin:0 auto -1px;font-weight:700}
-    .certificate-date .signature-rule{margin:0 auto 5px}
-    .certificate-date span{display:block;font-size:9pt;letter-spacing:.03em}
-    @media screen and (max-width:900px){.certificate{width:11in;height:8.5in;min-height:8.5in;margin:20px auto;padding:.3in .42in}.certificate-inner{height:7.78in;min-height:7.78in;padding:.36in .48in .22in}.certificate-bottom{width:82%;gap:1.2in}.certificate .recipient{width:88%;font-size:28pt}}
-    @media print{.certificate{width:11in;height:8.5in;min-height:8.5in;margin:0;padding:.3in .42in;overflow:hidden}.certificate-inner{height:7.78in;min-height:7.78in;overflow:visible}.certificate .frame{inset:.22in}}
+    .certificate.ornate-certificate{position:relative;isolation:isolate;box-sizing:border-box;width:11in;height:8.5in;min-width:11in;min-height:8.5in;margin:20px auto;padding:0;overflow:hidden;background:#fdfaf2;color:#391344;box-shadow:0 8px 30px rgba(35,15,47,.12);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .certificate-background{position:absolute;z-index:-1;left:0;top:0;display:block;width:100%;height:100%;max-width:none;object-fit:fill}
+    .certificate-overlay{position:absolute;z-index:1;display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin:0;padding:0;text-align:center}
+    .certificate-recipient{left:27%;width:46%;top:42.6%;height:8.6%;font:700 35pt/1.08 Georgia,'Times New Roman',serif;color:#36103f;overflow-wrap:anywhere}
+    .certificate-hours{left:26%;width:48%;top:54.5%;height:7.3%;flex-direction:column;font:11.3pt/1.28 Georgia,'Times New Roman',serif;color:#45294c}
+    .certificate-hours strong{font-weight:700;color:#36103f}
+    .certificate-role{left:36%;width:28%;top:63.2%;height:4.2%;font:700 11pt/1.1 Georgia,'Times New Roman',serif;letter-spacing:.12em;color:#54205b;white-space:nowrap;overflow:hidden}
+    .certificate-description{left:22%;width:56%;top:68.1%;height:7.1%;font:10.2pt/1.28 Georgia,'Times New Roman',serif;color:#4b304e;overflow:hidden;padding:0 2px}
+    .certificate-event-line{left:23%;width:54%;top:77.1%;height:3.4%;font:700 8.9pt/1.1 Georgia,'Times New Roman',serif;letter-spacing:.12em;color:#5f145e;white-space:nowrap;overflow:hidden}
+    .certificate-signer-script{left:18%;width:28%;top:81.9%;height:5.8%;font:27pt/1 'Allura','Dancing Script','Segoe Script',cursive;color:#351143;white-space:nowrap;overflow:hidden}
+    .certificate-signer-name{left:18%;width:28%;top:89.2%;height:2.1%;font:700 9.2pt/1.1 Georgia,'Times New Roman',serif;color:#4b1b4e}
+    .certificate-signer-title{left:18%;width:28%;top:91.2%;height:2%;font:9pt/1.1 Georgia,'Times New Roman',serif;color:#67536d}
+    .certificate-issue-date{left:60%;width:22%;top:84.2%;height:3.4%;font:600 11pt/1.1 Georgia,'Times New Roman',serif;color:#40164e;white-space:nowrap}
+    @media screen and (max-width:1100px){
+      .certificate.ornate-certificate{width:calc(100vw - 24px);height:auto;min-width:0;min-height:0;aspect-ratio:1320 / 1020;margin:16px auto}
+      .certificate-recipient{font-size:3.05vw}
+      .certificate-hours{font-size:1.05vw;line-height:1.26}
+      .certificate-role{font-size:1.03vw}
+      .certificate-description{font-size:.95vw}
+      .certificate-event-line{font-size:.78vw}
+      .certificate-signer-script{font-size:2.45vw}
+      .certificate-signer-name{font-size:.78vw}
+      .certificate-signer-title{font-size:.76vw}
+      .certificate-issue-date{font-size:.9vw}
+    }
+    @media print{
+      html,body{width:11in;height:8.5in;margin:0;padding:0;background:#fff}
+      .toolbar{display:none!important}
+      .certificate.ornate-certificate{width:11in;height:8.5in;min-width:11in;min-height:8.5in;margin:0;padding:0;overflow:hidden;box-shadow:none;break-after:avoid;page-break-after:avoid}
+      .certificate-background{width:11in;height:8.5in}
+    }
   `;
   const html = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>" +
     esc(CONFIG.eventName) + " · " + (isCertificate ? "Volunteer Certificate" : "Hours Verification Letter") +
