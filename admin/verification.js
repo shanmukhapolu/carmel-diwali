@@ -308,8 +308,23 @@ function personalizedServiceDescription(items) {
     return taskByName[norm(role)] ||
       "contributed to the work and responsibilities of the " + role + " team";
   })));
-  const taskSentences = tasks.map((task) => task.charAt(0).toUpperCase() + task.slice(1) + ".");
-  return completeServiceDescription(taskSentences.join(" "));
+
+  if (!tasks.length) {
+    return completeServiceDescription(
+      "This volunteer contributed to the work and responsibilities of the volunteer team"
+    );
+  }
+
+  const firstTask = tasks[0].charAt(0).toLowerCase() + tasks[0].slice(1);
+  const additionalTasks = tasks.slice(1).map((task) => {
+    const phrase = task.charAt(0).toLowerCase() + task.slice(1);
+    return "They also " + phrase + ".";
+  });
+  const description = "This volunteer " + firstTask + ". " +
+    additionalTasks.join(" ") +
+    (additionalTasks.length ? " " : "") +
+    "Their time and effort helped make " + CONFIG.eventName + " a success.";
+  return completeServiceDescription(description);
 }
 
 function volunteerShiftSummary(items) {
@@ -481,7 +496,7 @@ function generateDocument(kind) {
   let page = "";
   if (isCertificate) {
     page = "<main class='certificate ornate-certificate'>" +
-      "<img class='certificate-background' src='/assets/diwali-certificate-background.jpg' alt='' />" +
+      "<img class='certificate-background' src='/assets/diwali-certificate-background.png' alt='' />" +
       "<div class='certificate-overlay certificate-recipient' style='font-size:" +
       certificateNameFont.toFixed(1) + "pt'>" + esc(name) + "</div>" +
       "<div class='certificate-overlay certificate-hours'>In recognition of <strong>" + esc(hourText) + "</strong> of dedicated volunteer service<br>at the Carmel Diwali Festival of Lights.</div>" +
@@ -542,7 +557,8 @@ function generateDocument(kind) {
     .certificate-recipient{left:9%;width:82%;top:42.6%;height:8.6%;font:700 35pt/1.08 Georgia,'Times New Roman',serif;color:#36103f;white-space:nowrap;overflow:hidden;overflow-wrap:normal}
     .certificate-hours{left:26%;width:48%;top:54.5%;height:7.3%;flex-direction:column;font:11.3pt/1.28 Georgia,'Times New Roman',serif;color:#45294c}
     .certificate-hours strong{font-weight:700;color:#36103f}
-    .certificate-role{left:33%;width:34%;top:63.3%;height:auto;min-height:4.8%;max-height:9.6%;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:.08in .16in;border:.8px solid #d0b56d;border-radius:12px;background:#fffaf0;color:#54205b;font:700 10pt/1.12 'Cormorant Garamond',Georgia,serif;letter-spacing:.035em;text-align:center;white-space:normal;overflow:visible;overflow-wrap:anywhere;box-shadow:none}
+    .certificate-role{position:relative;left:33%;width:34%;top:63.3%;height:auto;min-height:4.8%;max-height:9.6%;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:.12in .18in;border:1.4px solid #b38a35;border-radius:9px;background:#fffaf0;color:#45184f;font:700 11pt/1.14 'Cormorant Garamond',Georgia,serif;letter-spacing:.035em;text-align:center;white-space:normal;overflow:visible;overflow-wrap:anywhere;box-shadow:inset 0 0 0 3px #fffaf0,inset 0 0 0 4px rgba(179,138,53,.28)}
+    .certificate-role::before{content:'';position:absolute;inset:4px;border:1px solid rgba(179,138,53,.34);border-radius:5px;pointer-events:none}
     .certificate-role-multiple{letter-spacing:.015em;line-height:1.12}
     .certificate-description{left:22%;width:56%;top:68.1%;height:7.1%;font:10.2pt/1.28 Georgia,'Times New Roman',serif;color:#4b304e;overflow:hidden;padding:0 2px}
     .certificate-event-line{left:23%;width:54%;top:77.1%;height:3.4%;font:700 8.9pt/1.1 Georgia,'Times New Roman',serif;letter-spacing:.12em;color:#5f145e;white-space:nowrap;overflow:hidden}
