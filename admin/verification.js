@@ -541,7 +541,7 @@ function generateDocument(kind) {
     esc(CONFIG.eventName) + " · " + (isCertificate ? "Volunteer Certificate" : "Hours Verification Letter") +
     "</title><link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>" +
     "<link href='https://fonts.googleapis.com/css2?family=Allura&family=Dancing+Script:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'><style>" +
-    css + (isCertificate ? certificateCss : "") + "</style></head><body><div class='toolbar'><span>" +
+    css.join("\n") + (isCertificate ? certificateCss : "") + "</style></head><body><div class='toolbar'><span>" +
     (isCertificate ? "Volunteer service certificate" : "Volunteer service verification letter") +
     " · Review, then print or save as PDF</span><button onclick='window.print()'>Print / Save PDF</button></div>" +
     page + "<script>window.addEventListener('load',()=>{const printWhenReady=()=>setTimeout(()=>{window.focus();window.print();},100);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(printWhenReady).catch(printWhenReady)}else{printWhenReady()}});<\/script></body></html>";
