@@ -428,12 +428,16 @@ function generateDocument(kind) {
     Math.ceil(certificateRoleText.length / Math.max(34, certificateRoleWidth * 1.6))
   );
   const certificateRoleHeight = Math.min(9.6, 3.2 + estimatedRoleLines * 1.7);
-  const certificateRoleTop = 62.3;
+  // Leave a clear gap below the service sentence and let the role panel cover
+  // the smaller pill baked into the background artwork.
+  const certificateRoleTop = 63.3;
+  const certificateRoleGap = 0.9;
   const certificateDescriptionTop = Math.min(
     73.2,
-    Math.max(68.1, certificateRoleTop + certificateRoleHeight + 0.8)
+    Math.max(68.8, certificateRoleTop + certificateRoleHeight + certificateRoleGap)
   );
-  const certificateDescriptionHeight = Math.max(2.8, 77.1 - certificateDescriptionTop - 1.3);
+  // Preserve an even breathing space before the event/date line.
+  const certificateDescriptionHeight = Math.max(2.8, 77.1 - certificateDescriptionTop - 1.2);
 
   // Keep long recipient names on one line by shrinking the type to fit the
   // available width rather than allowing a line break.
@@ -538,7 +542,7 @@ function generateDocument(kind) {
     .certificate-recipient{left:9%;width:82%;top:42.6%;height:8.6%;font:700 35pt/1.08 Georgia,'Times New Roman',serif;color:#36103f;white-space:nowrap;overflow:hidden;overflow-wrap:normal}
     .certificate-hours{left:26%;width:48%;top:54.5%;height:7.3%;flex-direction:column;font:11.3pt/1.28 Georgia,'Times New Roman',serif;color:#45294c}
     .certificate-hours strong{font-weight:700;color:#36103f}
-    .certificate-role{left:33%;width:34%;top:62.3%;height:auto;min-height:4.8%;max-height:9.6%;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:.08in .16in;border:1.2px solid #c6a34d;border-radius:14px;background:#fff9e8;color:#54205b;font:700 10pt/1.12 'Cormorant Garamond',Georgia,serif;letter-spacing:.035em;text-align:center;white-space:normal;overflow:visible;overflow-wrap:anywhere;box-shadow:0 0 0 2px rgba(255,249,232,.72)}
+    .certificate-role{left:33%;width:34%;top:63.3%;height:auto;min-height:4.8%;max-height:9.6%;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:.08in .16in;border:.8px solid #d0b56d;border-radius:12px;background:#fffaf0;color:#54205b;font:700 10pt/1.12 'Cormorant Garamond',Georgia,serif;letter-spacing:.035em;text-align:center;white-space:normal;overflow:visible;overflow-wrap:anywhere;box-shadow:none}
     .certificate-role-multiple{letter-spacing:.015em;line-height:1.12}
     .certificate-description{left:22%;width:56%;top:68.1%;height:7.1%;font:10.2pt/1.28 Georgia,'Times New Roman',serif;color:#4b304e;overflow:hidden;padding:0 2px}
     .certificate-event-line{left:23%;width:54%;top:77.1%;height:3.4%;font:700 8.9pt/1.1 Georgia,'Times New Roman',serif;letter-spacing:.12em;color:#5f145e;white-space:nowrap;overflow:hidden}
