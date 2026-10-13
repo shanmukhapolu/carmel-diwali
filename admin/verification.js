@@ -481,7 +481,7 @@ function generateDocument(kind) {
 
     @page{size:Letter landscape;margin:0}
     .certificate.ornate-certificate{position:relative;isolation:isolate;box-sizing:border-box;width:11in;height:8.5in;min-width:11in;min-height:8.5in;margin:20px auto;padding:0;overflow:hidden;background:#fdfaf2;color:#391344;box-shadow:0 8px 30px rgba(35,15,47,.12);-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .certificate-background{position:absolute;z-index:-1;left:0;top:0;display:block;width:100%;height:100%;max-width:none;object-fit:fill}
+    .certificate-background{position:absolute;z-index:0;left:0;top:0;display:block;width:100%;height:100%;max-width:none;object-fit:fill}
     .certificate-overlay{position:absolute;z-index:1;display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin:0;padding:0;text-align:center}
     .certificate-recipient{left:27%;width:46%;top:42.6%;height:8.6%;font:700 35pt/1.08 Georgia,'Times New Roman',serif;color:#36103f;overflow-wrap:anywhere}
     .certificate-hours{left:26%;width:48%;top:54.5%;height:7.3%;flex-direction:column;font:11.3pt/1.28 Georgia,'Times New Roman',serif;color:#45294c}
