@@ -609,7 +609,8 @@ function bindFilters() {
     "search",
     "filter-position",
     "filter-shift",
-    "filter-status"
+    "filter-status",
+    "filter-age"
   ].forEach((id) => {
     $(id)?.addEventListener(
       "input",
@@ -641,7 +642,8 @@ function bindFilters() {
         "search",
         "filter-position",
         "filter-shift",
-        "filter-status"
+        "filter-status",
+        "filter-age"
       ].forEach((id) => {
         if ($(id)) {
           $(id).value = "";
@@ -1026,6 +1028,10 @@ function filteredRecords() {
 
   const status =
     $("filter-status")
+      ?.value || "";
+
+  const age =
+    $("filter-age")
       ?.value || "";
 
   return registrations.filter(
