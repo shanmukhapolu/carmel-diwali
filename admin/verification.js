@@ -272,7 +272,7 @@ function renderResults() {
       return "<button type='button' class='verification-candidate " +
         (selected?.key === group.key ? "selected" : "") + "' data-verification-key='" + esc(group.key) + "'>" +
         "<span class='verification-avatar'>" + esc((group.name[0] || "?").toUpperCase()) + "</span>" +
-        "<span class='verification-candidate-main'><strong>" + esc(group.name) + "</strong><span>" +
+        "<span class='verification-candidate-main'><strong>" + esc(group.name) + (group.isUnder18 ? " <span class='verification-age-badge'>UNDER 18</span>" : "") + "</strong><span>" +
         esc(roles.join(" · ")) + "</span><small>Email: " + esc(group.emails.join(", ") || "Not provided") +
         "</small><small>Phone: " + esc(group.phones.join(", ") || "Not provided") +
         "</small><small>" + group.records.length + " shift record(s)</small></span>" +
