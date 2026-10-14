@@ -2885,3 +2885,67 @@ tbody tr:last-child td {
     width: 100%;
   }
 }
+
+
+/* Volunteer verification workflow additions */
+.verification-filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.verification-age-badge {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #fff0d9;
+  color: #8a4b08;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  vertical-align: middle;
+}
+.verification-status-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin: 12px 0 0;
+}
+.verification-status-controls label,
+.verification-shift-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.verification-shift-select {
+  flex-direction: column;
+  justify-content: center;
+  min-width: 54px;
+  padding: 0 6px;
+}
+.verification-shift-select input {
+  width: 17px;
+  height: 17px;
+}
+.verification-shift-row {
+  gap: 10px;
+}
+.verification-copy-email {
+  margin-left: 5px;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .verification-status-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .verification-shift-select {
+    min-width: 44px;
+    font-size: 11px;
+  }
+}
