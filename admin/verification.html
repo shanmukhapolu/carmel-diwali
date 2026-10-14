@@ -34,7 +34,11 @@
       <div class="verification-search-wrap">
         <label for="verification-search">Find a volunteer</label>
         <input id="verification-search" type="search" autocomplete="off" placeholder="Search by volunteer name, email, phone, or registration ID">
-        <p class="muted verification-search-note">Results are grouped by volunteer name, not phone number or email. If a shared contact matches multiple people, choose the correct volunteer.</p>
+        <div class="toolbar verification-filter-row">
+          <div><label for="verification-age-filter">Age</label><select id="verification-age-filter"><option value="">All volunteers</option><option value="under18">Under 18</option><option value="18plus">18 and older</option></select></div>
+          <div><label for="verification-completion-filter">Workflow status</label><select id="verification-completion-filter"><option value="">All statuses</option><option value="incomplete">Still to do</option><option value="complete">Verification + email complete</option></select></div>
+        </div>
+        <p class="muted verification-search-note">Each person appears once, with their matching shifts grouped together. Use the filters to find under-18 volunteers and track completed verification and certificate emails.</p>
       </div>
     </section>
 
