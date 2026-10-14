@@ -1083,6 +1083,13 @@ function filteredRecords() {
         return false;
       }
 
+      const isUnder18 =
+        record.is18OrOlder === false ||
+        record.is18OrOlder === "no" ||
+        record.is18OrOlder === "false";
+      if (age === "under18" && !isUnder18) return false;
+      if (age === "18plus" && isUnder18) return false;
+
       return true;
     }
   );
