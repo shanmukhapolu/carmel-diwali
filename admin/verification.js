@@ -10,7 +10,9 @@ import {
   doc,
   getDocs,
   orderBy,
-  query
+  query,
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +21,7 @@ const TIME_ZONE_LABEL = CONFIG.timeZoneLabel || "Eastern Time";
 let records = [];
 let groups = [];
 let selected = null;
+let verificationStatuses = new Map();
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -55,10 +58,12 @@ function normalizeShift(record) {
 }
 
 async function loadRecords() {
-  const [registrationSnap, checkinSnap] = await Promise.all([
+  const [registrationSnap, checkinSnap, verificationSnap] = await Promise.all([
     getDocs(query(collection(db, "registrations"), orderBy("createdAt", "desc"))),
-    getDocs(collection(db, "checkins"))
+    getDocs(collection(db, "checkins")),
+    getDocs(collection(db, "volunteerVerification"))
   ]);
+  verificationStatuses = new Map(verificationSnap.docs.map((item) => [item.id, item.data()]));
   const checkins = new Map(checkinSnap.docs.map((item) => [
     item.id,
     serialize({ id: item.id, ...item.data() })
@@ -98,7 +103,12 @@ function groupPeople(items) {
       (dateValue(a.createdAt)?.getTime() || 0) - (dateValue(b.createdAt)?.getTime() || 0)),
     emails: Array.from(group.emails),
     phones: Array.from(group.phones)
-  })).sort((a, b) => a.name.localeCompare(b.name));
+  })).map((group) => {
+    group.isUnder18 = group.records.some((record) => record.is18OrOlder === false || record.is18OrOlder === "no" || record.is18OrOlder === "false");
+    group.status = verificationStatuses.get(encodeURIComponent(group.key)) || {};
+    group.includedShiftIds = group.records.filter((record) => (duration(record)?.minutes || 0) > 0).map((record) => record.id);
+    return group;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function positionName(record) {
@@ -233,15 +243,16 @@ function renderResults() {
   const root = $("verification-results");
   if (!root) return;
   const queryText = $("verification-search")?.value.trim() || "";
-  if (!queryText) {
-    root.innerHTML = "<section class='panel verification-empty'><div class='verification-empty-icon'>⌕</div><h2>Find a volunteer</h2><p>Search by volunteer name, email, phone number, or registration ID. Results are grouped by name, with all matching shifts together.</p></section>";
-    if (selected) {
-      selected = null;
-      renderDetail();
-    }
-    return;
-  }
-  const found = groups.filter((group) => matches(group, queryText));
+  const ageFilter = $("verification-age-filter")?.value || "";
+  const completionFilter = $("verification-completion-filter")?.value || "";
+  const found = groups.filter((group) => {
+    if (queryText && !matches(group, queryText)) return false;
+    if (ageFilter === "under18" && !group.isUnder18) return false;
+    if (ageFilter === "18plus" && group.isUnder18) return false;
+    if (completionFilter === "incomplete" && group.status?.verificationComplete && group.status?.certificateEmailed) return false;
+    if (completionFilter === "complete" && !(group.status?.verificationComplete && group.status?.certificateEmailed)) return false;
+    return true;
+  });
   if (!found.length) {
     root.innerHTML = "<section class='panel verification-empty'><h2>No matching volunteers</h2><p>Check the spelling or try another name, email, or phone number.</p></section>";
     if (selected) {
@@ -261,7 +272,7 @@ function renderResults() {
       return "<button type='button' class='verification-candidate " +
         (selected?.key === group.key ? "selected" : "") + "' data-verification-key='" + esc(group.key) + "'>" +
         "<span class='verification-avatar'>" + esc((group.name[0] || "?").toUpperCase()) + "</span>" +
-        "<span class='verification-candidate-main'><strong>" + esc(group.name) + "</strong><span>" +
+        "<span class='verification-candidate-main'><strong>" + esc(group.name) + (group.isUnder18 ? " <span class='verification-age-badge'>UNDER 18</span>" : "") + "</strong><span>" +
         esc(roles.join(" · ")) + "</span><small>Email: " + esc(group.emails.join(", ") || "Not provided") +
         "</small><small>Phone: " + esc(group.phones.join(", ") || "Not provided") +
         "</small><small>" + group.records.length + " shift record(s)</small></span>" +
@@ -341,19 +352,22 @@ function renderDetail() {
     return;
   }
 
-  const sum = hoursSummary(selected.records);
-  const roleText = Array.from(new Set(selected.records.map(positionName))).join(", ");
-  const serviceDescription = personalizedServiceDescription(selected.records);
+  if (!Array.isArray(selected.includedShiftIds)) selected.includedShiftIds = selected.records.filter((record) => (duration(record)?.minutes || 0) > 0).map((record) => record.id);
+  const includedRecords = selected.records.filter((record) => selected.includedShiftIds.includes(record.id));
+  const sum = hoursSummary(includedRecords);
+  const roleText = Array.from(new Set(includedRecords.map(positionName))).join(", ");
+  const serviceDescription = personalizedServiceDescription(includedRecords);
   const estimated = sum.estimated > 0;
   const custom = sum.custom > 0;
   const warning = sum.incomplete > 0 || estimated || custom;
   const shiftMarkup = selected.records.map((record, index) => {
     const time = duration(record);
+    const included = selected.includedShiftIds.includes(record.id);
     const inAt = dateValue(record.checkin?.checkedInAt);
     const outAt = dateValue(record.checkin?.checkedOutAt);
     const state = time?.method === "estimated_shift_end" ? "estimated" : time ? "recorded" : "incomplete";
     const timeText = time ? showHours(time.minutes) + " · " + checkoutLabel(record) : checkoutLabel(record);
-    return "<article class='verification-shift-row'><div class='verification-shift-index'>" + (index + 1) +
+    return "<article class='verification-shift-row'><label class='verification-shift-select'><input type='checkbox' data-include-shift='" + esc(record.id) + "'" + (included ? " checked" : "") + "><span>Include</span></label><div class='verification-shift-index'>" + (index + 1) +
       "</div><div class='verification-shift-main'><strong>" + esc(positionName(record)) +
       "</strong><span>" + esc(shiftName(record)) + "</span><small>" + esc(stateLabel(record)) +
       "</small></div><div class='verification-shift-times'><span><b>In</b> " +
@@ -365,9 +379,9 @@ function renderDetail() {
 
   root.innerHTML = "<section class='panel verification-volunteer-summary'><div class='verification-profile-head'><div><p class='eyebrow'>Selected volunteer</p><h2>" +
     esc(selected.name) + "</h2><p class='muted'>" + selected.records.length + " shift record(s) · " +
-    esc(roleText) + "</p><p class='verification-contact-detail'>Email: " + esc(selected.emails.join(", ") || "Not provided") +
-    " · Phone: " + esc(selected.phones.join(", ") || "Not provided") +
-    "</p></div><button id='verification-change-person' type='button' class='secondary'>Choose another</button></div>" +
+    (selected.isUnder18 ? "<strong class='verification-age-badge'>UNDER 18</strong> · " : "") + esc(roleText || "No shifts selected") + "</p><p class='verification-contact-detail'>Email: " + esc(selected.emails.join(", ") || "Not provided") +
+    " <button type='button' class='secondary verification-copy-email' data-copy-email='" + esc(selected.emails[0] || "") + "'>Copy email</button> · Phone: " + esc(selected.phones.join(", ") || "Not provided") +
+    "</p><p class='verification-status-controls'><label><input type='checkbox' id='verification-complete' " + (selected.status?.verificationComplete ? "checked" : "") + "> Verification complete</label><label><input type='checkbox' id='certificate-emailed' " + (selected.status?.certificateEmailed ? "checked" : "") + "> Certificate emailed</label><span id='verification-save-status' class='muted'>Status is tracked in Firebase</span></p></div><button id='verification-change-person' type='button' class='secondary'>Choose another</button></div>" +
     "<div class='verification-stat-grid'><div class='verification-stat'><span>Recorded time</span><strong>" +
     esc(showHours(sum.all)) + "</strong><small>" + sum.timed + " timed shifts</small></div><div class='verification-stat'><span>Actual checkout time</span><strong>" +
     esc(showHours(sum.actual)) + "</strong><small>Not estimated</small></div><div class='verification-stat'><span>Estimated duration</span><strong>" +
@@ -380,18 +394,50 @@ function renderDetail() {
       (custom ? showHours(sum.custom) + " uses a custom/admin checkout time. " : "") +
       "The editable hours below apply to the generated document only.</div>" :
       "<div class='verification-clear-note'><strong>Attendance timestamps are complete.</strong> Review the totals and document details before issuing.</div>") +
-    "<h3 class='verification-subheading'>Attendance by shift</h3><div class='verification-shift-list'>" + shiftMarkup + "</div></section>" +
+    "<h3 class='verification-subheading'>Attendance by shift</h3><p class='muted'>Select only the shifts you want included in certified hours, roles, and description. Zero-hour shifts are excluded by default.</p><div class='verification-shift-list'>" + shiftMarkup + "</div></section>" +
     "<section class='panel verification-editor'><p class='eyebrow'>Document details</p><h2>Prepare a letter or certificate</h2>" +
     "<p class='muted'>Edits apply to the generated document only; the registration and attendance records remain unchanged. Correct attendance timestamps first through Check-In → EDIT TIMES when needed.</p>" +
     "<div class='verification-form-grid'><div class='verification-field'><label for='verification-name'>Name as it should appear</label><input id='verification-name' value='" +
     esc(selected.name) + "' autocomplete='off'></div><div class='verification-field'><label for='verification-hours'>Service hours to certify</label><input id='verification-hours' type='number' min='0' step='0.01' value='" +
-    (sum.all / 60).toFixed(2) + "'><small>Calculated from valid check-in and checkout timestamps. Adjust only after reviewing exceptions.</small></div>" +
+    (sum.all / 60).toFixed(2) + "'><small>Calculated from selected shifts with valid check-in and checkout timestamps. Adjust only after reviewing exceptions.</small></div>" +
     "<div class='verification-field verification-field-wide'><label for='verification-roles'>Role(s) / contribution</label><input id='verification-roles' value='" +
     esc(roleText) + "'><small>Separate multiple roles with commas, semicolons, or new lines. Each role will be listed on the generated document.</small></div><div class='verification-field verification-field-wide'><label for='verification-description'>Service description</label><textarea id='verification-description' rows='3'>" + esc(serviceDescription) + "</textarea></div>" +
     "<div class='verification-field'><label for='verification-signer'>Authorized signer's name</label><input id='verification-signer' value='Sonal Sanghani' autocomplete='off'></div>" +
     "<div class='verification-field'><label for='verification-title'>Signer's title</label><input id='verification-title' value='Volunteer Coordinator'></div></div>" +
     "<p id='verification-document-error' class='error' role='alert'></p><div class='verification-actions'><button id='verification-generate-letter' type='button' class='secondary'>Generate verification letter</button><button id='verification-generate-certificate' type='button' class='primary'>Generate certificate</button></div></section>";
 
+  root.querySelectorAll("[data-include-shift]").forEach((checkbox) => checkbox.addEventListener("change", () => {
+    const id = checkbox.dataset.includeShift;
+    selected.includedShiftIds = checkbox.checked ? Array.from(new Set([...selected.includedShiftIds, id])) : selected.includedShiftIds.filter((item) => item !== id);
+    renderDetail();
+  }));
+  root.querySelectorAll("[data-copy-email]").forEach((button) => button.addEventListener("click", async () => {
+    const email = button.dataset.copyEmail || "";
+    if (!email) return;
+    try { await navigator.clipboard.writeText(email); button.textContent = "Copied"; }
+    catch { button.textContent = "Copy failed"; }
+  }));
+  const saveVerificationStatus = async () => {
+    if (!selected) return;
+    const status = {
+      personKey: selected.key, personName: selected.name,
+      verificationComplete: $("verification-complete")?.checked || false,
+      certificateEmailed: $("certificate-emailed")?.checked || false,
+      updatedAt: serverTimestamp()
+    };
+    try {
+      await setDoc(doc(db, "volunteerVerification", encodeURIComponent(selected.key)), status, { merge: true });
+      selected.status = { verificationComplete: status.verificationComplete, certificateEmailed: status.certificateEmailed };
+      verificationStatuses.set(encodeURIComponent(selected.key), selected.status);
+      const statusNode = $("verification-save-status"); if (statusNode) statusNode.textContent = "Saved";
+      renderResults();
+    } catch (error) {
+      console.error("[Verification] Status save failed", error);
+      const statusNode = $("verification-save-status"); if (statusNode) statusNode.textContent = "Save failed; check permissions";
+    }
+  };
+  $("verification-complete")?.addEventListener("change", saveVerificationStatus);
+  $("certificate-emailed")?.addEventListener("change", saveVerificationStatus);
   $("verification-change-person")?.addEventListener("click", () => {
     selected = null;
     renderResults();
@@ -419,8 +465,11 @@ function generateDocument(kind) {
   const description = $("verification-description")?.value.trim() || "";
   const signer = $("verification-signer")?.value.trim() || "";
   const signerTitle = $("verification-title")?.value.trim() || "";
+  const selectedRoleSource = selected.includedShiftIds
+    ? selected.records.filter((record) => selected.includedShiftIds.includes(record.id)).map(positionName).join(", ")
+    : role;
   const rawRoleParts = Array.from(new Set(
-    role.split(/[,;\n]+/).map((item) => item.trim()).filter(Boolean)
+    selectedRoleSource.split(/[,;\n]+/).map((item) => item.trim()).filter(Boolean)
   ));
   const certificateRoleParts = rawRoleParts.length ? rawRoleParts : ["Volunteer"];
   const certificateRoleText = certificateRoleParts.map((item) => item.toUpperCase()).join(" · ");
@@ -483,7 +532,8 @@ function generateDocument(kind) {
   }).format(new Date());
   const eventDate = driveDate(CONFIG.eventDate);
   const hourText = hours.toLocaleString("en-US", { maximumFractionDigits: 2 }) + (hours === 1 ? " hour" : " hours");
-  const descriptionText = completeServiceDescription(description || personalizedServiceDescription(selected.records));
+  const includedRecords = selected.records.filter((record) => selected.includedShiftIds?.includes(record.id));
+  const descriptionText = completeServiceDescription(description || personalizedServiceDescription(includedRecords));
   const signoff = "<div class='signature'><div class='signature-name'>" + esc(signer) +
     "</div><div class='signature-rule'></div><strong>" + esc(signer) +
     "</strong><span>" + esc(signerTitle) + "</span></div>";
@@ -604,6 +654,8 @@ export async function initVerificationPage() {
   const results = $("verification-results");
   if (results) results.innerHTML = "<section class='panel'><p class='muted'>Loading volunteer attendance…</p></section>";
   $("verification-search")?.addEventListener("input", renderResults);
+  $("verification-age-filter")?.addEventListener("change", renderResults);
+  $("verification-completion-filter")?.addEventListener("change", renderResults);
   try {
     records = await loadRecords();
     groups = groupPeople(records);
