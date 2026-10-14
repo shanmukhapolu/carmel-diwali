@@ -654,6 +654,8 @@ export async function initVerificationPage() {
   const results = $("verification-results");
   if (results) results.innerHTML = "<section class='panel'><p class='muted'>Loading volunteer attendance…</p></section>";
   $("verification-search")?.addEventListener("input", renderResults);
+  $("verification-age-filter")?.addEventListener("change", renderResults);
+  $("verification-completion-filter")?.addEventListener("change", renderResults);
   try {
     records = await loadRecords();
     groups = groupPeople(records);
